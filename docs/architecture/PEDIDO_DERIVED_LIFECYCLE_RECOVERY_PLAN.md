@@ -1114,6 +1114,706 @@ The residual technical details of §9.7 remain open and are the subject of
 Implementation authorization lives only in `docs/governance/current-state.json`
 and §14.
 
+## 9.9 Proposed implementation-ready coordinated technical design
+
+```
+PROPOSED / AWAITING SUPERVISOR REVIEW
+IMPLEMENTATION NOT AUTHORIZED
+CUTOVER NOT AUTHORIZED
+```
+
+Revision C1 applied the twelve supervisor corrections of
+`NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C1`. This section converts the
+**accepted** functional specification of §9.1–§9.8 into an exact implementation
+plan and does not modify it.
+
+### 9.9.0 Measured facts this design rests on
+
+| # | Fact (measured read-only 2026-07-31) | Consequence |
+|---|---|---|
+| F1 | `registrar_recebimento_ordem_compra(p_ordem_id, p_idempotency_key, p_recebido_em, p_documento_ref, p_origem_tipo, p_origem_ref, p_linhas)` and `estornar_recebimento_ordem_compra(p_ordem_id, p_idempotency_key, p_estornado_em, p_motivo, p_linhas)` already exist and are complete. | No new receipt writer. |
+| F2 | `ordem_compra_fio_lancamentos` carries `ordem_compra_item_alocacao_id`, `op_id`, `material`, `cor_id`, `cor_poliester`, `kg_excesso`, `estorno_de_id`, signed `kg_recebido`. | Multi-origin lineage is structural. |
+| F3 | Receipt distribution is **explicit operator allocation** (`destination ∈ {alocacao, excesso}`), guarded per allocation by `excede_alocacao`. | Mechanism selected, not invented. |
+| F4 | `trg_native_lancamento_derive_state` sets `ordem_compra_item.kg_recebido = SUM(l.kg_recebido)` over **all** lines of the item, and routes `kg_excesso` separately into `saldo_fios` and `ordem_compra_fio_movimentos_estoque`. A surplus line therefore has `kg_recebido = kg_excesso = kg`; an allocation line has `kg_excesso = 0`. | The availability predicate must **select allocation-destined lines**, not subtract two columns (§9.9.A). |
+| F5 | The db/75 cutover machine exists; `ordem_compra_c3c_pre_ponr_rollback` restores `maintenance_fenced` / `flat` and refuses once `productive_receipt_started_at` is set. **No function anywhere restores `legacy_active`.** | §9.9.G reclassifies "reversible" honestly and adds the missing operation. |
+| F6 | `ordem_compra.aceite_exigido_na_emissao` exists; both live orders hold `false` / `nao_aplicavel`. | No backfill, no reclassification. |
+| F7 | `public.op_eventos(op_id, tipo_evento, status_anterior, status_novo, observacao, payload, criado_por, criado_em)` already owns OP operational history. | Adjustment events go here, never to `ordem_compra_eventos`. |
+| F8 | `alterar_status_op` reads `SELECT * INTO v_op FROM ops WHERE id = p_op_id` with **no `FOR UPDATE`**. | It must be corrected to join the lock protocol (§9.9.B). |
+| F9 | `authenticated` holds **table-level UPDATE** on `public.pedidos` plus column UPDATE on every column including `status`. | A column REVOKE alone cannot contain direct DML (§9.9.L). |
+| F10 | `public.expedicao_comandos(idempotency_namespace, ator_id, idempotency_key, comando_payload, comando_hash, resultado)` exists, 0 rows. `expedicao_itens` carries `metros_liberados` and `metros_entregues`. | Named as the idempotency owner for §9.9.K. |
+| F11 | `saldo_fios` = 5 rows / 2685.020 kg; `saldo_fios_op` = 0; ledger, flat corpus, receipts and movements all 0. | §9.9.H — closed by supervisor ruling **TD1**: preserved historical global stock, never productive OP availability. |
+
+---
+
+### 9.9.A Availability authority — origin-scope aware (C1)
+
+**Two authorities, not one subtraction.** Availability depends on the *origin* of
+the need, because cotton needs are OP-owned and polyester needs are Pedido-owned.
+
+#### A.1 Exact ledger predicate for productive receipt
+
+A ledger line is **productive** (allocation-destined) exactly when:
+
+```sql
+l.recebimento_id IS NOT NULL             -- a real receipt/reversal command line
+AND l.ordem_compra_item_alocacao_id IS NOT NULL
+AND l.kg_excesso = 0                     -- surplus lines carry kg_excesso <> 0
+```
+
+Productive net for a set of allocations is `SUM(l.kg_recebido)` over those lines.
+Reversal rows need no special case: they carry `tipo='estorno'`, negative
+`kg_recebido`, `kg_excesso = 0` when their source was allocation-destined, and are
+therefore included with the correct sign.
+
+**Surplus is selected separately and never enters an OP ceiling:**
+
+```sql
+surplus_net = SUM(l.kg_excesso) WHERE l.recebimento_id IS NOT NULL
+```
+
+reported as its own column and reconciled against
+`ordem_compra_fio_movimentos_estoque`.
+
+`SUM(kg_recebido - kg_excesso)` is **withdrawn**: it would be arithmetically equal
+only while the invariant `kg_excesso ∈ {0, kg_recebido}` holds, and the design must
+not depend on an invariant no constraint enforces.
+
+#### A.2 OP-origin material (currently cotton)
+
+For needs with `origem_tipo='op'` and `op_id = <target OP>`:
+
+```
+ceiling_op_origin(OP, material, colour)
+  = productive_net over allocations whose necessidade_id resolves to a need with
+    origem_tipo='op' AND op_id = OP
+```
+
+**Sibling OP reservations do not reduce this quantity**, even for the same colour —
+the material is committed to that OP by its own need. Only the target OP's own
+current reservation is returned before a replacement adjustment is validated,
+which is achieved by validating the *replacement* payload against the raw ceiling
+rather than against `ceiling − own_reservation`.
+
+#### A.3 Pedido-origin shared material (currently polyester)
+
+For needs with `origem_tipo='pedido'` and `op_id IS NULL`:
+
+```
+pool(Pedido, material, colour)
+  = productive_net over allocations whose necessidade_id resolves to a need with
+    origem_tipo='pedido' AND pedido_id = Pedido
+
+ceiling_pedido_origin(OP, material, colour)
+  = pool(Pedido, material, colour)
+  − active_reservation_of_OTHER_OPs(Pedido, material, colour, exclude => OP)
+```
+
+No representative OP is created and the pool is never pre-split into per-OP
+allocations.
+
+#### A.4 The nine reported quantities
+
+| Quantity | Source |
+|---|---|
+| required | `necessidade_compra_fio.kg_necessario` |
+| planned | `SUM(necessidade_compra_planejamento.kg) WHERE gerado_em IS NULL` |
+| purchased under active coverage | `SUM(ordem_compra_item_alocacao.kg_alocado)` where `public.oc_cobertura_ativa(ordem_id)` (db/100, reused) |
+| net received (productive) | A.1 predicate |
+| reversed | `-SUM(l.kg_recebido) WHERE l.tipo='estorno'`, reported only |
+| surplus | A.1 surplus expression, reported only |
+| allocated to OP | productive net restricted per A.2 / A.3 |
+| reserved / committed-consumed | `oc_reserva_ativa`, split by OP status |
+| available ceiling | A.2 or A.3 by origin |
+
+**Reservation authority (D2):** `op_itens.metros_ajustados` where NOT NULL,
+converted through `parametros_largura` keyed by `modelos.largura`.
+`simulada`/`aberta` → *reserved*; `em_producao`/`pausada`/`concluida` →
+*committed/consumed*; `cancelada` → nothing; `metros_pedidos` never reserves.
+Measured physical consumption is not claimed.
+
+#### A.5 Function security (explicit, not "RLS through SECURITY DEFINER")
+
+| Object | Kind | Security | Grants | Authorization inside |
+|---|---|---|---|---|
+| `public._oc_disponibilidade_calc(p_op_id BIGINT)` | `STABLE`, **SECURITY DEFINER**, `SET search_path=''` | internal | `REVOKE ALL FROM PUBLIC, anon, authenticated, service_role` — **owner-only** | none needed; unreachable by clients |
+| `public.oc_disponibilidade_op(p_op_id BIGINT)` | `STABLE`, **SECURITY INVOKER** | public entry | `REVOKE ALL FROM PUBLIC, anon, service_role`; `GRANT EXECUTE TO authenticated` | first statement: `IF auth.uid() IS NULL OR NOT public.is_admin() THEN RAISE EXCEPTION 'sem_permissao' USING ERRCODE='42501'; END IF;` then calls the internal function |
+| `public.oc_reserva_ativa(p_pedido_id UUID, p_excluir_op_id BIGINT)` | `STABLE`, SECURITY DEFINER | internal | owner-only | unreachable by clients |
+
+SECURITY DEFINER is used **only** on owner-only internals that no client role can
+execute. The single client-facing function is SECURITY INVOKER and performs an
+explicit `is_admin()` check, so no row policy is bypassed on the caller's behalf.
+
+**`vw_disponibilidade_op` exact shape.** A parameterized function cannot be a view
+without either exposing every OP or leaking through a definer. The view is
+therefore defined over the **base tables**, not over the function, and carries its
+own row restriction:
+
+```sql
+CREATE VIEW public.vw_disponibilidade_op
+WITH (security_invoker = true) AS
+SELECT o.id AS op_id, d.material, d.cor_id, d.cor_poliester,
+       d.kg_necessario, d.kg_planejado, d.kg_comprado_ativo,
+       d.kg_recebido_produtivo, d.kg_estornado, d.kg_excedente,
+       d.kg_alocado_op, d.kg_reservado_outras, d.kg_disponivel
+  FROM public.ops o
+  CROSS JOIN LATERAL public._oc_disponibilidade_linhas(o.id) d
+ WHERE public.is_admin();
+```
+
+`security_invoker = true` (PG 15+; production is 17.6) makes the view honour the
+caller's own policies on `ops`, and the trailing `WHERE public.is_admin()`
+fail-closes for any non-admin. `_oc_disponibilidade_linhas` is the owner-only
+set-returning internal; it is reachable only through this view and through the
+guarded entry function.
+
+---
+
+### 9.9.B One concurrency domain — lock matrix by writer (C2)
+
+Every writer that can **reduce or release productive availability** joins one
+protocol. Global order: **`pedidos` → `ops` (ASC id) → `op_itens` (ASC id) →
+`ordem_compra_item` (ASC id) → `ordem_compra_item_alocacao` (ASC id)**.
+`SET LOCAL lock_timeout = '5s'` in every one.
+
+| Writer | First lock | Subsequent locks | Ascending | Timeout | Conflict result |
+|---|---|---|---|---|---|
+| `salvar_ajuste_producao_op` (new) | `pedidos` row `FOR UPDATE` | `ops` of the Pedido, then `op_itens` of the target OP | yes | 5s | `concorrencia_ocupada`, zero writes |
+| `iniciar_producao_op` (new, §9.9.D) | `pedidos` row `FOR UPDATE` | `ops` of the Pedido, then `op_itens` of the OP | yes | 5s | `concorrencia_ocupada`, zero writes |
+| `estornar_recebimento_ordem_compra` (**modified**) | `pedidos` row of `ordem_compra.pedido_id` `FOR UPDATE` | `ops` of the Pedido, then `ordem_compra_item`, then the ledger source rows | yes | 5s | `concorrencia_ocupada`, zero writes |
+| `registrar_recebimento_ordem_compra` (**modified**) | same as reversal | same | yes | 5s | same |
+| `alterar_status_op` (**modified**, F8) | `pedidos` row of the OP's Pedido `FOR UPDATE` | the `ops` row `FOR UPDATE` | yes | 5s | `concorrencia_ocupada` |
+| OP cancellation | via `alterar_status_op` | idem | yes | 5s | idem |
+| Adjustment replacement / clearing | via `salvar_ajuste_producao_op` | idem | yes | 5s | idem |
+| `alterar_status_pedido` / `_pedido_status_recalcular` (§9.9.L) | `pedidos` row `FOR UPDATE` | `ops` of the Pedido | yes | 5s | `concorrencia_ocupada` |
+| `corrigir_entrega_expedicao` (§9.9.K) | `pedidos` row `FOR UPDATE` | `expedicoes`, then `expedicao_itens` ASC | yes | 5s | `concorrencia_ocupada` |
+| `estornar_expedicao_tapete_parcial` (§9.9.K) | `pedidos` row `FOR UPDATE` | `expedicoes`, then `expedicao_itens` ASC | yes | 5s | `concorrencia_ocupada` |
+| `cancelar_ordem_compra` / `excluir_ordem_compra` (db/100, **modified**) | `pedidos` row `FOR UPDATE` | `ordem_compra`, then allocations ASC | yes | 5s | `concorrencia_ocupada` |
+
+The Pedido row is the serialization point wherever the shared polyester pool can be
+touched. **Every writer named above appears in the manifest of §9.9.N** — the claim
+and the manifest are consistent.
+
+---
+
+### 9.9.C Atomic production-adjustment RPC (C3)
+
+```sql
+public.salvar_ajuste_producao_op(
+  p_op_id            BIGINT,
+  p_base_ajuste_rev  INTEGER,
+  p_itens            JSONB      -- absolute set [{op_item_id, metros_ajustados|null}]
+) RETURNS JSONB
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
+```
+
+**Revision model — decided.** A **narrowly named adjustment revision**:
+`ops.ajuste_revisao INTEGER NOT NULL DEFAULT 0`, owned **only** by
+`salvar_ajuste_producao_op` and `iniciar_producao_op`. A general `ops.revisao`
+is **rejected**, because unrelated writers (`alterar_status_op`, latex creation,
+lote linking) would silently bypass it and produce false confidence.
+`alterar_status_op` does **not** increment it; it takes the same locks, so it
+cannot interleave dangerously.
+
+**Ordered execution — locks precede revision acceptance:**
+
+1. authorize (`auth.uid()` + `is_admin()`);
+2. validate payload shape;
+3. resolve the Pedido from the OP;
+4. **acquire locks** (`pedidos` → `ops` ASC → `op_itens` ASC);
+5. **reload** the OP row inside the lock;
+6. validate current state (`simulada`|`aberta`);
+7. validate `p_base_ajuste_rev` against the freshly reloaded value;
+8. compute ceilings per §9.9.A (origin-aware);
+9. validate the **complete** payload, every item, against its ceiling;
+10. write `op_itens`, bump `ops.ajuste_revisao`, append one `public.op_eventos` row
+    (`tipo_evento = 'ajuste_producao_salvo'`).
+
+Full validation precedes any write, so the known non-atomic-`RETURN` hazard cannot
+occur.
+
+| Aspect | Contract |
+|---|---|
+| Grants | `REVOKE ALL FROM PUBLIC, anon, service_role`; `GRANT EXECUTE TO authenticated` |
+| Tables written | `op_itens`, `ops.ajuste_revisao`, **`op_eventos`** — never `ordem_compra_eventos` |
+| Transaction membership | IN: adjusted metres, `ajuste_revisao`, `op_eventos`. OUT: `saldo_fios`, `saldo_fios_op`, eligibility snapshot (derived on read). Reservation is derived, never persisted. |
+| Errors | `sem_permissao`, `AJUSTE_PAYLOAD_INCOMPLETO`, `AJUSTE_OP_ESTADO_INVALIDO`, `AJUSTE_REVISAO_DESATUALIZADA`, `AJUSTE_EXCEDE_DISPONIVEL`, `concorrencia_ocupada` |
+| Reload contract | On `AJUSTE_REVISAO_DESATUALIZADA` the screen offers explicit **Recarregar dados**; Save stays disabled until a fully successful reload |
+| Both surfaces | OP screen and Pedido panel call this one RPC |
+
+---
+
+### 9.9.D Server-owned production start (C4)
+
+```sql
+public.iniciar_producao_op(
+  p_op_id           BIGINT,
+  p_base_ajuste_rev INTEGER
+) RETURNS JSONB
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
+```
+
+Atomic sequence: authorize → locks in the global order → reload state and
+`ajuste_revisao` → prove every `op_itens` row has `metros_ajustados IS NOT NULL` →
+revalidate availability per §9.9.A (a receipt reversal may have lowered the ceiling
+since the adjustment was saved) → **write the authoritative `saldo_fios_op` start
+snapshot** (retained: it is the historical record of what was available at start,
+and it has one writer only, this function) → transition the OP to `em_producao`
+through the internal lifecycle helper `_op_status_aplicar` → recompute the Pedido
+to `produzindo` through the internal helper `_pedido_status_recalcular`
+(§9.9.L) → append `op_eventos` and `pedido_eventos` → return
+`{ok, ajuste_revisao, proxima_acao:{rota, rotulo}}`.
+
+`js/screens/op-recalculo.js::iniciarProducaoOP` and its
+`snapshotSaldoEIniciarProducao` frontend sequence, plus the direct
+`UPDATE ops SET status='em_producao'` at `op-recalculo.js:181`, are **deleted**;
+the module becomes a thin client of this RPC.
+
+---
+
+### 9.9.E Supplier acceptance configuration (C5)
+
+**Decided rule: the supplier column is the sole authority; the global singleton is
+deterministically migrated and then retired from authority.**
+
+1. `ALTER TABLE public.fornecedores ADD COLUMN exige_aceite BOOLEAN NOT NULL DEFAULT false;`
+2. In the **same migration**, deterministically seed it from the current global
+   value: `UPDATE public.fornecedores SET exige_aceite = (SELECT exige_aceite FROM public.ordem_compra_config WHERE id = 1);`
+   — today that value is `false`, so all 6 rows receive `false`, asserted by the
+   migration.
+3. `public.ordem_compra_config.exige_aceite` becomes **read-only and
+   non-authoritative**: a `BEFORE UPDATE` trigger raises
+   `config_aceite_descontinuada`, and its column comment records the demotion. The
+   column is **not dropped** in this release.
+4. No "row predates the column" fallback exists or is referenced — `NOT NULL
+   DEFAULT false` makes it impossible.
+
+**Emission freeze:** `emitir_ordem_compra` copies `fornecedores.exige_aceite` into
+`ordem_compra.aceite_exigido_na_emissao` and sets `status_aceite` accordingly.
+**Live orders are asserted unchanged** (`false` / `nao_aplicavel`).
+
+**Idempotency storage for acceptance commands:** a new
+`public.ordem_compra_aceite_comandos`, shaped after the proven
+`expedicao_comandos`:
+
+```
+id, idempotency_namespace TEXT NOT NULL CHECK (= 'oc_aceite_v1'),
+ator_id UUID NOT NULL, idempotency_key TEXT NOT NULL,
+ordem_compra_id BIGINT NOT NULL, decisao TEXT CHECK (decisao IN ('aceita','rejeitada')),
+comando_payload JSONB NOT NULL, comando_hash TEXT NOT NULL, resultado JSONB NOT NULL,
+criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+UNIQUE (idempotency_namespace, ator_id, idempotency_key)
+```
+
+Duplicate call with the same key and identical payload returns the stored
+`resultado`; same key with a different payload is refused as conflicting reuse.
+
+---
+
+### 9.9.F Receipt and reversal activation
+
+No new receipt writer (F1). This release **activates** the existing ones and adds:
+the acceptance guard (`recebimento_aceite_pendente` when
+`aceite_exigido_na_emissao IS TRUE AND status_aceite <> 'aceita'`), and the lock
+protocol of §9.9.B. `status_recebimento` stays derived (`net = 0 → nao_recebido`;
+`0 < net < total → parcial`; `net = total → recebido`). No status is ever edited
+directly. **No receipt is fabricated against real orders**; all proofs run on the
+disposable cluster.
+
+---
+
+### 9.9.G Cutover, honest rollback, and the safe deployment sequence (C6)
+
+**Correction.** `ordem_compra_c3c_pre_ponr_rollback` restores
+`maintenance_fenced` / `flat`. That is **not** an operational rollback: the fence
+keeps business writes blocked. **No existing function restores `legacy_active`**
+(F5). The previous claim that steps 1–8 are "fully reversible" is **withdrawn**.
+
+**Missing operation, proposed:** `public.ordem_compra_c3c_resume_legacy(p_generation BIGINT)`
+— `postgres`-only, advisory-lock gated, `UPDATE ordem_compra_cutover SET status='legacy_active', read_authority='flat', cutover_generation=NULL, canonical_activated_at=NULL WHERE id=1 AND status='maintenance_fenced' AND productive_receipt_started_at IS NULL`, raising `forward_recovery_only` otherwise. Only with this
+operation is service restoration before PONR real.
+
+| State | Reversible? |
+|---|---|
+| Steps 1–7 (fence → canonical read → final ACL) | reversible via `pre_ponr_rollback` **then** `resume_legacy` |
+| Step 8 (`activate`) | reversible the same way while `productive_receipt_started_at IS NULL` |
+| **First productive receipt = PONR** | **irreversible; forward recovery only** |
+
+**Safe deployment sequence (prepare → deploy → prove → close → activate).**
+The old UI must not break between migration and asset publication, so **no
+authority is narrowed before its new caller is live**:
+
+| Phase | Action | Old UI still works? |
+|---|---|---|
+| P1 | Apply additive server objects only (availability functions, `ajuste_revisao`, new RPCs, new tables, supplier column). **No grant is revoked. No existing writer's behaviour changes.** | yes — nothing it uses changed |
+| P2 | Deploy the new assets. New callers use the new RPCs; server-side gates stay inactive; `acoes.receber` still returns `recebimento_canonico_inativo`. | yes |
+| P3 | Authenticated proof of every new caller in the safe environment. | yes |
+| P4 | Apply the **containment** migration: narrow `pedidos` UPDATE (§9.9.L), install the direct-DML fence, retire the flat consumers' code paths, demote `ordem_compra_config`. | **only the new UI runs — and it is already proved in P3** |
+| P5 | Run the cutover (fence → … → activate) under the coordinated boundary. | maintenance window |
+| P6 | First productive receipt = PONR. | native |
+
+No dual write and no flat bridge at any phase.
+
+---
+
+### 9.9.H Historical stock — CLOSED by supervisor ruling TD1
+
+> **TD1 — BINDING SUPERVISOR RULING.**
+> The existing `saldo_fios` balance of 2685.020 kg is
+> **PRESERVED HISTORICAL GLOBAL STOCK — NOT PRODUCTIVE OP AVAILABILITY.**
+> This ruling **closes** the historical-stock product decision for this design.
+
+**Binding consequences, each with its exact technical effect:**
+
+| # | TD1 consequence | Technical effect in this design |
+|---|---|---|
+| 1 | Preserve all five existing rows unchanged | No migration, writer or backfill touches `public.saldo_fios`. The five rows are asserted unchanged in the db/101 and cutover invariants. |
+| 2 | Capture them verbatim in the cutover inventory baseline | `ordem_compra_c3c_fence_and_snapshot` copies them into `ordem_compra_cutover_inventory_baseline` and hashes them into `inventory_baseline_hash` (§9.9.G step 1). |
+| 3 | No retroactive assignment to a Pedido, need, allocation or OP | No `necessidade_compra_fio`, `ordem_compra_item_alocacao` or ledger row is created from them. |
+| 4 | Excluded from every OP production ceiling | The §9.9.A predicate reaches only `ordem_compra_fio_lancamentos`; `saldo_fios` is not a term in `ceiling_op_origin` or `ceiling_pedido_origin`. |
+| 5 | Excluded from the native received-material pool | The productive predicate requires `recebimento_id IS NOT NULL AND ordem_compra_item_alocacao_id IS NOT NULL AND kg_excesso = 0`. A `saldo_fios` row satisfies none of these — it is not a ledger row at all. |
+| 6 | Kept visible as historical/global stock | `saldo_fios` remains readable on the stock surfaces and is reported in §9.9.A as its own column, never merged into availability. |
+| 7 | Productive OP availability only from native ledger lines with valid allocation lineage | Exactly the §9.9.A.1 predicate. No other source can raise a ceiling. |
+| 8 | No automatic or silent allocation mechanism | None is designed, and none may be added under this release. |
+| 9 | Any future audited allocation is separately authorized work | Recorded here as **outside the current coordinated release**; it needs its own order naming the mechanism, its audit trail and its acceptance evidence. |
+
+**Accepted operational consequence.** The first productive ceilings after cutover
+**may begin at zero** until native receipts are registered. This is expected
+behaviour under TD1, not a defect: an OP becomes productive when material is
+received against its allocation, not because global stock exists.
+
+The five rows remain not reconstructable (ledger and flat corpus empty) and not
+removable; they are an immutable preserved opening balance.
+
+---
+
+### 9.9.I Multi-origin native receipt
+
+Explicit operator allocation (F3). Per-allocation guard `excede_alocacao`;
+item-level aggregate guard; duplicated receipt structurally impossible (scoped
+unique idempotency plus `UNIQUE` ledger `idempotency_key`); shared-polyester
+lineage preserved by keeping Pedido-origin allocations Pedido-level; all
+quantities `NUMERIC(12,3)` with **no server-side rounding**, therefore no residual;
+reversal deterministic LIFO with `estorno_de_id`, never driving a source line
+negative.
+
+---
+
+### 9.9.J Finishing OP — transaction and replay identity (C7)
+
+**No autonomous transaction is used anywhere.** Exact structure:
+
+```
+BEGIN (outer, the delivery writer)
+  INSERT entregas; INSERT entrega_itens;          -- persisted
+  <inner PL/pgSQL BEGIN ... EXCEPTION WHEN OTHERS>
+      attempt finishing-OP creation                -- own subtransaction
+  EXCEPTION WHEN OTHERS THEN
+      capture SQLSTATE/MESSAGE;                    -- inner subtransaction rolled back
+  END;
+  INSERT op_acabamento_tentativas (sucesso | falha, with the captured code);
+COMMIT                                             -- delivery + evidence commit together
+```
+
+Outcome: on failure the finishing OP does not exist, the **delivery survives**, and
+the failure row commits with it. On success both commit.
+
+**Replay-stable `split_seq`.** `MAX(split_seq)+1` is **rejected** as
+non-deterministic under replay. Instead a command table
+`public.op_acabamento_comandos` (same shape as `expedicao_comandos`,
+`idempotency_namespace='op_acabamento_v1'`, `UNIQUE (idempotency_namespace, ator_id, idempotency_key)`)
+persists the split identity, and `split_seq` is assigned **once**, inside a
+`FOR UPDATE` lock on the `entregas` row, as the next value for that delivery, and
+**stored in the command row**. A replay of the same idempotency key returns the
+stored `split_seq` and creates nothing.
+
+| Object | Contract |
+|---|---|
+| `ops.origem_entrega_id BIGINT REFERENCES entregas(id)`, `ops.split_seq SMALLINT NOT NULL DEFAULT 0` | server-owned; never client-supplied |
+| `CREATE UNIQUE INDEX ops_acabamento_origem_uidx ON public.ops(origem_entrega_id, split_seq) WHERE tipo IN ('latex','acabamento') AND origem_entrega_id IS NOT NULL` | a second attempt collides and returns the existing OP |
+| `public.gerar_op_acabamento(p_entrega_id BIGINT, p_idempotency_key TEXT, p_motivo TEXT DEFAULT NULL)` | the single canonical writer; normal path passes no motive |
+| Existing `gerar_op_latex_split(BIGINT, TEXT)` | **retained with its exact signature** as a compatibility wrapper delegating to the new writer with a derived idempotency key; not dropped in this release |
+| `public.pode_recuperar_op_acabamento(p_entrega_id BIGINT)` | true only when delivery committed **and** no canonical OP for the identity **and** a `falha` attempt row exists |
+| Recovery surface | calls the **same** canonical writer; no free-form manual creation |
+| `public.op_acabamento_tentativas` | `origem_entrega_id, split_seq, resultado ('sucesso'|'falha'), codigo_falha, mensagem, ator_id, processo, tentativa_seq, op_id, ocorrido_em`; append-only; admin SELECT |
+
+---
+
+### 9.9.K Expedition reversal and delivery correction — exact contracts (C10)
+
+**Shared internal primitive:** `public._expedicao_estorno_aplicar(p_expedicao_id, p_linhas, p_motivo, p_rota)` — owner-only, carries the invariants for both routes.
+
+```sql
+public.estornar_expedicao_tapete_parcial(
+  p_expedicao_id BIGINT, p_itens JSONB, p_motivo TEXT, p_idempotency_key TEXT DEFAULT NULL
+) RETURNS JSONB
+```
+
+| Aspect | Contract |
+|---|---|
+| Internal primitive | `_expedicao_estorno_aplicar` |
+| Command/idempotency table | **`public.expedicao_comandos`** (existing, F10), `idempotency_namespace='expedicao_estorno_tapete_v1'`, unique `(idempotency_namespace, ator_id, idempotency_key)` |
+| Duplicate call | same key + identical payload → returns the stored `resultado`, writes nothing; conflicting payload → `comando_conflitante` |
+| Event | one `op_eventos` row per affected OP plus the `expedicao_comandos.resultado` record |
+| Released guard | `metros > expedicao_itens.metros_liberados` → `ESTORNO_ACIMA_DO_LIBERADO` |
+| Delivered guard | `metros_liberados - metros < metros_entregues` → `ESTORNO_ABAIXO_DO_ENTREGUE` |
+| Measured-output source | the finishing OP's measured output for that `op_item_id`; finished availability = **measured output − `SUM(expedicao_itens.metros_liberados)` currently released**. No standalone stock balance is edited. |
+| Locks | §9.9.B row |
+
+```sql
+public.corrigir_entrega_expedicao(
+  p_expedicao_id BIGINT, p_itens JSONB, p_motivo TEXT, p_idempotency_key TEXT DEFAULT NULL
+) RETURNS JSONB
+```
+
+| Aspect | Contract |
+|---|---|
+| Correction/event table | `public.expedicao_comandos` with `idempotency_namespace='expedicao_entrega_correcao_v1'`; the prior per-item `metros_entregues` is stored in `comando_payload` so history is preserved |
+| Delivered total projection | `expedicao_itens.metros_entregues` remains the projection, rewritten by this writer only, then the Pedido completion condition is recomputed from the full item set |
+| Idempotency scope | `(idempotency_namespace, ator_id, idempotency_key)` |
+| Duplicate / conflicting | identical payload → stored result; different payload → `comando_conflitante` |
+| Guards | `< 0` or `> metros_liberados` → `CORRECAO_QUANTIDADE_INVALIDA` |
+| Pedido recomputation | via `_pedido_status_recalcular` (D1): cancelled stays cancelled; complete → `entregue`; incomplete non-cancelled → `produzindo`; never `confirmado` |
+| Lock order | identical to the reversal writer and to cancellation, so the three serialize on the same `pedidos` row |
+
+---
+
+### 9.9.L Pedido status — public/internal separation and DML containment (C8)
+
+**Two functions, not one.**
+
+```sql
+-- PUBLIC: operator-requested transitions only
+public.alterar_status_pedido(p_pedido_id UUID, p_novo_status TEXT,
+                             p_base_revisao INTEGER, p_motivo TEXT DEFAULT NULL)
+  -- accepts ONLY: rascunho→recebido, recebido→confirmado,
+  --               and cancellation through the D7 gate
+  -- SECURITY INVOKER; REVOKE ALL FROM PUBLIC, anon, service_role;
+  -- GRANT EXECUTE TO authenticated; internal is_admin() check
+```
+
+```sql
+-- INTERNAL: derived transitions only
+public._pedido_status_recalcular(p_pedido_id UUID, p_causa TEXT)
+  -- owns confirmado→produzindo (production start),
+  --      produzindo→entregue (complete delivery),
+  --      entregue→produzindo (D1 correction)
+  -- SECURITY DEFINER; REVOKE ALL FROM PUBLIC, anon, authenticated, service_role
+  -- => NOT executable by authenticated. Called only by iniciar_producao_op,
+  --    registrar_entrega_expedicao and corrigir_entrega_expedicao.
+```
+
+An authenticated client therefore **cannot** invoke a derived transition.
+
+**Direct-DML containment — grant matrix (F9).** A column REVOKE is insufficient
+while the table-level UPDATE grant exists, so both are applied:
+
+```sql
+REVOKE UPDATE ON TABLE public.pedidos FROM authenticated, anon;
+GRANT  UPDATE (cliente_id, data_pedido, prazo_entrega, observacao,
+               referencia_cliente, tipo_recebimento, metros_total,
+               parcial_habilitado, parcial_atualizado_em, atualizado_em)
+       ON TABLE public.pedidos TO authenticated;
+-- status, revisao, prioridade_*, status_cliente_* deliberately excluded
+```
+
+plus a **fail-closed fence**: `BEFORE UPDATE ON public.pedidos` raising
+`pedido_status_writer_required` when `NEW.status IS DISTINCT FROM OLD.status` and
+the session is not inside an authorized writer (signalled by a transaction-local
+custom GUC set by the two functions above). Grants alone are not trusted.
+
+`js/screens/pedido-detail-events.js::alterarStatus()` is repointed to
+`alterar_status_pedido`. **`pedidos.produzindo` is not retired; no writer is added
+for `ops.finalizada`.**
+
+---
+
+### 9.9.M D7 cancellation compensation — defined now, not deferred (C9)
+
+`public.cancelar_pedido(p_pedido_id UUID, p_base_revisao INTEGER, p_motivo TEXT)`
+executes **one transaction** in this deterministic order:
+
+| Step | Entity | Action | History |
+|---|---|---|---|
+| 1 | eligibility | `pedido_elegivel_cancelamento` must return `elegivel` | — |
+| 2 | locks | `pedidos` → `ops` ASC → `ordem_compra` ASC | — |
+| 3 | active OPs (`simulada`,`aberta`,`em_producao`,`pausada`) | **cancelled** through `_op_status_aplicar` | `op_eventos` per OP |
+| 4 | their reservations | **released implicitly** — cancelled OPs contribute nothing to `oc_reserva_ativa` (§9.9.A). No row is deleted. | — |
+| 5 | saved adjustments | **preserved verbatim** in `op_itens.metros_ajustados`; they simply stop reserving | — |
+| 6 | live planning (`gerado_em IS NULL`) | **released** — planning rows deleted by the existing db/99 release semantics so the need returns to free balance | planning event |
+| 7 | `rascunho` Purchase Orders | **cancelled** via `cancelar_ordem_compra` (db/100), which releases coverage | `ordem_compra_eventos` |
+| 8 | `emitida` Purchase Orders | **cancelled** via the same writer; the document, its number, items and provenance are preserved | idem |
+| 9 | accepted Purchase Orders (`status_aceite='aceita'`) | **cancelled as well** — acceptance does not bar cancellation (db/100 ruled acceptance semantics are not a cancellation rule); recorded with the acceptance history intact | idem |
+| 10 | existing receipts | **untouched**. Received material stays received; its ledger is append-only. Coverage release does not un-receive anything. | — |
+| 11 | expedition and delivery facts | **untouched and preserved** | — |
+| 12 | Pedido | `cancelado` via `_pedido_status_recalcular` | `pedido_eventos` |
+
+**Writers blocked after cancellation:** `salvar_ajuste_producao_op`,
+`iniciar_producao_op`, OP creation, planning assignment, Purchase Order
+generation, emission, and receipt registration for that Pedido — each returns
+`PEDIDO_CANCELADO`.
+
+**`pedido_elegivel_cancelamento(p_pedido_id)`** returns
+`{elegivel: boolean, codigo: TEXT}`:
+
+| Condition | `codigo` |
+|---|---|
+| status ∈ {rascunho, recebido, confirmado, produzindo} and none below | `elegivel` |
+| status = `entregue` | `PEDIDO_CANCELAMENTO_APOS_ENTREGA` (correct the delivery under D1 first) |
+| status = `cancelado` | `PEDIDO_JA_CANCELADO` |
+| any expedition with `metros_entregues > 0` | `PEDIDO_COM_ENTREGA_REGISTRADA` |
+| a pending client change request | `PEDIDO_COM_SOLICITACAO_PENDENTE` |
+| a pending priority review (db/91) | `ADMIN_REVIEW_REQUIRED` |
+
+---
+
+### 9.9.N Exact implementation manifest (C11)
+
+**Block 1 — receipt → production continuity (indivisible)**
+
+| # | Path | New/Mod | Purpose | Owner | Tests | Phase |
+|---|---|---|---|---|---|---|
+| 1 | `db/101_disponibilidade_nativa.sql` | new | `_oc_disponibilidade_calc`, `_oc_disponibilidade_linhas`, `oc_reserva_ativa`, `oc_disponibilidade_op`, `vw_disponibilidade_op`, grants | A | `tests/db101-disponibilidade-origem.integration.sql` | P1 |
+| 2 | `db/102_ajuste_atomico_e_inicio_producao.sql` | new | `ops.ajuste_revisao`, `salvar_ajuste_producao_op`, `iniciar_producao_op`, `_op_status_aplicar`, **`alterar_status_op` lock correction** | B, C, D | `tests/db102-ajuste-concorrencia.integration.sql` | P1 |
+| 3 | `db/103_fila_fornecedor_e_aceite.sql` | new | `fornecedores.exige_aceite` + deterministic seed, `ordem_compra_config` demotion trigger, `ordem_compra_aceite_comandos`, accept/reject RPCs, queue, emission freeze | E | `tests/db103-aceite.integration.sql` | P1 |
+| 4 | `db/104_recebimento_lock_e_aceite_gate.sql` | new | lock protocol added to `registrar_recebimento_ordem_compra` and `estornar_recebimento_ordem_compra`; acceptance gate; `cancelar_ordem_compra`/`excluir_ordem_compra` lock alignment | B, F | `tests/db104-recebimento-lock.integration.sql` | P1 |
+| 5 | `db/105_status_pedido_e_cancelamento.sql` | new | `alterar_status_pedido`, `_pedido_status_recalcular`, `cancelar_pedido`, `pedido_elegivel_cancelamento` | L, M | `tests/db105-status-cancelamento.integration.sql` | P1 |
+| 6 | `js/screens/op-recalculo.js` | mod | delete the per-row loop **and** `snapshotSaldoEIniciarProducao`; call `salvar_ajuste_producao_op` and `iniciar_producao_op`; `maxMetrosItem` reads `vw_disponibilidade_op` | A–D | `tests/op-ajuste-atomico.smoke.js` | P2 |
+| 7 | `js/screens/op-distribuicao-ui.js` | mod | consume the native projection; revision-conflict reload; start button calls the RPC | C, D | same | P2 |
+| 8 | `js/screens/op-nova.js` | mod | **REPOINT** `:1287`,`:1293` to the native projection | A | `tests/op-nova-nativo.smoke.js` | P2 |
+| 9 | `js/screens/op-persistir.js` | mod | **REPOINT**: delete the legacy flat branch `:330-338`; native sync only | A | `tests/op-persistir-nativo.smoke.js` | P2 |
+| 10 | `js/screens/fornecedor.js` | mod | **REPOINT** `:472`,`:539` to the native supplier queue | E | `tests/fornecedor-queue.smoke.js` | P2 |
+| 11 | `js/screens/pedido-detail-data.js` | mod | **REPOINT**: remove the flat fallback `:397-407` | A | `tests/pedido-detail-nativo.smoke.js` | P2 |
+| 12 | `js/screens/op-writes.js` | mod | **RETIRE** `window.atribuirFornecedorFioOp` and its two flat writes `:93`,`:122` — it has no caller (closes DEBT-1). Decision is RETIRE, not "retire or repoint". | A | `tests/op-writes-retirado.smoke.js` | P2 |
+| 13 | `js/calculo-op.js` | mod | **REPOINT**: `montarOrdensCompraFio` is renamed `montarNecessidadesCompra` and stops emitting flat payloads; the recipe maths is unchanged. §6.1 row updated accordingly. | A | `tests/calculo-op-nativo.smoke.js` | P2 |
+| 14 | `js/delete-helpers.js` | mod | **REPOINT** `:82` to cover native tables | A | `tests/delete-nativo.smoke.js` | P2 |
+| 15 | `js/supabase-client.js` | mod | allowlist every new RPC `:64`,`:96` | all | existing guard | P2 |
+| 16 | `js/screens/ordem-compra-receipt-events.js` | mod | post-receipt **Revisar produção** continuation | — | `tests/pos-recebimento-navegacao.smoke.js` | P2 |
+| 17 | `js/screens/pedido-producao-panel.js` | **new** | consolidated multi-OP panel `#/pedidos/<id>/producao` | — | `tests/pedido-producao-panel.smoke.js` | P2 |
+| 18 | `js/router.js` | mod | register the route | — | same | P2 |
+| 19 | `index.html` | mod | mount the new asset + `?v=` token | — | cache-token guards | P2 |
+| 20 | `js/screens/pedido-detail-events.js` | mod | `alterarStatus()` → `alterar_status_pedido`; cancellation → `cancelar_pedido` | L, M | `tests/pedido-status-canonico.smoke.js` | P2 |
+| 21 | `db/106_contencao_dml_pedido.sql` | new | narrow `pedidos` UPDATE grant; install the status fence trigger | L | `tests/db106-contencao.integration.sql` | **P4** |
+| 22 | cutover runbook (documentation) | new | fence → … → activate, plus `ordem_compra_c3c_resume_legacy`; **TD1: assert the five `saldo_fios` rows captured verbatim into the inventory baseline and unchanged afterwards** | G, H | rehearsal | P5 |
+| 23 | `db/107_cutover_resume_legacy.sql` | new | the missing `ordem_compra_c3c_resume_legacy` operation | G | `tests/db107-resume-legacy.integration.sql` | P1 |
+
+**Block 2 — finishing continuity**
+
+| # | Path | New/Mod | Purpose | Owner |
+|---|---|---|---|---|
+| 24 | `db/108_acabamento_idempotente.sql` | new | `ops.origem_entrega_id/split_seq` + unique index, `op_acabamento_comandos`, `op_acabamento_tentativas`, `gerar_op_acabamento`, `pode_recuperar_op_acabamento`, `gerar_op_latex_split` wrapper | J |
+| 25 | `js/screens/entrega-writes.js` | mod | transactional delivery + finishing creation; delete the best-effort path | J |
+| 26 | `js/screens/entrega-form.js` | mod | proved-failure recovery surface | J |
+
+**Block 3 — reversal symmetry**
+
+| # | Path | New/Mod | Purpose | Owner |
+|---|---|---|---|---|
+| 27 | `db/109_estorno_tapete_e_correcao_entrega.sql` | new | `_expedicao_estorno_aplicar`, `estornar_expedicao_tapete_parcial`, `corrigir_entrega_expedicao` | K |
+| 28 | `js/screens/expedicao-admin.js` | mod | both surfaces | K |
+
+**Block 4 — legacy retirement (separate authorization, post-acceptance)**
+
+| # | Path | Purpose |
+|---|---|---|
+| 29 | `db/110_retirada_modelo_plano.sql` | drop flat objects and the `listar_ordens_compra_fio_compat` adapter |
+| 30 | `js/screens/ordem-compra-receipt-cutover.js` | **RETIRE** the compat adapter after the cutover |
+
+Every §6.1 flat consumer now has an exact RETIRE or REPOINT decision. No entry
+says "or", "later decide" or "reuse where possible".
+
+### 9.9.O Migration topology
+
+Ten migrations, db/101–db/110, each `BEGIN/COMMIT`, each re-appliable as a
+byte-identical no-op, each declaring grants explicitly (never relying on the
+authenticated-by-default trap). db/101–105, 107, 108, 109 are **additive and
+reversible** and land in P1. **db/106 is the only authority-narrowing migration
+and lands in P4, after P3 proves the new callers.** db/110 is post-acceptance.
+The PONR is outside every migration (§9.9.G).
+
+### 9.9.P Recovery matrix
+
+| Case | Detection | Persisted state | User-visible | Action | Writes blocked | Evidence to resume |
+|---|---|---|---|---|---|---|
+| Before P1 | not applied | unchanged | unchanged | none | no | — |
+| During P1 | migration aborts | rolled back | unchanged | fix, re-apply | no | clean disposable apply |
+| During P2 (assets) | smoke/console | DB ahead, additive | old UI still valid | redeploy previous assets | no | asset sha256 |
+| During P3 (proof fails) | authenticated scenario fails | additive only | old UI valid | fix, redeploy; **do not enter P4** | no | scenario evidence |
+| During P4 (containment) | migration aborts or UI errors | grants may be narrowed | new UI only | re-apply db/106 rollback block restoring the prior grant | status writes only | grant matrix diff |
+| During reconciliation | `assert_import_reconciled` raises | `maintenance_fenced` | maintenance | `pre_ponr_rollback` **then** `resume_legacy` | yes (fence) | reconciliation deltas |
+| Immediately before PONR | preflight fails | `canonical_active`, no receipt | receipt offered | `pre_ponr_rollback` + `resume_legacy` | no | fingerprints + backup |
+| During PONR | receipt RPC error | header may exist | in-modal code | idempotent retry, same key | no | ledger vs header |
+| After PONR | any | native | native | **forward only** | no | forward runbook |
+| Stale frontend asset | ETag/console | DB native, UI old | wrong ceiling | hard reload (assets answer `must-revalidate` + ETag) | no | measured headers |
+| PostgREST cache stale | `PGRST202` | fine | RPC missing | schema reload; verify by contrast | no | contrast probe |
+| Supplier acceptance race | `comando_conflitante` / `ACEITE_JA_DECIDIDO` | first decision | honest refusal | none | no | command row |
+| Concurrent OP adjustments | `AJUSTE_REVISAO_DESATUALIZADA` / `concorrencia_ocupada` | winner only | explicit reload | operator reload | loser writes nothing | revision + availability |
+| Partial receipt failure | `{ok:false}` | none | in-modal code | correct and retry | no | ledger unchanged |
+| Reversal failure | `{ok:false}` | none | in-modal code | retry | no | ledger unchanged |
+| Production-start failure | `{ok:false}` | none | in-modal code | reload, retry | no | `ajuste_revisao` unchanged |
+| Finishing-OP creation failure | `op_acabamento_tentativas.resultado='falha'` | delivery kept, no OP | honest state + gated retry | same idempotent writer | no | failure row |
+| Tapete reversal failure | guard code | none | in-modal code | correct quantities | no | released/delivered totals |
+| Delivery-correction failure | guard code | none | in-modal code | correct quantities | no | delivered totals |
+| Pedido cancellation partial failure | transaction aborts | nothing applied | in-modal code | retry | no | all twelve steps atomic |
+| Historical stock altered during cutover (TD1 violation) | baseline hash mismatch against `saldo_fios` | fence held | maintenance | `pre_ponr_rollback` + `resume_legacy`; investigate before retry | yes (fence) | the five rows re-measured against `inventory_baseline_hash` |
+
+### 9.9.Q Authenticated acceptance plan
+
+**Static:** grants verified with `has_function_privilege` for `anon`,
+`authenticated`, `service_role` on every new function; the `pedidos` table/column
+grant matrix asserted; `_pedido_status_recalcular` proved **not** executable by
+`authenticated`; zero active flat consumers; no dual write; RLS on new tables;
+terminal migration identity; asset tokens.
+
+**Disposable cluster:** clean apply and no-op re-apply of db/101–109; origin-scope
+availability proofs (sibling cotton does **not** reduce a peer's ceiling; shared
+polyester does); **TD1 proof: a non-zero `saldo_fios` row raises no OP ceiling
+and appears in no productive-receipt total**; two-session shared-polyester adjustment with
+`deadlock_40P01 = false`; lock-order proof across adjustment, receipt reversal, OP
+cancellation and delivery correction; stale-revision refusal; partial receipt then
+partial reversal; multi-origin allocation; production start atomicity; finishing
+failure and gated retry with a replayed idempotency key returning the same
+`split_seq`; Tapete reversal guards; delivery correction returning `produzindo`;
+full cancellation compensation; cutover rehearsal with `pre_ponr_rollback` **and**
+`resume_legacy`; post-PONR forward recovery.
+
+**Production preflight, read-only:** cluster identity; terminal migration; row
+counts; the two OC fingerprints; **no receipt fabrication**; the five `saldo_fios`
+rows re-measured and asserted **unchanged** under TD1 (§9.9.H) and proved absent
+from every OP ceiling; cutover state; backup and restore-rehearsal evidence (LR-12).
+
+**Authenticated scenarios:** each must end in a *reachable next action* — emitted
+OC eligibility; supplier queue when acceptance is required; partial receipt;
+receipt reversal; availability reload; one-OP post-receipt navigation; multi-OP
+panel; atomic slider save (all or none); start production; Tapete finishing path;
+Manta direct route; both expedition reversals; delivery correction returning the
+Pedido to `produzindo`; Pedido and OP cancellation gates; customer tracking.
+
+### 9.9.R Remaining blockers
+
+**LR-12 is the only genuine blocker.**
+
+1. **LR-12 — no fresh verified production backup exists.** It is a hard **entry
+   criterion for cutover execution**: the cutover may not be run until a fresh
+   backup exists and its restore rehearsal passes. Closing it needs
+   architect-supplied credentials for one gated read-only export, a repaired local
+   cluster for the rehearsal, or an explicit ruling that a named alternative
+   artifact satisfies the precondition.
+
+**LR-12 does not block acceptance of this technical design.** It is an execution
+prerequisite, not a design gap: the design is complete and reviewable as it
+stands, and LR-12 is discharged immediately before the cutover run of phase P5
+(§9.9.G). **This section may therefore be accepted while LR-12 remains open**,
+provided no cutover is executed until it is discharged.
+
+The historical-stock question is **no longer a blocker**: supervisor ruling **TD1**
+closed it (§9.9.H). No other unresolved alternative remains in this section.
+
+```
+PROPOSED / AWAITING SUPERVISOR REVIEW
+IMPLEMENTATION NOT AUTHORIZED
+CUTOVER NOT AUTHORIZED
+```
+
 ---
 
 ## 10. Real-data protection
@@ -1406,7 +2106,8 @@ correction.
 | 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-FINALIZATION-R1` | 0, 9 (replaced), 14, 16 | Section 9 replaced: was a list of DESIGN_PENDING placeholders, now the complete TARGET PRODUCT DESIGN — artifacts, lifecycle explanation, binding rulings R1-R13 and D1-D6, coordinated implementation blocks, the 30-row target-versus-current gap matrix, the residual technical-design assumptions, and the four-register distinction (target spec / current facts / gaps / authorization). Section 0 gained the clause forbidding the target and the current-state description from being merged. Section 14 records TARGET DESIGN DOCUMENTED / AWAITING SUPERVISOR REVIEW. Target graph added as SVG + Mermaid. Documentation-only; design is NOT accepted and implementation remains unauthorized. |
 | 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-REVIEW-CORRECTION-R1` | 9.4 (new D7), 9.5 (Block 2), 9.6 (gap matrix), 14, 16 | Corrects four defects found on direct supervisor review of the published target design. (1) The section-16 row for TARGET-DESIGN-FINALIZATION-R1 had been inserted BEFORE the earlier CANONICAL-STATE-CORRECTION-R1 row, breaking commit chronology and the append-only presentation; the rows are reordered with no change to either entry content. (2) Gap-matrix row 8 cited D4 for the rejected-Purchase-Order recovery; D4 owns finishing-OP idempotency, so the citation is now R5 alone. (3) Block 2 cited R2 for the canonical pedidos.status writer; that writer is owned by section 7.1 and D1, production-start routing is owned by R1, and R2 owns exclusively the Pedido-confirmed to create-weaving-OP sequence. (4) New binding ruling D7 adds the server-owned cancellation-eligibility gates: Pedido cancellation reachable from rascunho/recebido/confirmado/produzindo with entregue barred until a D1 correction, OP cancellation reachable from simulada/aberta/em_producao/pausada with concluida barred until an authorized reversal, finalizada left as legacy without action or writer, cancellation defined as preserving every historical fact and never physical deletion, and the produzindo label widened to "iniciado pela producao OU restaurado pela recomputacao D1". Documentation-only; the design is NOT accepted and implementation remains unauthorized. |
 | 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-FUNCTIONAL-DESIGN-ACCEPTANCE-R1` | 9.6, 9.7, 9.8, 14, 16 | SUPERVISOR ACCEPTANCE CLOSEOUT. The TARGET FUNCTIONAL PRODUCT DESIGN of section 9 and the two target graph artifacts are CLOSED / ACCEPTED AS THE TARGET FUNCTIONAL PRODUCT SPECIFICATION at commit a41a3db98372a3976635d8ffbd27a7832bb168a4. Accepted scope: rulings R1-R13 and D1-D7, the 15-lane target lifecycle, the commercial/operational state separation, explicit creation and opening of the weaving OP before receipt, two-stage purchase planning and Purchase Order generation, the three orthogonal Purchase Order axes, native receipt/reversal/allocation semantics, native availability feeding the shared slider, atomic production adjustment, post-receipt continuation, Tapete and Manta route separation, finishing recovery, expedition and delivery reversals, and Pedido and OP cancellation eligibility. The acceptance states that the diagram and section 9 correctly describe how the product must function after correction; it does NOT accept an implementation-ready technical design, does NOT authorize implementation, does NOT authorize the native receipt cutover, and does NOT accept the still-outstanding db/100 supervisor review of PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1. Two editorial corrections applied and no other target-design semantic change: gap-matrix row 17 now cites (§7.1/D1) instead of (D1/R2), because R2 owns only the explicit Pedido-confirmed to create-weaving-OP sequence; and the section 9.7 introduction now reads D1-D7 instead of D1-D6. R1-R13 and D1-D7 are neither rewritten nor compacted. Documentation-only. |
+| 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1` | 9.9 (new), 16 | PROPOSED implementation-ready coordinated technical design added as section 9.9, marked PROPOSED / AWAITING SUPERVISOR REVIEW. The accepted functional specification of sections 9.1-9.8 and rulings R1-R13 / D1-D7 are unchanged. Repository and read-only production reconciliation established five findings that reduced the design: the native receipt architecture (registrar/estornar_recebimento_ordem_compra) already exists complete; the ledger already carries allocation, OP, material and colour lineage; receipt distribution is already explicit operator allocation; the db/75 cutover state machine already exists with productive_receipt_started_at as the enforced PONR; and ordem_compra.aceite_exigido_na_emissao already exists as the D3 frozen field with both live orders already correct, so no backfill is required. Closes every section 9.7 item: availability as server-side calculation functions with no new cache (A); shared-polyester serialization by Pedido-row lock plus ascending ops/op_itens order with ops.revisao optimistic concurrency (A); salvar_ajuste_producao_op as the single atomic writer with an explicit transaction-membership table (B); post-receipt Revisar producao continuation with 1-OP and N-OP routing (C); per-supplier exige_aceite with emission freeze and accept/reject writers (D); receipt activation without a new writer (E); the exact eight-step cutover sequence with the PONR identified as the first productive receipt (F); the five saldo_fios rows classified as preserved historical snapshot captured into the inventory baseline and explicitly excluded from OP ceilings (G); explicit operator allocation for multi-origin receipt (H); finishing idempotency by origem_entrega_id plus split_seq with an op_acabamento_tentativas failure record (I); estornar_expedicao_tapete_parcial over a shared primitive (J); corrigir_entrega_expedicao returning an incomplete non-cancelled Pedido to produzindo (K); and alterar_status_pedido with the D7 gates (L). Adds the 23-item implementation manifest with every flat consumer given an exact target owner, the five-migration topology with the PONR outside every migration, the 17-case recovery matrix and the authenticated acceptance plan. Two genuine blockers reported and not invented around: LR-12 (no fresh verified production backup) and the 2685.020 kg of lineage-less saldo_fios that cannot become productive availability without a separate ruling. No commit, no push, no database mutation, no implementation authorization. |
+| 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C1` | 9.9 (rewritten) | Applies the twelve supervisor corrections found on direct review of the proposed technical design. C1 availability is now ORIGIN-SCOPE AWARE: OP-origin cotton is not reduced by sibling reservations, Pedido-origin polyester is, and the productive-receipt predicate selects allocation-destined ledger lines (alocacao_id NOT NULL AND kg_excesso = 0) instead of the withdrawn SUM(kg_recebido - kg_excesso); surplus is reported separately and never enters a ceiling; function security is explicit with owner-only SECURITY DEFINER internals behind one SECURITY INVOKER entry point and a security_invoker view. C2 one concurrency domain with an eleven-writer lock matrix, every writer in the manifest. C3 locks precede revision acceptance; a narrow ops.ajuste_revisao replaces a general ops.revisao; adjustment events go to op_eventos, never ordem_compra_eventos; alterar_status_op is corrected to take locks. C4 adds the server-owned atomic iniciar_producao_op. C5 removes the impossible predates-the-column fallback and makes the supplier column the sole authority with a deterministic seed and a demotion trigger. C6 withdraws the false full-reversibility claim, adds the missing ordem_compra_c3c_resume_legacy, and replaces the topology with a P1-P6 prepare/deploy/prove/contain/cutover/PONR sequence so the old UI never breaks. C7 removes the autonomous-transaction claim and makes split_seq replay-stable through a persisted command identity. C8 splits public alterar_status_pedido from owner-only _pedido_status_recalcular and adds the real grant matrix plus a fail-closed status fence, since authenticated holds table-level UPDATE on pedidos. C9 defines the twelve-step cancellation compensation and the eligibility refusal codes. C10 names expedicao_comandos, the shared primitive, idempotency scopes and duplicate behaviour. C11 makes every manifest entry an exact RETIRE or REPOINT. C12 keeps the historical-stock ruling explicitly OPEN. No commit, no push, no database mutation, no implementation authorization. |
+| 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C2` | 9.9.0 (F11), 9.9.H, 9.9.N, 9.9.P, 9.9.Q, 9.9.R | Applies binding supervisor ruling TD1, which CLOSES the historical-stock product decision: the existing saldo_fios balance of 2685.020 kg is PRESERVED HISTORICAL GLOBAL STOCK and NOT PRODUCTIVE OP AVAILABILITY. Section 9.9.H is rewritten from an open architect ruling into TD1 with its nine binding consequences mapped one-to-one onto their exact technical effect: the five rows are preserved unchanged and touched by no migration or writer; they are captured verbatim into ordem_compra_cutover_inventory_baseline and hashed; they receive no retroactive Pedido, need, allocation or OP assignment; they are excluded from every OP ceiling because the section 9.9.A predicate reaches only ordem_compra_fio_lancamentos rows carrying recebimento_id, an allocation id and kg_excesso = 0, which no saldo_fios row can satisfy; they are excluded from the native received-material pool; they stay visible as historical global stock reported in its own column; productive availability comes only from native ledger lines with valid allocation lineage; no automatic or silent allocation mechanism is designed or permitted; and any future audited allocation is explicitly separately authorized work outside this coordinated release. The accepted operational consequence is recorded: the first productive ceilings after cutover may begin at zero until native receipts are registered. Historical stock is removed from the blocker list, leaving LR-12 as the ONLY genuine blocker, now classified as a cutover-execution prerequisite rather than a design gap, with the explicit statement that this technical design may be accepted while LR-12 remains open provided no cutover runs until it is discharged. The acceptance plan gains a TD1 disposable-cluster proof that a non-zero saldo_fios row raises no OP ceiling and appears in no productive-receipt total, and a production preflight assertion that the five rows are unchanged and absent from every ceiling; the manifest cutover runbook gains the TD1 baseline-capture assertion; the recovery matrix gains a TD1-violation row keyed on a baseline hash mismatch. Sections 9.1-9.8 are byte-identical. No commit, no push, no database mutation, no implementation authorization. |
 
 **Every future executor report must identify the exact sections changed here.**
-</content>
-</invoke>
