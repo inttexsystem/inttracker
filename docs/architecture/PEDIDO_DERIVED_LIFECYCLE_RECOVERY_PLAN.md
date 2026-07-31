@@ -83,7 +83,8 @@ documents-ingestor bridge.
 | Accepted diagnostic baseline HEAD | `97d461ef07ddb422db0b22cea6436f593fdc657a` |
 | Publication boundary | `staging/dev`, EXPLICIT_SINGLE_FAST_FORWARD_ONLY |
 | Production project identifier | `ucrjtfswnfdlxwtmxnoo` (PostgreSQL 17.6, cluster `system_identifier` 7642734024280108049) |
-| Terminal migration applied in production at baseline | db/99 (`supabase_migrations` 20260730190104); db/100 applied under PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 |
+| Terminal migration applied in production | **db/100** — `supabase_migrations` version `20260731033711` (`100_ordem_compra_post_generation_stabilization`), applied exactly once under PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 and re-verified read-only as terminal on 2026-07-31. No later migration exists in production and no db/101+ exists in the repository. |
+| Native receipt cutover state | `ordem_compra_cutover` = `legacy_active` / `flat` — **inactive**; db/100 did not activate it |
 | Retired project | `gqmpsxkxynrjvidfmojk` (no runtime role) |
 | Forbidden project | `bhgifjrfagkzubpyqpew` (never accessed) |
 | Protected local residue | `.gitignore` (MODIFIED), `.codex/config.toml` (UNTRACKED), `.mcp.json` (UNTRACKED) — preserved exactly, never opened or displayed |
@@ -831,6 +832,35 @@ Permanent, binding for every order in this scope:
 A validation that would require fabricating a receipt, a Purchase Order, a
 Pedido, an OP or a balance is a hard stop, not a test fixture.
 
+### 10.1 Current read-only state of the two protected Purchase Orders
+
+Measured directly against production `ucrjtfswnfdlxwtmxnoo` on **2026-07-31**
+under `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-STATE-CORRECTION-R1`, with identity
+proved by cluster `system_identifier` 7642734024280108049 on PostgreSQL 17.6.
+This is the **current** state; it does not replace the historical preflight
+measurement preserved in 13.6.
+
+| Code | `status_administrativo` | `emitida_em` | `status_recebimento` | `status_aceite` | `legado` | Items |
+|---|---|---|---|---|---|---|
+| `OC-001-3-26` | `emitida` | set | `nao_recebido` | `nao_aplicavel` | `false` | 4 |
+| `OC-001-4-26` | `emitida` | set | `nao_recebido` | `nao_aplicavel` | `false` | 2 |
+
+**Drift against 13.6, stated not inferred:** both orders were `rascunho` at the
+db/100 preflight and are `emitida` now. The operator emitted them after that
+preflight.
+
+**Emission is not receipt and not acceptance.** `status_recebimento` is
+`nao_recebido` on both and `ordem_compra_fio_lancamentos` holds **0 rows**, so no
+receipt has occurred. `status_aceite` is `nao_aplicavel` on both, which reflects
+`exige_aceite = FALSE` and is not evidence of a supplier acceptance decision.
+Neither state may be derived from `status_administrativo`.
+
+**Operational significance for this recovery:** both protected orders are now
+sitting at exactly the point where the chain breaks (section 3.2). They are
+emitted, they consume active purchasing coverage, and their receipt is refused by
+`recebimento_canonico_inativo` (LR-01). This is the live instance of the defect,
+not a hypothetical one.
+
 ---
 
 ## 11. Acceptance model
@@ -960,6 +990,29 @@ db/99 cutover (`OC-001-3-26`: 4 items, 3.769,800 kg; `OC-001-4-26`: 2 items,
 movements; zero cancelled orders; need fingerprint 5531.100/5531.100 with
 `cache_drift` = 0; cutover state `legacy_active`/`flat`.
 
+**This block is historical and is not overwritten.** It records the state
+*before* db/100 was applied. For the current state see 13.6.1 and 10.1.
+
+### 13.6.1 Production SELECT evidence (read-only, current, 2026-07-31)
+
+Measured under `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-STATE-CORRECTION-R1`.
+Identity proved by cluster `system_identifier` 7642734024280108049 on
+PostgreSQL 17.6, never by connector label.
+
+| Fact | Value |
+|---|---|
+| Terminal applied migration | `20260731033711` (`100_ordem_compra_post_generation_stabilization`) |
+| Later migration present | none — db/100 is terminal; repository has no db/101+ |
+| db/100 functions present | 4 of 4 measured (`oc_cobertura_ativa`, `necessidade_kg_planejado_ativo`, `oc_recalcular_cache_necessidade`, `oc_elegivel_cancelamento`) |
+| `ordem_compra_cutover` | `status` = `legacy_active`, `read_authority` = `flat` — **receipt inactive** |
+| `ordem_compra_fio_lancamentos` | 0 rows — **no receipt has occurred** |
+| `ordens_compra_fio` (flat model) | 0 rows |
+| `pedidos` / `ops` / `necessidade_compra_planejamento` | 5 / 1 / 6 |
+| `OC-001-3-26`, `OC-001-4-26` | both `emitida`, both `nao_recebido` — see 10.1 |
+
+Repository and production migration history **agree**: db/100 is terminal in both,
+and `tests/ordem-compra-c3d-deploy.smoke.js` declares `EXPECTED_TERMINAL = 100`.
+
 ### 13.7 Unresolved evidence
 
 1. Tapete expedition reversal — never exercised (LR-10).
@@ -993,10 +1046,18 @@ NEXT ACCEPTANCE GATE:
 One implementation-ready coordinated design with exact manifests, invariants,
 cutover state machine, PONR, recovery matrix, authenticated acceptance plan,
 and resolution of the remaining Tapete/expedition/delivery edges.
+
+PRODUCTION POSITION (verified read-only 2026-07-31):
+db/100 APPLIED (20260731033711) AND TERMINAL; PUBLISHED THROUGH staging/dev.
+NATIVE RECEIPT STILL INACTIVE (ordem_compra_cutover = legacy_active / flat).
+PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 REMAINS AWAITING SUPERVISOR
+REVIEW AND ACCEPTANCE; THIS DOCUMENT DOES NOT ACCEPT IT.
 ```
 
 `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1` **must update this document**
-rather than producing another competing lifecycle plan.
+rather than producing another competing lifecycle plan. It remains **design
+only**; implementation is **not authorized** and is not chained to this
+correction.
 
 ---
 
@@ -1025,6 +1086,7 @@ rather than producing another competing lifecycle plan.
 | Date | Order | Sections changed | Note |
 |---|---|---|---|
 | 2026-07-31 | `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-DOCUMENT-R1` | 0–16 (created) | Document established from the accepted `PEDIDO-DERIVED-LIFECYCLE-GRAPH-COMPLETION-R2` diagnosis at HEAD `97d461e`. Baseline visual graph added. Documentation-only; no product, migration, test or configuration file changed. |
+| 2026-07-31 | `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-STATE-CORRECTION-R1` | 2, 10 (new 10.1), 13 (new 13.6.1), 14, 16 | Reconciled the operational facts with independently re-verified read-only production state. Section 2 now records db/100 (`20260731033711`) as the terminal applied migration and the inactive cutover instead of db/99. New 10.1 records the **current** administrative status of both protected Purchase Orders (`OC-001-3-26` and `OC-001-4-26` are now `emitida`, not `rascunho`), explicitly distinguished from the historical db/100 preflight evidence in 13.6, which is preserved unchanged. New 13.6.1 records the current production measurement. Section 14 now states the verified production position and that PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 remains unaccepted. No lifecycle redesign; no defect, ruling, classification or decision changed. Documentation-only. |
 
 **Every future executor report must identify the exact sections changed here.**
 </content>

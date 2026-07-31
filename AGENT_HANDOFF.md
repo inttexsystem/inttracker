@@ -21,7 +21,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / PROVED ON A DISPOSABLE CLUSTER / RECORDED AT COMMIT TIME; THE SINGLE AUTHORIZED PRODUCTION APPLICATION OF db/100, ITS POST-APPLICATION VERIFICATION AND THE SINGLE staging/dev PUBLICATION FOLLOW THIS COMMIT UNDER THIS SAME ORDER AND ARE REPORTED IN THE EXECUTION REPORT`
+- Status: `IMPLEMENTED / PROVED ON A DISPOSABLE CLUSTER / db/100 APPLIED EXACTLY ONCE TO THE DEFINITIVE PRODUCTION PROJECT AND VERIFIED AFTER APPLICATION / PUBLISHED THROUGH THE SINGLE AUTHORIZED staging/dev PUSH / AWAITING SUPERVISOR REVIEW AND ACCEPTANCE. SELF-ACCEPTANCE IS NOT CLAIMED AND NO ACCEPTED CHECKPOINT IS APPENDED FOR THIS PHASE. NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover IS legacy_active/flat AND THE db/75/db/76 WRITER FENCE IS UNCHANGED`
 - Objective: Close the lifecycle AFTER a Purchase Order is generated: make cancellation reachable from rascunho AND emitida, make it release active purchasing balance immediately and irrepeatably, correct permanent-deletion eligibility so a cancelled previously emitted order is no longer trapped, stop offering receipt registration while the canonical cutover is inactive, make modal refusals visible inside the modal that raised them, and mount the read-only Purchase Order provenance.
 - Next authorizable action: `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1, WHICH FOLLOWS THE STILL-OUTSTANDING SUPERVISOR REVIEW AND ACCEPTANCE OF PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1` / `AWAITING SUPERVISOR REVIEW; DESIGN ONLY; IMPLEMENTATION REMAINS UNAUTHORIZED; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
 
