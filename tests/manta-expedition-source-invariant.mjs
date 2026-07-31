@@ -633,9 +633,17 @@ async function resolveManifest() {
 // is weakened by that change.
 // ===========================================================================
 const B1_TERMINAL = 84;
+// The terminal this proof owns; P1 growth beyond it is out of its scope.
+const SOURCE_TERMINAL = 100;
 
 async function partA(handle) {
-  const manifest = await resolveManifest();
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P1-ADDITIVE-BACKEND-R1: this proof
+  // owns a BASELINE, not the whole repository. The P1 additive backend adds
+  // db/101..db/109 (reserving db/104 and db/106 for P4) and is proved by
+  // tests/p1-additive-backend.integration.mjs. Scoping the manifest here
+  // keeps this harness's fail-closed contiguity check meaningful over the
+  // range it actually asserts, instead of failing on unrelated growth.
+  const manifest = (await resolveManifest()).filter((m) => m.n <= SOURCE_TERMINAL);
   check(manifest.length >= B1_TERMINAL,
     `manifest must contain at least db/01..db/${B1_TERMINAL} (got ${manifest.length})`);
   const prefix = manifest.slice(0, B1_TERMINAL);

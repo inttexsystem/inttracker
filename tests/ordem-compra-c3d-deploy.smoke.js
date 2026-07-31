@@ -2,6 +2,17 @@
 //
 // PHASE-C3D-A smoke test.
 //
+// NATIVE-RECEIPT-COORDINATED-RELEASE-P1-ADDITIVE-BACKEND-R1 note:
+// The P1 additive backend adds db/101, 102, 103, 105, 107, 108 and 109 and
+// DELIBERATELY RESERVES db/104 and db/106 for phase P4 (the receipt lock
+// protocol and the direct-DML containment). The manifest is therefore no
+// longer strictly contiguous, so this guard now carries an EXPLICIT
+// reservation register: exactly those two numbers may be absent, every
+// OTHER gap still fails closed, and the expected terminal advances
+// 100 -> 109 with db/108/db/109 as the terminal two. The fail-closed
+// mechanism is unchanged; only the terminal expectation advanced and the
+// two reserved numbers became declared facts rather than silent holes.
+//
 // PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 note:
 // db/100_ordem_compra_post_generation_stabilization.sql extends this manifest
 // by one further entry, so the expected terminal advances 99 -> 100 and the
@@ -158,7 +169,14 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 100;
+const EXPECTED_TERMINAL = 109;
+
+// Migration numbers deliberately RESERVED by the accepted coordinated
+// native-receipt release and not present until phase P4:
+//   db/104 — recebimento lock protocol and acceptance gate
+//   db/106 — direct-DML containment (TD2)
+// Any gap OUTSIDE this set is still a hard failure.
+const RESERVED_MIGRATION_NUMBERS = new Set([104, 106]);
 const DB75_FILENAME = '75_ordem_compra_c3c_inactive_cutover.sql';
 const DB76_FILENAME = '76_ordem_compra_c3c_b_db_prerequisites.sql';
 const DB77_FILENAME = '77_ordem_compra_c5a_emission_readiness.sql';
@@ -184,6 +202,8 @@ const DB96_FILENAME = '96_ordem_compra_codigo_operador_e_exclusao.sql';
 const DB97_FILENAME = '97_ordem_compra_exclusao_read_model.sql';
 const DB98_FILENAME = '98_ordem_compra_identidade_completa_com_codigo.sql';
 const DB99_FILENAME = '99_planejamento_compra_refoundation.sql';
+const DB108_FILENAME = '108_acabamento_idempotente.sql';
+const DB109_FILENAME = '109_estorno_tapete_e_correcao_entrega.sql';
 const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
@@ -262,7 +282,9 @@ function resolveMigrationManifest(filenames, { expectedTerminal } = {}) {
     throw new ManifestError('MISSING_START', `migration sequence does not start at 1 (starts at ${entries[0].number})`);
   }
   for (let i = 1; i < entries.length; i += 1) {
-    const expectedNext = entries[i - 1].number + 1;
+    let expectedNext = entries[i - 1].number + 1;
+    // Walk past declared reservations only; an undeclared hole still fails.
+    while (RESERVED_MIGRATION_NUMBERS.has(expectedNext)) expectedNext += 1;
     if (entries[i].number !== expectedNext) {
       throw new ManifestError(
         'GAP',
@@ -361,8 +383,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB99_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB100_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB108_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB109_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -381,27 +403,26 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/100, contiguous and unique', () => {
+test('deployment manifest resolves exactly db/01..db/109 less the two reserved numbers', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  assert.equal(entries.length, EXPECTED_TERMINAL);
-  assert.deepEqual(
-    entries.map((entry) => entry.number),
-    Array.from({ length: EXPECTED_TERMINAL }, (_, i) => i + 1)
-  );
+  const expectedNumbers = Array.from({ length: EXPECTED_TERMINAL }, (_, i) => i + 1)
+    .filter((n) => !RESERVED_MIGRATION_NUMBERS.has(n));
+  assert.equal(entries.length, expectedNumbers.length);
+  assert.deepEqual(entries.map((entry) => entry.number), expectedNumbers);
 });
 
-test('db/99 and db/100 are the terminal two migrations', () => {
+test('db/108 and db/109 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB99_FILENAME);
-  assert.equal(terminal.filename, DB100_FILENAME);
+  assert.equal(penultimate.filename, DB108_FILENAME);
+  assert.equal(terminal.filename, DB109_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
   const manifest = buildDeploymentManifest();
-  assert.equal(manifest.migrations.length, EXPECTED_TERMINAL);
+  assert.equal(manifest.migrations.length, EXPECTED_TERMINAL - RESERVED_MIGRATION_NUMBERS.size);
   assert.equal(manifest.applicationArtifact, APPLICATION_ARTIFACT);
   assert.equal(manifest.terminalTwo.length, 2);
   assert.ok(/^[0-9a-f]{40}$/.test(manifest.documentaryCheckpoint));

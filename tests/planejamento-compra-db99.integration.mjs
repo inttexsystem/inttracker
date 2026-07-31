@@ -358,7 +358,11 @@ async function main() {
   try {
     scratchDir = await mkdtemp(path.join(tmpdir(), 'db99-rehearsal-'));
 
-    const manifest = await resolveManifest();
+    // This rehearsal is scoped to the db/99 + db/100 baseline. The P1
+    // additive backend (db/101..db/109) is applied by its own suite,
+    // tests/p1-additive-backend.integration.mjs, and must not shift this
+    // one's terminal.
+    const manifest = (await resolveManifest()).filter((m) => m.n <= 100);
     const terminal = manifest[manifest.length - 1];
     if (terminal.n !== 100) throw new Error(`manifest terminal must be db/100, got db/${terminal.n}`);
     log('MANIFEST', { count: manifest.length, terminal: path.basename(terminal.file) });

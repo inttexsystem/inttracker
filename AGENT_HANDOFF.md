@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / PROVED ON A DISPOSABLE CLUSTER / db/100 APPLIED EXACTLY ONCE TO THE DEFINITIVE PRODUCTION PROJECT AND VERIFIED AFTER APPLICATION / PUBLISHED THROUGH THE SINGLE AUTHORIZED staging/dev PUSH / AWAITING SUPERVISOR REVIEW AND ACCEPTANCE. SELF-ACCEPTANCE IS NOT CLAIMED AND NO ACCEPTED CHECKPOINT IS APPENDED FOR THIS PHASE. NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover IS legacy_active/flat AND THE db/75/db/76 WRITER FENCE IS UNCHANGED`
-- Objective: Close the lifecycle AFTER a Purchase Order is generated: make cancellation reachable from rascunho AND emitida, make it release active purchasing balance immediately and irrepeatably, correct permanent-deletion eligibility so a cancelled previously emitted order is no longer trapped, stop offering receipt registration while the canonical cutover is inactive, make modal refusals visible inside the modal that raised them, and mount the read-only Purchase Order provenance.
-- Next authorizable action: `IMPLEMENTATION PLANNING AND EXECUTION OF THE COORDINATED NATIVE RECEIPT RELEASE, SUBJECT TO A SEPARATE ORDER; THE db/100 SUPERVISOR REVIEW OF PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 REMAINS OUTSTANDING AND IS NOT SUPERSEDED BY THE TECHNICAL-DESIGN ACCEPTANCE` / `NO IMPLEMENTATION IS AUTHORIZED BY THIS ACCEPTANCE; THE NATIVE RECEIPT CUTOVER IS NOT AUTHORIZED; THE ACTIVE PHASE REMAINS AWAITING SUPERVISOR REVIEW AND ACCEPTANCE; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
+- Status: `IMPLEMENTED / PROVED ON A DISPOSABLE PG 18.4 CLUSTER / NOT APPLIED TO PRODUCTION OR ANY HOSTED DATABASE / PUBLISHED THROUGH THE SINGLE AUTHORIZED staging/dev PUSH / AWAITING SUPERVISOR REVIEW AND ACCEPTANCE. SELF-ACCEPTANCE IS NOT CLAIMED AND NO ACCEPTED CHECKPOINT IS APPENDED FOR THIS PHASE. NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover IS legacy_active/flat, THE db/75/db/76 WRITER FENCE IS UNCHANGED, AND THE PRODUCTION TERMINAL APPLIED MIGRATION REMAINS db/100. P2, P4 AND P5 ARE NOT AUTHORIZED.`
+- Objective: Implement and locally prove the complete P1 ADDITIVE backend of the accepted coordinated native-receipt release: native origin-scoped availability, the atomic production adjustment and server-owned production start, the supplier acceptance queue, the Pedido status authority with D7 cancellation and planning release, the pre-PONR cutover restoration infrastructure, the idempotent finishing OP, and the Tapete reversal and delivery correction — WITHOUT replacing any active business writer, revoking any existing grant, or activating the native receipt cutover.
+- Next authorizable action: `SUPERVISOR REVIEW AND ACCEPTANCE OF THE P1 ADDITIVE BACKEND; THEREAFTER P2 (FRONTEND) PLANNING SUBJECT TO A SEPARATE ORDER. THE db/100 SUPERVISOR REVIEW OF PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 REMAINS INDEPENDENTLY OUTSTANDING` / `P2 NOT AUTHORIZED; P4 NOT AUTHORIZED; P5 CUTOVER NOT AUTHORIZED; NATIVE RECEIPT REMAINS INACTIVE; NO DATABASE APPLICATION OF db/101-db/109 TO ANY HOSTED ENVIRONMENT IS AUTHORIZED; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.32 Post-generation lifecycle — binding amendment (db/100)`
+- `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md::## 9.9 Coordinated implementation-ready technical design`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

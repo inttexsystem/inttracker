@@ -648,7 +648,13 @@ async function resolveManifest() {
 // PART A — full chain apply + terminal-object presence.
 // ===========================================================================
 async function partA(handle) {
-  const manifest = await resolveManifest();
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P1-ADDITIVE-BACKEND-R1: this proof
+  // owns a BASELINE, not the whole repository. The P1 additive backend adds
+  // db/101..db/109 (reserving db/104 and db/106 for P4) and is proved by
+  // tests/p1-additive-backend.integration.mjs. Scoping the manifest here
+  // keeps this harness's fail-closed contiguity check meaningful over the
+  // range it actually asserts, instead of failing on unrelated growth.
+  const manifest = (await resolveManifest()).filter((m) => m.n <= TERMINAL_MIGRATION);
   check(manifest.length === TERMINAL_MIGRATION,
     `manifest must be db/01..db/${TERMINAL_MIGRATION} (got ${manifest.length})`);
   check(manifest[manifest.length - 1].n === TERMINAL_MIGRATION,

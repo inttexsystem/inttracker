@@ -2154,6 +2154,77 @@ NATIVE RECEIPT CUTOVER:
 NOT AUTHORIZED
 ```
 
+### 9.9.S P1 implementation evidence
+
+`NATIVE-RECEIPT-COORDINATED-RELEASE-P1-ADDITIVE-BACKEND-R1` implemented the
+**P1 additive backend only** and proved it on a disposable local PostgreSQL
+18.4 cluster. This subsection records that operational fact; it does not
+modify the accepted design above.
+
+**Implemented:** `db/101` (availability, §9.9.A + TD1), `db/102`
+(`ops.ajuste_revisao`, `_op_status_aplicar`, `salvar_ajuste_producao_op`,
+`iniciar_producao_op`), `db/103` (`fornecedores.exige_aceite` + deterministic
+seed, `ordem_compra_aceite_comandos`, supplier queue, accept/reject),
+`db/105` (`alterar_status_pedido`, owner-only `_pedido_status_recalcular`,
+`pedido_elegivel_cancelamento`, `cancelar_pedido`, the typed planning-release
+fields and the narrowed active-planning index and readers), `db/107`
+(`ordem_compra_cutover_acl_manifest`, capture/restore, `purge_generation`,
+`resume_legacy`, and the `close_final_acl` manifest precondition), `db/108`
+(finishing identity, command and attempt stores, `gerar_op_acabamento`,
+`pode_recuperar_op_acabamento`, the retained `gerar_op_latex_split` wrapper)
+and `db/109` (`_expedicao_estorno_aplicar`,
+`estornar_expedicao_tapete_parcial`, `corrigir_entrega_expedicao`).
+
+**Not implemented, by contract:** `db/103b`, `db/104`, `db/106` and `db/110`.
+Those numbers are **reserved** and the migration sequence is deliberately
+non-contiguous until P4.
+
+**Proved on the disposable cluster:** clean apply of db/01–100 then the seven
+P1 migrations in numerical order; byte-identical re-apply is a no-op for all
+seven; the owner-only helpers deny `anon`, an authenticated non-admin, an
+authenticated **admin** and `service_role`, while each public wrapper
+authorizes only `authenticated`; **TD1 holds** — a preserved `saldo_fios`
+balance yields zero OP availability and raises no ceiling; a sibling OP's
+reservation does not reduce OP-origin cotton while the shared Pedido
+polyester pool is reduced by other active OPs, and the target OP's own
+reservation is never subtracted; two-session adjustment serialises on the
+`pedidos` row with **no SQLSTATE 40P01** and a stale revision loses with zero
+partial write; production start is atomic across OP status, the authoritative
+`saldo_fios_op` snapshot and the derived Pedido transition; supplier
+acceptance commands are idempotent and refuse conflicting reuse; cancellation
+preserves the planning row physically while releasing its active balance;
+the ACL/policy manifest round-trips to a **byte-identical hash** across
+`close_final_acl`; the generation purge removes only the import footprint,
+re-enables all five guards and lets a second generation import without
+collision; finishing creation is replay-stable, a proved failure preserves
+the delivery and only a proved failure unlocks retry; and the Tapete reversal
+and delivery-correction guards hold, with an incomplete non-cancelled Pedido
+returning from `entregue` to `produzindo`.
+
+**Active-behaviour fingerprint:** captured before and after P1 over
+`emitir_ordem_compra`, both receipt/reversal writers and their `_c3c_*`
+implementations, `alterar_status_op`, `cancelar_ordem_compra`,
+`excluir_ordem_compra`, `ordem_compra_config` update behaviour, the cutover
+row and every currently reachable client policy and business grant. The two
+captures are **IDENTICAL**.
+
+**Harness limitation (accepted OBS-3).**
+`ordem_compra_c3c_import_and_reconcile` calls `assert_import_reconciled`,
+which hard-codes the real production corpus totals and is therefore not
+runnable against the synthetic corpus. The db/107 proof uses the documented
+synthetic equivalent — the real `fence_and_snapshot`, a per-row
+`import_snapshot_row` loop and the real `assert_snapshot_and_live`, with
+`reconciliation_status` set directly as `postgres`. Every function under test
+(capture, close, restore, purge, resume) is the real one, unmodified.
+
+**Not applied to any hosted database.** `ordem_compra_cutover` remains
+`legacy_active / flat`, native receipt remains inactive, and the production
+terminal migration remains **db/100**.
+
+> **LR-12 remains open and requires a fresh backup and restore rehearsal
+> immediately before P5. The older backup-mechanism resolution does not
+> satisfy that freshness requirement.**
+
 ---
 
 ## 10. Real-data protection
