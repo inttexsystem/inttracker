@@ -43,6 +43,15 @@
 %%     recusa reverter acima do liberado; recusa resultado abaixo do ja entregue; preserva linhagem; recomputa
 %%     disponibilidade de saida acabada = saida acabada MEDIDA menos expedicao atualmente liberada.
 %%     Nunca editar diretamente um saldo de estoque acabado avulso.
+%%  D7 Elegibilidade de cancelamento, server-owned.
+%%     PEDIDO: gate alcancavel de rascunho, recebido, confirmado e produzindo. entregue NAO vai direto a cancelado —
+%%     a entrega deve primeiro ser corrigida/revertida sob D1, provocando a recomputacao canonica.
+%%     OP: gate alcancavel de simulada, aberta, em_producao e pausada. concluida NAO vai direto a cancelada —
+%%     exige antes correcao ou reversao autorizada que a retire da condicao terminal.
+%%     finalizada permanece compatibilidade legada e NAO recebe acao nem writer novo.
+%%     Cancelar PRESERVA o Pedido e todo fato historico operacional e comercial; nunca e exclusao fisica; nao apaga
+%%     OPs, Ordens de Compra, recebimentos, movimentacoes, expedicoes, entregas nem sua proveniencia.
+%%     A ordem exata de compensacao fica para o design tecnico coordenado.
 flowchart LR
 
   classDef persisted fill:#ecfdf3,stroke:#12b76a,stroke-width:1.5px,color:#101828
@@ -58,15 +67,19 @@ flowchart LR
     P0["Rascunho"]:::persisted
     P1["Recebido"]:::persisted
     P2["Confirmado"]:::persisted
-    P3["Produzindo"]:::persisted
+    P3["Produzindo<br/>iniciado pela producao OU restaurado pela recomputacao D1"]:::persisted
     P4["Entregue"]:::persisted
-    PGT{"Elegivel a<br/>cancelamento?"}:::gate
+    PGT{"D7 · Elegivel a cancelamento?<br/>gate server-owned"}:::gate
     PC["Cancelado"]:::persisted
     P0 --> P1 --> P2 --> P3 --> P4
-    P0 -.-> PGT
-    P1 -.-> PGT
-    P2 -.-> PGT
+    P0 --> PGT
+    P1 --> PGT
+    P2 --> PGT
+    P3 --> PGT
     PGT -->|"sim"| PC
+    PNOTE(["D7 · entregue NAO vai direto a cancelado<br/>corrigir/reverter a entrega sob D1 primeiro<br/>cancelar PRESERVA o Pedido e todo fato historico"]):::derived
+    P4 -.- PNOTE
+    PNOTE -.- PGT
   end
   OPSTATE(["Etapa operacional derivada, exibida AO LADO do status comercial"]):::derived
   P2 -.->|"projeta, nao substitui"| OPSTATE
@@ -94,13 +107,19 @@ flowchart LR
     SCONC["Acao: Concluir OP<br/>saldo/percentual so torna ELEGIVEL"]:::action
     S5["concluida"]:::persisted
     S6["cancelada"]:::persisted
+    SGT{"D7 · Elegivel a cancelamento?<br/>gate server-owned"}:::gate
+    SNOTE(["D7 · concluida NAO vai direto a cancelada<br/>exige antes correcao ou reversao autorizada<br/>finalizada e legado: sem acao e sem writer novo"]):::derived
     S1 --> S2 --> S3
     S3 -->|"pausar"| S4
     S4 -->|"retomar"| S3
     S3 --> SCONC --> S5
-    S1 --> S6
-    S2 --> S6
-    S3 --> S6
+    S1 --> SGT
+    S2 --> SGT
+    S3 --> SGT
+    S4 --> SGT
+    SGT -->|"sim"| S6
+    S5 -.- SNOTE
+    SNOTE -.- SGT
   end
   NSYNC ==> S2
 

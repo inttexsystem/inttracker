@@ -20,6 +20,7 @@
     .legacy { fill: #eaecf0; stroke: #98a2b3; }
     .gate { fill: #fffaeb; stroke: #f79009; stroke-width: 1.5; }
     .fwd { stroke: #344054; stroke-width: 1.8; fill: none; marker-end: url(#mf); }
+    .rail { stroke: #344054; stroke-width: 1.8; fill: none; }
     .proj { stroke: #98a2b3; stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; marker-end: url(#mp); }
     .rev { stroke: #2e90fa; stroke-width: 2; fill: none; marker-end: url(#mr); }
     .bad { stroke: #f04438; stroke-width: 2.2; fill: none; stroke-dasharray: 7 4; marker-end: url(#mb); }
@@ -53,13 +54,14 @@
   <text class="t-m" x="466" y="164">torna ALCANCAVEL a criacao da OP</text>
   <rect class="box persisted" x="664" y="124" width="180" height="52"/>
   <text class="t-n" x="676" y="146">Produzindo</text>
-  <text class="t-m" x="676" y="164">derivado do inicio da producao</text>
+  <text class="t-m" x="676" y="164">iniciado pela producao OU restaurado pela recomputacao D1</text>
   <rect class="box persisted" x="874" y="124" width="180" height="52"/>
   <text class="t-n" x="886" y="146">Entregue</text>
   <text class="t-m" x="886" y="164">so com entrega integral</text>
   <path class="gate box" d="M 1104 150 L 1174 124 L 1244 150 L 1174 176 Z"/>
-  <text class="t-n" x="1128" y="147">Elegivel a</text>
-  <text class="t-n" x="1122" y="161">cancelamento?</text>
+  <text class="t-n" x="1128" y="145">D7 · Elegivel a</text>
+  <text class="t-n" x="1122" y="158">cancelamento?</text>
+  <text class="t-m" x="1116" y="170">server-owned</text>
   <rect class="box persisted" x="1274" y="124" width="180" height="52"/>
   <text class="t-n" x="1286" y="146">Cancelado</text>
   <text class="t-m" x="1286" y="164">conforme elegibilidade</text>
@@ -67,11 +69,16 @@
   <text class="t-n" x="1486" y="144">Etapa operacional</text>
   <text class="t-m" x="1486" y="160">derivada, exibida AO LADO</text>
   <text class="t-m" x="1486" y="172">do status comercial</text>
+  <text class="t-red" x="34" y="206">D7 · entregue NAO vai direto a cancelado: a entrega deve primeiro ser corrigida ou revertida sob D1, provocando a recomputacao canonica.</text>
+  <text class="t-e" x="1000" y="206">Cancelar PRESERVA o Pedido e todo fato historico; nunca e exclusao fisica.</text>
   <path class="fwd" d="M 214 150 L 244 150"/>
   <path class="fwd" d="M 424 150 L 454 150"/>
   <path class="fwd" d="M 634 150 L 664 150"/>
   <path class="fwd" d="M 844 150 L 874 150"/>
-  <path class="proj" d="M 1054 150 L 1104 150"/>
+  <path class="rail" d="M 334 176 L 334 194"/>
+  <path class="rail" d="M 544 176 L 544 194"/>
+  <path class="rail" d="M 764 176 L 764 194"/>
+  <path class="fwd" d="M 124 176 L 124 194 L 1174 194 L 1174 176"/>
   <path class="fwd" d="M 1244 150 L 1274 150"/>
   <path class="proj" d="M 1454 150 L 1474 150"/>
 
@@ -132,13 +139,21 @@
   <text class="t-m" x="1356" y="416">conforme elegibilidade</text>
   <text class="t-e" x="1544" y="400">Aguardar insumos</text>
   <text class="t-e" x="1544" y="416">NAO e status de OP</text>
+  <text class="t-red" x="34" y="474">D7 · concluida NAO vai direto a cancelada: exige antes uma correcao ou reversao autorizada que a retire da condicao terminal. finalizada e legado e NAO recebe acao nem writer novo.</text>
   <path class="fwd" d="M 214 403 L 244 403"/>
   <path class="fwd" d="M 424 403 L 454 403"/>
   <path class="fwd" d="M 634 403 L 664 403"/>
   <path class="rev" d="M 754 380 L 754 366 L 544 366 L 544 380"/>
   <path class="fwd" d="M 544 426 L 544 444 L 989 444 L 989 426"/>
   <path class="fwd" d="M 1104 403 L 1134 403"/>
-  <path class="fwd" d="M 124 426 L 124 462 L 1434 462 L 1434 426"/>
+  <path class="gate box" d="M 1140 454 L 1230 432 L 1320 454 L 1230 476 Z"/>
+  <text class="t-m" x="1176" y="452">D7 · Elegivel a</text>
+  <text class="t-m" x="1182" y="464">cancelamento?</text>
+  <path class="rail" d="M 334 426 L 334 454"/>
+  <path class="rail" d="M 580 426 L 580 454"/>
+  <path class="rail" d="M 754 426 L 754 454"/>
+  <path class="fwd" d="M 124 426 L 124 454 L 1140 454"/>
+  <path class="fwd" d="M 1320 454 L 1434 454 L 1434 426"/>
   <path class="proj" d="M 1084 304 L 1084 340 L 334 340 L 334 380"/>
 
   <!-- ===== RAIA 4 — NECESSIDADES ===== -->

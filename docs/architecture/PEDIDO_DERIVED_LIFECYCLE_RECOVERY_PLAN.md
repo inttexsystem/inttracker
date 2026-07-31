@@ -932,6 +932,38 @@ Finished-output availability is derived from **measured finished output minus
 currently released expedition quantity**. A standalone "finished stock balance"
 is never edited directly.
 
+#### D7 — Cancellation eligibility in the target product
+
+**Pedido cancellation.** The target shows one **server-owned cancellation-eligibility
+gate** reachable from `rascunho`, `recebido`, `confirmado` and `produzindo`.
+
+An `entregue` Pedido **may not transition directly to `cancelado`**. Where
+cancellation is required after delivery, the delivery must first be corrected or
+reversed under **D1**, causing the canonical recomputation.
+
+Cancellation:
+
+- preserves the Pedido and every historical operational and commercial fact;
+- never means physical deletion;
+- does not erase OPs, Purchase Orders, receipts, movements, expeditions,
+  deliveries or their provenance;
+- leaves the exact compensation ordering to the coordinated technical design.
+
+**OP cancellation.** The eligibility gate is reachable from `simulada`, `aberta`,
+`em_producao` and `pausada`.
+
+A `concluida` OP **may not transition directly to `cancelada`**. It must first be
+removed from its terminal condition through an authorized correction or reversal.
+`finalizada` remains legacy compatibility and receives no new action or writer.
+
+**Pedido `produzindo` label.** `produzindo` does not arise only from an initial
+production start. Its target meaning is:
+
+```
+Produzindo
+iniciado pela produção ou restaurado pela recomputação D1
+```
+
 ### 9.5 Coordinated implementation blocks
 
 **Block 1 — receipt → production continuity (indivisible; the §7.3 boundary).**
@@ -953,9 +985,15 @@ when the canonical cutover is activated.
 Physical removal of `ordens_compra_fio` remains later. Operational dependency on
 it does not.
 
-**Block 2 — Pedido operational status.** Canonical server-owned `pedidos.status`
-writer covering `produzindo` (R2, D1) and routing production start through the OP
-lifecycle writer (R1).
+**Block 2 — Pedido operational status.** Two separate obligations:
+
+- the canonical server-owned `pedidos.status` writer covering `produzindo` — owned
+  by **§7.1** and **D1** (D1 also restores `produzindo` when a delivery correction
+  makes a delivered Pedido incomplete);
+- routing production start through the OP lifecycle writer — owned by **R1**.
+
+R2 is not part of Block 2. R2 owns exclusively the explicit
+*Pedido confirmed → create weaving OP* sequence of §9.3.
 
 **Block 3 — Tapete finishing continuity.** Idempotent automatic finishing-OP
 creation (**D4**), the proved-failure recovery surface (**D5**), and transactional
@@ -984,7 +1022,7 @@ Classification: **já implementada** · **parcial** · **ausente** · **conflita
 | 5 | Planning creates no document | db/99 two-stage model | **já implementada** | `db/99_planejamento_compra_refoundation.sql` | none |
 | 6 | Three orthogonal OC axes | all three columns exist | **já implementada** | `db/67:187-192` | none |
 | 7 | Acceptance branch frozen at emission (D3) | `status_aceite` exists; no writer; `exige_aceite` has no per-supplier configuration and no write path | **ausente** | `db/65`, `db/77:36-45` | per-supplier setting + freeze-on-emission + acceptance/rejection writers |
-| 8 | Rejected OC → replacement OC (D4/R5) | no rejection, closure or replacement writer | **ausente** | — | cancel/close + replan + generate replacement |
+| 8 | Rejected OC → replacement OC (R5) | no rejection, closure or replacement writer | **ausente** | — | cancel/close + replan + generate replacement |
 | 9 | Register receipt | `registrar_recebimento_ordem_compra` exists | **implementada, inalcançável** | `db/70:458`; `db/100:789-845` | activate the cutover |
 | 10 | Reverse receipt | `estornar_recebimento_ordem_compra` exists | **implementada, inalcançável** | `db/70:805` | same activation |
 | 11 | Ledger + allocation distribution | tables exist, zero rows | **implementada, inalcançável** | `db/70:17,144` | same activation |
@@ -1006,14 +1044,16 @@ Classification: **já implementada** · **parcial** · **ausente** · **conflita
 | 27 | Delivery correction undoing conclusion (D1) | **no writer exists** | **ausente** | — | correction writer + `entregue → produzindo` |
 | 28 | Customer tracking projection (R10) | client surfaces mounted; "Em preparação" anchoring undefined | **parcial** | `status_cliente_visual`; `js/screens/cliente-*` | widen to the confirmed pre-production interval |
 | 29 | Admin tracking/partials surfaces | not mounted | **dependente de decisão** | `pedido-tracking-admin.js:332`; `pedido-parciais-admin.js:445` | owning product decision |
-| 30 | Legacy outside the flow | six consumers still read/write the flat model | **conflitante** | `op-nova.js:1287,1293`; `op-persistir.js:330-338`; `fornecedor.js:472,539`; `pedido-detail-data.js:397-407`; `op-writes.js:93,122`; `delete-helpers.js:82` | repoint in Block 1; retire in Block 5 |
+| 30 | Pedido cancellation eligibility gate from the four non-terminal states (D7) | frontend `canTransition` table only; no server-owned eligibility gate; no rule forbidding `entregue → cancelado` | **ausente** | `js/screens/pedido-chain-state.js`; `js/screens/pedido-detail-events.js:150-175` | server-owned gate + D1 precondition after delivery |
+| 31 | OP cancellation eligibility gate from the four non-terminal states (D7) | `alterar_status_op` already refuses transitions out of `concluida`/`cancelada`/`finalizada` and admits cancellation from `simulada`/`aberta`/`em_producao`/`pausada` | **já implementada** | `db/21_op_lifecycle_status_eventos.sql:129-215` | none — the target matches the existing writer |
+| 32 | Legacy outside the flow | six consumers still read/write the flat model | **conflitante** | `op-nova.js:1287,1293`; `op-persistir.js:330-338`; `fornecedor.js:472,539`; `pedido-detail-data.js:397-407`; `op-writes.js:93,122`; `delete-helpers.js:82` | repoint in Block 1; retire in Block 5 |
 
 **Reversal coverage against the target:**
 
 | Reversal | Status |
 |---|---|
-| Pedido cancellation | parcial (frontend transition, no server-owned writer) |
-| OP cancellation | já implementada (`alterar_status_op`) |
+| Pedido cancellation (D7) | parcial — frontend transition only; no server-owned eligibility gate and no `entregue` guard |
+| OP cancellation (D7) | já implementada — `alterar_status_op` already matches the D7 gate |
 | Purchase Order cancellation | já implementada (`cancelar_ordem_compra`, db/100) |
 | Receipt reversal | implementada, inalcançável (cutover inactive) |
 | Production-adjustment replacement | parcial (overwrites, not atomic) |
@@ -1284,7 +1324,7 @@ cutover state machine, PONR, recovery matrix, authenticated acceptance plan,
 and resolution of the remaining Tapete/expedition/delivery edges.
 
 TARGET DESIGN:
-DOCUMENTED / AWAITING SUPERVISOR REVIEW (section 9, rulings R1-R13 and D1-D6).
+DOCUMENTED / AWAITING SUPERVISOR REVIEW (section 9, rulings R1-R13 and D1-D7).
 NOT ACCEPTED. IMPLEMENTATION REMAINS UNAUTHORIZED.
 
 PRODUCTION POSITION (verified read-only 2026-07-31):
@@ -1326,8 +1366,9 @@ correction.
 | Date | Order | Sections changed | Note |
 |---|---|---|---|
 | 2026-07-31 | `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-DOCUMENT-R1` | 0–16 (created) | Document established from the accepted `PEDIDO-DERIVED-LIFECYCLE-GRAPH-COMPLETION-R2` diagnosis at HEAD `97d461e`. Baseline visual graph added. Documentation-only; no product, migration, test or configuration file changed. |
-| 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-FINALIZATION-R1` | 0, 9 (replaced), 14, 16 | Section 9 replaced: was a list of DESIGN_PENDING placeholders, now the complete TARGET PRODUCT DESIGN — artifacts, lifecycle explanation, binding rulings R1-R13 and D1-D6, coordinated implementation blocks, the 30-row target-versus-current gap matrix, the residual technical-design assumptions, and the four-register distinction (target spec / current facts / gaps / authorization). Section 0 gained the clause forbidding the target and the current-state description from being merged. Section 14 records TARGET DESIGN DOCUMENTED / AWAITING SUPERVISOR REVIEW. Target graph added as SVG + Mermaid. Documentation-only; design is NOT accepted and implementation remains unauthorized. |
 | 2026-07-31 | `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-STATE-CORRECTION-R1` | 2, 10 (new 10.1), 13 (new 13.6.1), 14, 16 | Reconciled the operational facts with independently re-verified read-only production state. Section 2 now records db/100 (`20260731033711`) as the terminal applied migration and the inactive cutover instead of db/99. New 10.1 records the **current** administrative status of both protected Purchase Orders (`OC-001-3-26` and `OC-001-4-26` are now `emitida`, not `rascunho`), explicitly distinguished from the historical db/100 preflight evidence in 13.6, which is preserved unchanged. New 13.6.1 records the current production measurement. Section 14 now states the verified production position and that PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 remains unaccepted. No lifecycle redesign; no defect, ruling, classification or decision changed. Documentation-only. |
+| 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-FINALIZATION-R1` | 0, 9 (replaced), 14, 16 | Section 9 replaced: was a list of DESIGN_PENDING placeholders, now the complete TARGET PRODUCT DESIGN — artifacts, lifecycle explanation, binding rulings R1-R13 and D1-D6, coordinated implementation blocks, the 30-row target-versus-current gap matrix, the residual technical-design assumptions, and the four-register distinction (target spec / current facts / gaps / authorization). Section 0 gained the clause forbidding the target and the current-state description from being merged. Section 14 records TARGET DESIGN DOCUMENTED / AWAITING SUPERVISOR REVIEW. Target graph added as SVG + Mermaid. Documentation-only; design is NOT accepted and implementation remains unauthorized. |
+| 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-REVIEW-CORRECTION-R1` | 9.4 (new D7), 9.5 (Block 2), 9.6 (gap matrix), 14, 16 | Corrects four defects found on direct supervisor review of the published target design. (1) The section-16 row for TARGET-DESIGN-FINALIZATION-R1 had been inserted BEFORE the earlier CANONICAL-STATE-CORRECTION-R1 row, breaking commit chronology and the append-only presentation; the rows are reordered with no change to either entry content. (2) Gap-matrix row 8 cited D4 for the rejected-Purchase-Order recovery; D4 owns finishing-OP idempotency, so the citation is now R5 alone. (3) Block 2 cited R2 for the canonical pedidos.status writer; that writer is owned by section 7.1 and D1, production-start routing is owned by R1, and R2 owns exclusively the Pedido-confirmed to create-weaving-OP sequence. (4) New binding ruling D7 adds the server-owned cancellation-eligibility gates: Pedido cancellation reachable from rascunho/recebido/confirmado/produzindo with entregue barred until a D1 correction, OP cancellation reachable from simulada/aberta/em_producao/pausada with concluida barred until an authorized reversal, finalizada left as legacy without action or writer, cancellation defined as preserving every historical fact and never physical deletion, and the produzindo label widened to "iniciado pela producao OU restaurado pela recomputacao D1". Documentation-only; the design is NOT accepted and implementation remains unauthorized. |
 
 **Every future executor report must identify the exact sections changed here.**
 </content>
