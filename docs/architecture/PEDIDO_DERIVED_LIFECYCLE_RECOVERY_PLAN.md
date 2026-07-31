@@ -1114,18 +1114,32 @@ The residual technical details of §9.7 remain open and are the subject of
 Implementation authorization lives only in `docs/governance/current-state.json`
 and §14.
 
-## 9.9 Proposed implementation-ready coordinated technical design
+## 9.9 Coordinated implementation-ready technical design
 
 ```
-PROPOSED / AWAITING SUPERVISOR REVIEW
-IMPLEMENTATION NOT AUTHORIZED
-CUTOVER NOT AUTHORIZED
+COORDINATED IMPLEMENTATION-READY TECHNICAL DESIGN:
+CLOSED / ACCEPTED
+
+IMPLEMENTATION:
+NOT AUTHORIZED
+
+NATIVE RECEIPT CUTOVER:
+NOT AUTHORIZED
 ```
 
-Revision C1 applied the twelve supervisor corrections of
-`NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C1`. This section converts the
-**accepted** functional specification of §9.1–§9.8 into an exact implementation
-plan and does not modify it.
+Accepted by the supervisor under
+`NATIVE-RECEIPT-COORDINATED-RELEASE-TECHNICAL-DESIGN-ACCEPTANCE-R1`, on the
+execution proof of `NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1`
+(**T1–T12: PASS — FAILED MATERIAL CONTRACTS: NONE**; §13.8).
+
+Revision history of this section: **C1** applied the twelve supervisor
+corrections of `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C1`; **C2** applied
+supervisor ruling **TD1** (§9.9.H); **C3** closed the security, containment,
+rollback, PONR and phasing defects. This acceptance closeout adds binding
+supervisor ruling **TD2** (§9.9.L.4) and replaces the proposed purge mechanism
+with the **proven** one (§9.9.G.2.2). This section converts the **accepted**
+functional specification of §9.1–§9.8 into an exact implementation plan and does
+not modify it.
 
 ### 9.9.0 Measured facts this design rests on
 
@@ -1231,40 +1245,39 @@ converted through `parametros_largura` keyed by `modelos.largura`.
 *committed/consumed*; `cancelada` → nothing; `metros_pedidos` never reserves.
 Measured physical consumption is not claimed.
 
-#### A.5 Function security (explicit, not "RLS through SECURITY DEFINER")
+#### A.5 Function security matrix (C3 §2)
 
-| Object | Kind | Security | Grants | Authorization inside |
-|---|---|---|---|---|
-| `public._oc_disponibilidade_calc(p_op_id BIGINT)` | `STABLE`, **SECURITY DEFINER**, `SET search_path=''` | internal | `REVOKE ALL FROM PUBLIC, anon, authenticated, service_role` — **owner-only** | none needed; unreachable by clients |
-| `public.oc_disponibilidade_op(p_op_id BIGINT)` | `STABLE`, **SECURITY INVOKER** | public entry | `REVOKE ALL FROM PUBLIC, anon, service_role`; `GRANT EXECUTE TO authenticated` | first statement: `IF auth.uid() IS NULL OR NOT public.is_admin() THEN RAISE EXCEPTION 'sem_permissao' USING ERRCODE='42501'; END IF;` then calls the internal function |
-| `public.oc_reserva_ativa(p_pedido_id UUID, p_excluir_op_id BIGINT)` | `STABLE`, SECURITY DEFINER | internal | owner-only | unreachable by clients |
+**No view participates in the availability read path.** `vw_disponibilidade_op` is
+**withdrawn from this design**: a `security_invoker` view would execute as the
+caller, who deliberately has no EXECUTE on the owner-only helpers, so it could
+only ever fail with `permission denied`. The sole client-facing read is one
+guarded `SECURITY DEFINER` wrapper.
 
-SECURITY DEFINER is used **only** on owner-only internals that no client role can
-execute. The single client-facing function is SECURITY INVOKER and performs an
-explicit `is_admin()` check, so no row policy is bypassed on the caller's behalf.
+| Object | Security | Owner | REVOKE | GRANT | Explicit authorization | Calls |
+|---|---|---|---|---|---|---|
+| `public.oc_disponibilidade_op(p_op_id BIGINT)` **RETURNS TABLE**, `STABLE` | **SECURITY DEFINER**, `SET search_path=''` | `postgres` | `ALL FROM PUBLIC, anon, authenticated, service_role` | `EXECUTE TO authenticated` | first executable statement: `IF auth.uid() IS NULL OR NOT public.is_admin() THEN RAISE EXCEPTION 'sem_permissao' USING ERRCODE='42501'; END IF;` | the owner-only helpers below |
+| `public._oc_disponibilidade_linhas(p_op_id BIGINT)` | SECURITY DEFINER, `search_path=''` | `postgres` | `ALL FROM PUBLIC, anon, authenticated, service_role` | none | unreachable by clients | base tables |
+| `public._oc_material_recebido_liquido(...)` | SECURITY DEFINER | `postgres` | idem | none | unreachable | ledger |
+| `public._oc_reserva_ativa(...)` | SECURITY DEFINER | `postgres` | idem | none | unreachable | `op_itens`, `ops` |
 
-**`vw_disponibilidade_op` exact shape.** A parameterized function cannot be a view
-without either exposing every OP or leaking through a definer. The view is
-therefore defined over the **base tables**, not over the function, and carries its
-own row restriction:
+**Public mutation writers — all `SECURITY DEFINER` (C3 §2.2).** A `SECURITY
+INVOKER` writer is impossible here, because §9.9.L and §9.9.N remove direct DML on
+the protected columns from `authenticated`; an invoker function would lose the
+very privilege it needs.
 
-```sql
-CREATE VIEW public.vw_disponibilidade_op
-WITH (security_invoker = true) AS
-SELECT o.id AS op_id, d.material, d.cor_id, d.cor_poliester,
-       d.kg_necessario, d.kg_planejado, d.kg_comprado_ativo,
-       d.kg_recebido_produtivo, d.kg_estornado, d.kg_excedente,
-       d.kg_alocado_op, d.kg_reservado_outras, d.kg_disponivel
-  FROM public.ops o
-  CROSS JOIN LATERAL public._oc_disponibilidade_linhas(o.id) d
- WHERE public.is_admin();
-```
+| Public writer | Security | REVOKE | GRANT | Authorization | May mutate | Owner-only helpers called |
+|---|---|---|---|---|---|---|
+| `salvar_ajuste_producao_op` | **DEFINER**, `search_path=''` | `ALL FROM PUBLIC, anon, service_role` | `EXECUTE TO authenticated` | `auth.uid() IS NOT NULL AND public.is_admin()` | `op_itens.metros_ajustados`, `ops.ajuste_revisao`, `op_eventos` | `_oc_disponibilidade_linhas`, `_oc_reserva_ativa` |
+| `iniciar_producao_op` | **DEFINER** | idem | idem | idem | `ops.status`, `ops.ajuste_revisao`, `saldo_fios_op`, `op_eventos`, `pedido_eventos` | `_oc_disponibilidade_linhas`, `_op_status_aplicar`, `_pedido_status_recalcular` |
+| `alterar_status_pedido` | **DEFINER** | idem | idem | idem | `pedidos.status`, `pedidos.revisao`, `pedido_eventos` | `_pedido_status_recalcular`, `pedido_elegivel_cancelamento` |
+| `cancelar_pedido` | **DEFINER** | idem | idem | idem | `pedidos.status`, `ops.status`, `ordem_compra.status_administrativo`, planning history, events | `_op_status_aplicar`, `_pedido_status_recalcular`, `cancelar_ordem_compra` |
+| `aceitar_ordem_compra` / `rejeitar_ordem_compra` | **DEFINER** | idem | idem | active `fornecedor` whose `fornecedor_id` = `ordem_compra.fornecedor_id` | `ordem_compra.status_aceite`, `aceite_*`, `ordem_compra_aceite_comandos`, `ordem_compra_eventos` | — |
+| `estornar_expedicao_tapete_parcial` / `corrigir_entrega_expedicao` | **DEFINER** | idem | idem | `is_admin()` | `expedicao_itens`, `expedicao_comandos`, events | `_expedicao_estorno_aplicar`, `_pedido_status_recalcular` |
 
-`security_invoker = true` (PG 15+; production is 17.6) makes the view honour the
-caller's own policies on `ops`, and the trailing `WHERE public.is_admin()`
-fail-closes for any non-admin. `_oc_disponibilidade_linhas` is the owner-only
-set-returning internal; it is reachable only through this view and through the
-guarded entry function.
+**Call-graph invariant:** every owner-only helper is called **only** from a
+`SECURITY DEFINER` public function that has already performed its explicit
+`auth.uid()` + role check. No invoker function and no view reaches an owner-only
+helper.
 
 ---
 
@@ -1303,7 +1316,7 @@ public.salvar_ajuste_producao_op(
   p_base_ajuste_rev  INTEGER,
   p_itens            JSONB      -- absolute set [{op_item_id, metros_ajustados|null}]
 ) RETURNS JSONB
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 ```
 
 **Revision model — decided.** A **narrowly named adjustment revision**:
@@ -1349,7 +1362,7 @@ public.iniciar_producao_op(
   p_op_id           BIGINT,
   p_base_ajuste_rev INTEGER
 ) RETURNS JSONB
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 ```
 
 Atomic sequence: authorize → locks in the global order → reload state and
@@ -1421,37 +1434,187 @@ disposable cluster.
 
 ---
 
-### 9.9.G Cutover, honest rollback, and the safe deployment sequence (C6)
+### 9.9.G Cutover, restoration, PONR and the safe deployment sequence
 
-**Correction.** `ordem_compra_c3c_pre_ponr_rollback` restores
-`maintenance_fenced` / `flat`. That is **not** an operational rollback: the fence
-keeps business writes blocked. **No existing function restores `legacy_active`**
-(F5). The previous claim that steps 1–8 are "fully reversible" is **withdrawn**.
+The db/75 machine already exists. This design names only real objects and adds the
+restoration infrastructure it lacks.
 
-**Missing operation, proposed:** `public.ordem_compra_c3c_resume_legacy(p_generation BIGINT)`
-— `postgres`-only, advisory-lock gated, `UPDATE ordem_compra_cutover SET status='legacy_active', read_authority='flat', cutover_generation=NULL, canonical_activated_at=NULL WHERE id=1 AND status='maintenance_fenced' AND productive_receipt_started_at IS NULL`, raising `forward_recovery_only` otherwise. Only with this
-operation is service restoration before PONR real.
+| State | `status` / `read_authority` | Read | Write | Allowed | Forbidden |
+|---|---|---|---|---|---|
+| Pre-cutover | `legacy_active` / `flat` | flat | flat | planning, generation, emission, cancellation, deletion | native receipt (`recebimento_canonico_inativo`) |
+| Fenced | `maintenance_fenced` / `flat` | flat, frozen | none (protected-mutation guard) | snapshot, baseline capture, import, reconciliation | any business write |
+| Canonical read | `maintenance_fenced` / `canonical` | native | none | verification | business writes |
+| Active | `canonical_active` / `canonical` | native | native | native receipt and reversal | flat receipt writes |
 
-| State | Reversible? |
+**Operation sequence** (`current_user='postgres'` + `ordem_compra_c3c_acquire_session_lock(g)`):
+`fence_and_snapshot(g)` → `lock_import_resources(g)` → `assert_snapshot_and_live(g)` →
+`import_and_reconcile(g)` → `assert_import_reconciled(g)` → `set_canonical_read(g)` →
+`close_final_acl(g)` → `activate(g)`.
+
+#### G.1 PONR — binding (C3 §5)
+
+> **PONR = THE FIRST SUCCESSFUL NATIVE RECEIPT COMMAND.**
+
+This **includes a command whose entire physical quantity is routed to surplus**.
+
+Proof from the existing wrapper (db/75, `registrar_recebimento_ordem_compra`):
+
+```sql
+IF COALESCE((v_result ->> 'ok')::BOOLEAN, FALSE) THEN
+  UPDATE public.ordem_compra_cutover
+  SET productive_receipt_started_at = COALESCE(productive_receipt_started_at, clock_timestamp())
+  WHERE id = 1;
+END IF;
+```
+
+The stamp is applied after **any** successful command, with no allocation or
+surplus filter. Any such command creates canonical receipt facts and must force
+forward recovery. The earlier wording "first *productive* receipt" is
+**withdrawn** as imprecise. This design adopts the existing broader behaviour and
+does **not** modify the wrapper. The column name `productive_receipt_started_at`
+is retained; its meaning is documented as *first successful native receipt
+command*, surplus-only included.
+
+#### G.2 Pre-PONR restoration — option A, exact and testable (C3 §4)
+
+Flipping the state row is **not** restoration: `close_final_acl` revokes
+privileges and drops policies, and the `legacy_active` branch of
+`ordem_compra_cutover_c3c_state_check` (db/75) requires **ten** fields to be NULL.
+The previously proposed `resume_legacy` cleared four and would have violated the
+constraint.
+
+**Selected model: A — exact restoration of grants, column grants and policies,
+plus generation-scoped cleanup of imported facts, plus a full field reset.**
+Option B (moving `close_final_acl` past an irreversible boundary) is **rejected**:
+it is incompatible with the PONR fixed in G.1 and would open a window in which
+native receipt is active while legacy authorities are still open.
+
+**G.2.1 ACL/policy manifest — captured before closure.**
+
+New table `public.ordem_compra_cutover_acl_manifest`:
+
+| Column | Purpose |
 |---|---|
-| Steps 1–7 (fence → canonical read → final ACL) | reversible via `pre_ponr_rollback` **then** `resume_legacy` |
-| Step 8 (`activate`) | reversible the same way while `productive_receipt_started_at IS NULL` |
-| **First productive receipt = PONR** | **irreversible; forward recovery only** |
+| `id BIGSERIAL PK` | |
+| `cutover_generation BIGINT NOT NULL` | generation scope |
+| `objeto_tipo TEXT NOT NULL CHECK (objeto_tipo IN ('table_grant','column_grant','policy','function_grant'))` | |
+| `objeto_schema TEXT NOT NULL`, `objeto_nome TEXT NOT NULL` | target |
+| `grantee TEXT`, `privilegio TEXT`, `coluna TEXT` | grant detail |
+| `policy_nome TEXT`, `policy_cmd TEXT`, `policy_roles TEXT[]`, `policy_using TEXT`, `policy_check TEXT` | policy detail, from `pg_policies` |
+| `capturado_em TIMESTAMPTZ NOT NULL DEFAULT now()` | |
 
-**Safe deployment sequence (prepare → deploy → prove → close → activate).**
-The old UI must not break between migration and asset publication, so **no
-authority is narrowed before its new caller is live**:
+`public.ordem_compra_c3c_capture_acl_manifest(p_generation)` runs **immediately
+before** `close_final_acl` and records, for every object that `close_final_acl`
+touches: `information_schema.role_table_grants`,
+`information_schema.column_privileges`, `pg_policies` (name, cmd, roles, USING,
+WITH CHECK) and `has_function_privilege` for the affected functions.
+`close_final_acl` is amended to **refuse** (`acl_manifest_ausente`) unless a
+manifest row set exists for the current generation.
 
-| Phase | Action | Old UI still works? |
+`public.ordem_compra_c3c_restore_acl_manifest(p_generation)` replays it: re-issues
+each recorded GRANT (table, column and function) and re-creates each recorded
+policy with its exact `cmd`, roles, USING and WITH CHECK expressions. It is
+idempotent and asserts, at the end, that the live ACL/policy state matches the
+manifest row-for-row, raising `acl_restauracao_divergente` otherwise.
+
+**G.2.2 Generation-scoped cleanup of imported facts — the PROVEN contract.**
+
+`public.ordem_compra_c3c_purge_generation(p_generation)` is `postgres`-only,
+advisory-locked, and owner-only (no `EXECUTE` for `anon`, `authenticated` or
+`service_role`). Its contract is stated below **as proved on a clean disposable
+clone** (T6, T7, T8 — §13.8), not as proposed:
+
+1. it **validates the cutover generation** and confirms **pre-PONR eligibility**,
+   refusing with `forward_recovery_only` when
+   `productive_receipt_started_at IS NOT NULL`;
+2. it **disables exactly these five guards inside its own transaction**:
+
+```text
+trg_lancamento_append_only_guard
+trg_lancamento_estorno_guard
+trg_recebimento_movimento_immutable_guard
+trg_recebimento_header_immutable_guard
+trg_c3c_command_state_guard
+```
+
+3. it **deletes only facts provably belonging to the target cutover generation**;
+4. it **re-enables every one of the five guards before returning**;
+5. it **hard-fails if any guard remains with `tgenabled = 'D'`**;
+6. it **preserves all unrelated facts**;
+7. it **never modifies the five TD1 `saldo_fios` rows**.
+
+Scope of the deletion, unchanged in substance from C3:
+
+| Artifact | Treatment |
+|---|---|
+| `ordem_compra_cutover_source_snapshot` | delete rows of that generation |
+| `ordem_compra_cutover_inventory_baseline` | delete rows of that `cutover_id`/generation — **the five TD1 `saldo_fios` rows themselves are never touched**; only their captured copy is removed |
+| `ordem_compra_recebimentos` with `idempotency_namespace='legacy_initial_balance_v1'` of that generation | delete the imported command headers |
+| `ordem_compra_fio_lancamentos` with `tipo='import_saldo_inicial'` linked to those headers | delete, under the bounded guard-disable window of points 2, 4 and 5, asserting `tipo='import_saldo_inicial'` on every row it removes |
+| `ordem_compra_fio_movimentos_estoque` linked to those ledger rows | delete |
+| `saldo_fios` deltas applied during import | reversed arithmetically to the captured baseline value, then asserted equal to it |
+| Any `ordem_compra_eventos` written during reconciliation | **preserved** — they are history, and they carry the generation, so a later attempt cannot confuse them |
+
+**Why the mechanism changed (OBS-2, resolved).** The first prototype attempt
+**failed**, and it failed correctly: `trg_lancamento_append_only_guard` blocked an
+unspecified `DELETE` on `ordem_compra_fio_lancamentos`. The append-only guard was
+doing its job. The corrected, bounded mechanism above — a five-guard disable
+scoped to one owner-only transaction, with mandatory re-enable and a
+`tgenabled = 'D'` post-condition — then passed **T6, T7 and T8** on a clean
+disposable clone.
+
+> **This bypass is NOT generalizable.** No other function may disable these or any
+> other guard. The disable window exists only inside
+> `ordem_compra_c3c_purge_generation`, only pre-PONR, only for a validated
+> generation, and only under the mandatory re-enable assertion.
+
+The restored legacy state therefore retains **no canonical import fact** that a
+later cutover attempt could duplicate — proved by a **second cutover generation
+that completed without idempotency collision after the purge** (§13.8, T7).
+Physical deletion is bounded by: generation scope, the
+`tipo='import_saldo_inicial'` assertion, the pre-PONR precondition, the
+guard-restoration post-condition, and a post-condition proving the imported
+footprint is zero.
+
+**G.2.3 Full field reset satisfying `ordem_compra_cutover_c3c_state_check`.**
+
+`public.ordem_compra_c3c_resume_legacy(p_generation)` sets **every** field the
+constraint requires:
+
+| Column | Final value |
+|---|---|
+| `status` | `'legacy_active'` |
+| `read_authority` | `'flat'` |
+| `cutover_generation` | `NULL` |
+| `snapshot_hash` | `NULL` |
+| `inventory_baseline_hash` | `NULL` |
+| `snapshot_captured_at` | `NULL` |
+| `import_started_at` | `NULL` |
+| `import_completed_at` | `NULL` |
+| `final_acl_closed_at` | `NULL` |
+| `canonical_activated_at` | `NULL` |
+| `productive_receipt_started_at` | `NULL` (already, by precondition) |
+| `reconciliation_status` | `'not_started'` |
+| `source_snapshot_count` / `_total_kg` / `_serialization` | `NULL` |
+| `inventory_baseline_count` / `_total_kg` / `_serialization` | `NULL` |
+
+**Restoration order (one transaction, `postgres`-only, advisory-locked):**
+`restore_acl_manifest(g)` → `purge_generation(g)` → `resume_legacy(g)` → assert
+the row satisfies the `legacy_active` branch → assert the imported footprint is
+zero → assert the five `saldo_fios` rows equal their pre-cutover values.
+
+Only after all three steps and all three assertions is service genuinely restored.
+
+#### G.3 Safe deployment phases (C3 §6)
+
+| Phase | Contains | Guarantee |
 |---|---|---|
-| P1 | Apply additive server objects only (availability functions, `ajuste_revisao`, new RPCs, new tables, supplier column). **No grant is revoked. No existing writer's behaviour changes.** | yes — nothing it uses changed |
-| P2 | Deploy the new assets. New callers use the new RPCs; server-side gates stay inactive; `acoes.receber` still returns `recebimento_canonico_inativo`. | yes |
-| P3 | Authenticated proof of every new caller in the safe environment. | yes |
-| P4 | Apply the **containment** migration: narrow `pedidos` UPDATE (§9.9.L), install the direct-DML fence, retire the flat consumers' code paths, demote `ordem_compra_config`. | **only the new UI runs — and it is already proved in P3** |
-| P5 | Run the cutover (fence → … → activate) under the coordinated boundary. | maintenance window |
-| P6 | First productive receipt = PONR. | native |
-
-No dual write and no flat bridge at any phase.
+| **P1 — additive preparation only** | new columns with non-disruptive defaults, new tables, new owner-only helpers, **new RPCs under new names**, new indexes, `resume_legacy`/`purge_generation`/ACL-manifest infrastructure, tests | **No existing reachable function body is replaced. No emission, receipt, reversal, cancellation or exclusion behaviour changes. No grant is revoked. No existing writer is disabled. The configuration-demotion trigger is NOT installed.** The old application is untouched. |
+| **P2 — deploy new assets** | new screens and repointed callers invoking the additive RPCs | old authorities still available; both paths valid |
+| **P3 — authenticated proof** | every new caller exercised on the **disposable cluster restored from a production backup**, never against real production rows; mutation scenarios isolated there | canonical authority unchanged |
+| **P4 — coordinated authority switch** (one bounded containment release) | replace existing function bodies that need the new lock protocol (`alterar_status_op`, `registrar_/estornar_recebimento_ordem_compra`, `cancelar_/excluir_ordem_compra`); switch emission to supplier-level acceptance; demote the global acceptance configuration; close direct DML; disable old frontend/server authorities; activate the new canonical writers **except receipt cutover** | only the new UI runs, and it was proved in P3 |
+| **P5 — cutover** | fence → snapshot → import → reconcile → canonical read → **capture ACL manifest** → close ACL → activate | reversible via G.2 |
+| **P6 — first successful native receipt command** | crosses the **PONR** | forward recovery only |
 
 ---
 
@@ -1577,53 +1740,190 @@ public.corrigir_entrega_expedicao(
 
 ---
 
-### 9.9.L Pedido status — public/internal separation and DML containment (C8)
+### 9.9.L Pedido status authority and direct-DML containment (C3 §3, §7, §8)
 
-**Two functions, not one.**
+#### L.1 Public / internal separation
 
 ```sql
 -- PUBLIC: operator-requested transitions only
 public.alterar_status_pedido(p_pedido_id UUID, p_novo_status TEXT,
                              p_base_revisao INTEGER, p_motivo TEXT DEFAULT NULL)
-  -- accepts ONLY: rascunho→recebido, recebido→confirmado,
-  --               and cancellation through the D7 gate
-  -- SECURITY INVOKER; REVOKE ALL FROM PUBLIC, anon, service_role;
-  -- GRANT EXECUTE TO authenticated; internal is_admin() check
+  RETURNS JSONB LANGUAGE plpgsql
+  SECURITY DEFINER SET search_path = ''      -- C3 §8: DEFINER, not INVOKER
+  -- accepts ONLY rascunho->recebido, recebido->confirmado, and cancellation
+  --   through the D7 gate
+  -- REVOKE ALL FROM PUBLIC, anon, service_role; GRANT EXECUTE TO authenticated
+  -- first statement: auth.uid() IS NOT NULL AND public.is_admin()
 ```
 
 ```sql
 -- INTERNAL: derived transitions only
 public._pedido_status_recalcular(p_pedido_id UUID, p_causa TEXT)
-  -- owns confirmado→produzindo (production start),
-  --      produzindo→entregue (complete delivery),
-  --      entregue→produzindo (D1 correction)
-  -- SECURITY DEFINER; REVOKE ALL FROM PUBLIC, anon, authenticated, service_role
-  -- => NOT executable by authenticated. Called only by iniciar_producao_op,
-  --    registrar_entrega_expedicao and corrigir_entrega_expedicao.
+  SECURITY DEFINER SET search_path = ''
+  -- owns confirmado->produzindo, produzindo->entregue, entregue->produzindo (D1)
+  -- REVOKE ALL FROM PUBLIC, anon, authenticated, service_role
+  -- => NOT executable by any client role
+  -- called only by iniciar_producao_op, registrar_entrega_expedicao,
+  --    corrigir_entrega_expedicao and cancelar_pedido
 ```
 
-An authenticated client therefore **cannot** invoke a derived transition.
+The public function is `SECURITY DEFINER` **because** L.2 removes its caller's
+direct privilege on `pedidos.status`; an invoker function would lose the privilege
+it needs. An authenticated client cannot reach a derived transition.
 
-**Direct-DML containment — grant matrix (F9).** A column REVOKE is insufficient
-while the table-level UPDATE grant exists, so both are applied:
+#### L.2 Direct-DML containment — grant matrix
+
+Migration `db/106_contencao_dml.sql` (phase **P4**) covers every protected fact:
+
+| Table | Column | Action |
+|---|---|---|
+| `pedidos` | `status`, `revisao`, `prioridade_*`, `status_cliente_*` | excluded from the re-issued grant |
+| `pedidos` | `cliente_id`, `data_pedido`, `prazo_entrega`, `observacao`, `referencia_cliente`, `tipo_recebimento`, `metros_total`, `parcial_habilitado`, `parcial_atualizado_em`, `atualizado_em` | re-granted |
+| `op_itens` | `metros_ajustados` | excluded |
+| `ops` | `ajuste_revisao`, `status` | excluded |
+| `saldo_fios_op` | all | `REVOKE INSERT, UPDATE, DELETE` from `authenticated`, `anon`, `service_role` (L.4) |
 
 ```sql
-REVOKE UPDATE ON TABLE public.pedidos FROM authenticated, anon;
-GRANT  UPDATE (cliente_id, data_pedido, prazo_entrega, observacao,
-               referencia_cliente, tipo_recebimento, metros_total,
-               parcial_habilitado, parcial_atualizado_em, atualizado_em)
-       ON TABLE public.pedidos TO authenticated;
--- status, revisao, prioridade_*, status_cliente_* deliberately excluded
+REVOKE UPDATE ON TABLE public.pedidos   FROM authenticated, anon;
+REVOKE UPDATE ON TABLE public.op_itens  FROM authenticated, anon;
+REVOKE UPDATE ON TABLE public.ops       FROM authenticated, anon;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.saldo_fios_op FROM authenticated, anon, service_role;
+GRANT  UPDATE (<explicit safe column list>) ON TABLE public.pedidos  TO authenticated;
+GRANT  UPDATE (<explicit safe column list>) ON TABLE public.op_itens TO authenticated;
+GRANT  UPDATE (<explicit safe column list>) ON TABLE public.ops      TO authenticated;
 ```
 
-plus a **fail-closed fence**: `BEFORE UPDATE ON public.pedidos` raising
-`pedido_status_writer_required` when `NEW.status IS DISTINCT FROM OLD.status` and
-the session is not inside an authorized writer (signalled by a transaction-local
-custom GUC set by the two functions above). Grants alone are not trusted.
+The table-level REVOKE is mandatory first: PostgreSQL takes the **union** of
+table- and column-level grants, so a column REVOKE alone would be defeated by the
+surviving table grant (measured: `authenticated` currently holds table-level
+UPDATE on `pedidos`).
 
-`js/screens/pedido-detail-events.js::alterarStatus()` is repointed to
-`alterar_status_pedido`. **`pedidos.produzindo` is not retired; no writer is added
-for `ops.finalizada`.**
+**UPDATE containment alone is not containment.** The prototype measured, after the
+containment migration, that table-level `INSERT` and `DELETE` on `pedidos`, `ops`
+and `op_itens` were still held by `authenticated` **and** `anon` (§13.8, T4a —
+twelve surviving table grants). That gap is closed by **TD2** below.
+
+#### L.4 TD2 — INSERT and DELETE authority (binding supervisor ruling)
+
+> **TD2 — BINDING SUPERVISOR RULING.**
+> Authenticated direct table-level **`INSERT`** and **`DELETE`** authority on
+> `public.pedidos`, `public.ops` and `public.op_itens` is
+> **NOT ACCEPTED after the P4 authority switch.**
+> TD2 **closes OBS-4**. It is **not** deferred as optional hardening.
+
+**TD2.1 — INSERT.** Where existing canonical creation surfaces still require
+direct insertion, `db/106_contencao_dml.sql` (phase **P4**) must:
+
+1. **revoke table-level `INSERT`**;
+2. **grant column-level `INSERT` only for the exact creation fields**;
+3. **exclude every lifecycle, revision, adjustment, completion and derived-status
+   field**;
+4. **assert the safe defaults before granting the reduced column list.**
+
+Required protected creation facts, each asserted by the migration before the
+reduced grant is issued:
+
+| # | Protected creation fact | Declared default |
+|---|---|---|
+| 1 | `pedidos.status` is **not client-supplied** and uses the canonical initial default | `'rascunho'` (db/13) |
+| 2 | `pedidos.revisao` and the derived tracking/priority fields are **not client-supplied** | `revisao` = `1` (db/92) |
+| 3 | `ops.status` is **not client-supplied**; new weaving OPs begin as `simulada` | `'simulada'` (db/01) |
+| 4 | `ops.ajuste_revisao` begins at `0` and is **not client-supplied** | `0` (db/102) |
+| 5 | Completion and production timestamps are **not client-supplied** | — |
+| 6 | `op_itens.metros_ajustados` begins `NULL` and is **not client-supplied** | no default (db/01) |
+
+> **If an existing creation path cannot work under exact column-level grants, it
+> must be repointed to a bounded `SECURITY DEFINER` creation writer BEFORE P4.
+> Table-level INSERT must NOT be retained as a compatibility shortcut.**
+
+Three creation paths are already known to fail the reduced grant, because each
+client-supplies a protected field, and each therefore requires a bounded creation
+writer before P4:
+
+| Path | Protected field supplied today | Disposition |
+|---|---|---|
+| `js/screens/pedido-form.js` (`:792` payload) | `pedidos.status` | repoint to a bounded creation writer |
+| `js/screens/cliente-pedido-form.js` (`:1005` payload) | `pedidos.status` (`'recebido'`) | repoint to a bounded creation writer |
+| `js/screens/op-persistir.js` (`:220` insert) | `ops.status` | repoint, or stop sending the field and take the `simulada` default |
+
+**TD2.2 — DELETE.** Direct `DELETE` is **revoked** from client roles on all three
+tables. Operational removal is represented by exactly one of:
+
+- **validated cancellation, preserving history** — `cancelar_pedido` (§9.9.M),
+  `_op_status_aplicar` for OPs; or
+- an **already-canonical server-owned deletion writer** for a genuinely deletable
+  pre-operational draft — `public.remover_pedido(p_pedido_id, p_confirmacao)` and
+  `public.remover_op(p_op_id, p_confirmacao)` (db/34 and its successors, reached
+  through `js/delete-helpers.js`).
+
+> **If no canonical server-owned deletion writer exists for a visible action, that
+> action is DISABLED at P4. Direct DELETE authority must NOT be preserved to keep
+> it working.**
+
+The three compensating client-side deletes that today roll back a half-created
+Pedido or OP (`js/screens/pedido-form.js:858`,
+`js/screens/cliente-pedido-form.js:1052`, `js/screens/op-persistir.js:248`) lose
+their privilege under TD2. They are subsumed by the bounded creation writer of
+TD2.1, which is atomic and needs no client-side compensation.
+
+**TD2.3 — `saldo_fios_op`.** `authenticated`, `anon` **and** `service_role`
+receive **no** direct `INSERT`, `UPDATE` or `DELETE`. Only
+`iniciar_producao_op` owns its productive snapshot writes.
+
+```sql
+REVOKE INSERT ON TABLE public.pedidos  FROM authenticated, anon;
+REVOKE INSERT ON TABLE public.ops      FROM authenticated, anon;
+REVOKE INSERT ON TABLE public.op_itens FROM authenticated, anon;
+REVOKE DELETE ON TABLE public.pedidos, public.ops, public.op_itens
+                       FROM authenticated, anon;
+GRANT  INSERT (<exact creation column list, no protected field>)
+       ON TABLE public.pedidos TO authenticated;   -- only where a creation
+GRANT  INSERT (<exact creation column list, no protected field>)
+       ON TABLE public.ops      TO authenticated;  -- surface still inserts
+GRANT  INSERT (<exact creation column list, no protected field>)
+       ON TABLE public.op_itens TO authenticated;  -- directly after P4
+```
+
+#### L.3 Trigger fence — unspoofable, not GUC-based (C3 §3.1)
+
+The earlier GUC-based fence is **withdrawn**. A `set_config` value is data, not
+authority, and must never authorize a mutation.
+
+```sql
+CREATE OR REPLACE FUNCTION public.trg_fato_protegido_fence()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  -- The authorized writers are SECURITY DEFINER functions owned by the
+  -- table owner; inside them current_user is that owner. A client role
+  -- reaching this trigger through direct DML can never satisfy this.
+  IF current_user <> 'postgres' THEN
+    RAISE EXCEPTION 'writer_canonico_obrigatorio'
+      USING ERRCODE = '42501',
+            DETAIL  = format('direct DML on %I.%I is not permitted; use the canonical RPC',
+                             TG_TABLE_SCHEMA, TG_TABLE_NAME);
+  END IF;
+  RETURN NEW;
+END; $$;
+```
+
+Installed as `BEFORE INSERT OR UPDATE OR DELETE` on `saldo_fios_op`, and as
+`BEFORE UPDATE ... WHEN (NEW.status IS DISTINCT FROM OLD.status)` on `pedidos`,
+`WHEN (NEW.metros_ajustados IS DISTINCT FROM OLD.metros_ajustados)` on `op_itens`
+and `WHEN (NEW.ajuste_revisao IS DISTINCT FROM OLD.ajuste_revisao OR NEW.status IS DISTINCT FROM OLD.status)` on `ops`.
+
+**Predicate:** the mutation is accepted **only** when `current_user` is the owner
+role (`postgres`) under which the granted `SECURITY DEFINER` writers execute.
+Client roles never hold direct mutation privilege on the protected columns (L.2),
+and only the explicitly granted RPCs execute under that owner. A transaction-local
+GUC may still be set by the writers to carry **diagnostic** identity into the
+event payload, but it is never read as an authorization decision.
+
+`js/screens/pedido-detail-events.js::alterarStatus()` repoints to
+`alterar_status_pedido`; `js/screens/op-recalculo.js` loses every direct write to
+`op_itens.metros_ajustados`, `ops.status` and `saldo_fios_op`, becoming a client of
+`salvar_ajuste_producao_op` and `iniciar_producao_op`.
+
+**`pedidos.produzindo` is not retired. No writer is added for `ops.finalizada`.**
 
 ---
 
@@ -1639,7 +1939,7 @@ executes **one transaction** in this deterministic order:
 | 3 | active OPs (`simulada`,`aberta`,`em_producao`,`pausada`) | **cancelled** through `_op_status_aplicar` | `op_eventos` per OP |
 | 4 | their reservations | **released implicitly** — cancelled OPs contribute nothing to `oc_reserva_ativa` (§9.9.A). No row is deleted. | — |
 | 5 | saved adjustments | **preserved verbatim** in `op_itens.metros_ajustados`; they simply stop reserving | — |
-| 6 | live planning (`gerado_em IS NULL`) | **released** — planning rows deleted by the existing db/99 release semantics so the need returns to free balance | planning event |
+| 6 | live planning (`gerado_em IS NULL`) | **balance released WITHOUT physical deletion (D7).** Each live row gets `cancelado_em TIMESTAMPTZ`, `cancelado_por UUID` and `cancelamento_motivo TEXT`; the partial unique index and every balance reader are narrowed to `WHERE gerado_em IS NULL AND cancelado_em IS NULL`, so the need returns to free balance while the supplier assignment and quantity stay auditable. | typed release fields + planning event |
 | 7 | `rascunho` Purchase Orders | **cancelled** via `cancelar_ordem_compra` (db/100), which releases coverage | `ordem_compra_eventos` |
 | 8 | `emitida` Purchase Orders | **cancelled** via the same writer; the document, its number, items and provenance are preserved | idem |
 | 9 | accepted Purchase Orders (`status_aceite='aceita'`) | **cancelled as well** — acceptance does not bar cancellation (db/100 ruled acceptance semantics are not a cancellation rule); recorded with the acceptance history intact | idem |
@@ -1672,12 +1972,13 @@ generation, emission, and receipt registration for that Pedido — each returns
 
 | # | Path | New/Mod | Purpose | Owner | Tests | Phase |
 |---|---|---|---|---|---|---|
-| 1 | `db/101_disponibilidade_nativa.sql` | new | `_oc_disponibilidade_calc`, `_oc_disponibilidade_linhas`, `oc_reserva_ativa`, `oc_disponibilidade_op`, `vw_disponibilidade_op`, grants | A | `tests/db101-disponibilidade-origem.integration.sql` | P1 |
-| 2 | `db/102_ajuste_atomico_e_inicio_producao.sql` | new | `ops.ajuste_revisao`, `salvar_ajuste_producao_op`, `iniciar_producao_op`, `_op_status_aplicar`, **`alterar_status_op` lock correction** | B, C, D | `tests/db102-ajuste-concorrencia.integration.sql` | P1 |
-| 3 | `db/103_fila_fornecedor_e_aceite.sql` | new | `fornecedores.exige_aceite` + deterministic seed, `ordem_compra_config` demotion trigger, `ordem_compra_aceite_comandos`, accept/reject RPCs, queue, emission freeze | E | `tests/db103-aceite.integration.sql` | P1 |
-| 4 | `db/104_recebimento_lock_e_aceite_gate.sql` | new | lock protocol added to `registrar_recebimento_ordem_compra` and `estornar_recebimento_ordem_compra`; acceptance gate; `cancelar_ordem_compra`/`excluir_ordem_compra` lock alignment | B, F | `tests/db104-recebimento-lock.integration.sql` | P1 |
-| 5 | `db/105_status_pedido_e_cancelamento.sql` | new | `alterar_status_pedido`, `_pedido_status_recalcular`, `cancelar_pedido`, `pedido_elegivel_cancelamento` | L, M | `tests/db105-status-cancelamento.integration.sql` | P1 |
-| 6 | `js/screens/op-recalculo.js` | mod | delete the per-row loop **and** `snapshotSaldoEIniciarProducao`; call `salvar_ajuste_producao_op` and `iniciar_producao_op`; `maxMetrosItem` reads `vw_disponibilidade_op` | A–D | `tests/op-ajuste-atomico.smoke.js` | P2 |
+| 1 | `db/101_disponibilidade_nativa.sql` | new | owner-only `_oc_disponibilidade_linhas`, `_oc_material_recebido_liquido`, `_oc_reserva_ativa`; guarded SECURITY DEFINER `oc_disponibilidade_op`; explicit grants. **No view** — `vw_disponibilidade_op` is withdrawn | A | `tests/db101-disponibilidade-origem.integration.sql`, `tests/db101-helper-permission-denied.integration.sql` | P1 |
+| 2 | `db/102_ajuste_atomico_e_inicio_producao.sql` | new | `ops.ajuste_revisao`, SECURITY DEFINER `salvar_ajuste_producao_op` and `iniciar_producao_op`, `_op_status_aplicar` — **all under new names, no existing body replaced** | B, C, D | `tests/db102-ajuste-concorrencia.integration.sql` | P1 |
+| 3 | `db/103_fila_fornecedor_e_aceite.sql` | new | `fornecedores.exige_aceite` + deterministic seed, `ordem_compra_aceite_comandos`, accept/reject RPCs, queue — **additive only** | E | `tests/db103-aceite.integration.sql` | P1 |
+| 3b | `db/103b_emissao_aceite_e_democao.sql` | new | **replaces** `emitir_ordem_compra` (supplier-level freeze) and installs the `ordem_compra_config` demotion trigger | E | `tests/db103b-emissao-aceite.integration.sql` | **P4** |
+| 4 | `db/104_recebimento_lock_e_aceite_gate.sql` | new | **replaces** `registrar_/estornar_recebimento_ordem_compra` (lock protocol + acceptance gate), `alterar_status_op` (lock correction) and `cancelar_/excluir_ordem_compra` (lock alignment) | B, F | `tests/db104-recebimento-lock.integration.sql` | **P4** |
+| 5 | `db/105_status_pedido_e_cancelamento.sql` | new | SECURITY DEFINER `alterar_status_pedido`, owner-only `_pedido_status_recalcular`, `cancelar_pedido`, `pedido_elegivel_cancelamento`; **planning release fields** `necessidade_compra_planejamento.cancelado_em/por/motivo` + narrowed partial index — additive | L, M | `tests/db105-status-cancelamento.integration.sql`, `tests/db105-planejamento-historico.integration.sql` | P1 |
+| 6 | `js/screens/op-recalculo.js` | mod | delete the per-row loop **and** `snapshotSaldoEIniciarProducao`; call `salvar_ajuste_producao_op` and `iniciar_producao_op`; `maxMetrosItem` reads `oc_disponibilidade_op` | A–D | `tests/op-ajuste-atomico.smoke.js` | P2 |
 | 7 | `js/screens/op-distribuicao-ui.js` | mod | consume the native projection; revision-conflict reload; start button calls the RPC | C, D | same | P2 |
 | 8 | `js/screens/op-nova.js` | mod | **REPOINT** `:1287`,`:1293` to the native projection | A | `tests/op-nova-nativo.smoke.js` | P2 |
 | 9 | `js/screens/op-persistir.js` | mod | **REPOINT**: delete the legacy flat branch `:330-338`; native sync only | A | `tests/op-persistir-nativo.smoke.js` | P2 |
@@ -1692,9 +1993,10 @@ generation, emission, and receipt registration for that Pedido — each returns
 | 18 | `js/router.js` | mod | register the route | — | same | P2 |
 | 19 | `index.html` | mod | mount the new asset + `?v=` token | — | cache-token guards | P2 |
 | 20 | `js/screens/pedido-detail-events.js` | mod | `alterarStatus()` → `alterar_status_pedido`; cancellation → `cancelar_pedido` | L, M | `tests/pedido-status-canonico.smoke.js` | P2 |
-| 21 | `db/106_contencao_dml_pedido.sql` | new | narrow `pedidos` UPDATE grant; install the status fence trigger | L | `tests/db106-contencao.integration.sql` | **P4** |
+| 21 | `db/106_contencao_dml.sql` | new | table-then-column grant narrowing on `pedidos`, `op_itens`, `ops` for **UPDATE and, under TD2, INSERT**; **DELETE revoked from client roles on all three tables (TD2.2)**; `saldo_fios_op` INSERT/UPDATE/DELETE revoked from `authenticated`, `anon` **and `service_role`** (TD2.3); safe-default assertions before the reduced INSERT grant (TD2.1); `trg_fato_protegido_fence` on all four, keyed on `current_user` | L | `tests/db106-contencao.integration.sql`, `tests/db106-guc-spoof-rejeitado.integration.sql`, `tests/db106-td2-insert-delete.integration.sql` | **P4** |
+| 21b | bounded creation writers (`db/106`) | new | **TD2.1 prerequisite** — a bounded `SECURITY DEFINER` Pedido/OP creation writer for every creation path that today client-supplies a protected field (`pedido-form.js:792`, `cliente-pedido-form.js:1005`, `op-persistir.js:220`), replacing their client-side compensating deletes | L | same | **P4** |
 | 22 | cutover runbook (documentation) | new | fence → … → activate, plus `ordem_compra_c3c_resume_legacy`; **TD1: assert the five `saldo_fios` rows captured verbatim into the inventory baseline and unchanged afterwards** | G, H | rehearsal | P5 |
-| 23 | `db/107_cutover_resume_legacy.sql` | new | the missing `ordem_compra_c3c_resume_legacy` operation | G | `tests/db107-resume-legacy.integration.sql` | P1 |
+| 23 | `db/107_cutover_restauracao.sql` | new | `ordem_compra_cutover_acl_manifest`, `capture_acl_manifest`, `restore_acl_manifest`, `purge_generation`, `resume_legacy` (full field reset), and the `close_final_acl` amendment refusing without a manifest | G | `tests/db107-restauracao-completa.integration.sql` | P1 |
 
 **Block 2 — finishing continuity**
 
@@ -1762,7 +2064,12 @@ The PONR is outside every migration (§9.9.G).
 `authenticated`, `service_role` on every new function; the `pedidos` table/column
 grant matrix asserted; `_pedido_status_recalcular` proved **not** executable by
 `authenticated`; zero active flat consumers; no dual write; RLS on new tables;
-terminal migration identity; asset tokens.
+terminal migration identity; asset tokens. **Under TD2 (§9.9.L.4):** zero
+table-level `INSERT` and zero `DELETE` grants on `pedidos`, `ops` and `op_itens`
+for `authenticated` and `anon`; every surviving `INSERT` is column-level and
+contains no lifecycle, revision, adjustment, completion or derived-status column;
+the six protected creation defaults asserted; and `saldo_fios_op` carries no
+`INSERT`/`UPDATE`/`DELETE` for `authenticated`, `anon` or `service_role`.
 
 **Disposable cluster:** clean apply and no-op re-apply of db/101–109; origin-scope
 availability proofs (sibling cotton does **not** reduce a peer's ceiling; shared
@@ -1776,6 +2083,19 @@ failure and gated retry with a replayed idempotency key returning the same
 full cancellation compensation; cutover rehearsal with `pre_ponr_rollback` **and**
 `resume_legacy`; post-PONR forward recovery.
 
+**Security and containment proofs (new in C3):** every owner-only helper returns
+`permission denied` to `anon`, `authenticated` and `service_role`; no view reaches
+an owner-only helper; a client cannot spoof the fence with `set_config` (the
+trigger rejects on `current_user`, and the attempt is proved); direct
+`UPDATE pedidos SET status`, `UPDATE op_itens SET metros_ajustados`,
+`UPDATE ops SET ajuste_revisao` and any `saldo_fios_op` DML from `authenticated`
+all fail; **a surplus-only successful receipt command crosses the PONR** (asserts
+`productive_receipt_started_at` becomes non-null); **pre-PONR restoration returns
+the application to a genuinely usable legacy state** — ACL manifest replayed,
+generation-scoped imported facts purged to zero, the `legacy_active` branch of
+`ordem_compra_cutover_c3c_state_check` satisfied, the five TD1 `saldo_fios` rows
+equal to their pre-cutover values, and an authenticated legacy flow working again.
+
 **Production preflight, read-only:** cluster identity; terminal migration; row
 counts; the two OC fingerprints; **no receipt fabrication**; the five `saldo_fios`
 rows re-measured and asserted **unchanged** under TD1 (§9.9.H) and proved absent
@@ -1788,9 +2108,22 @@ panel; atomic slider save (all or none); start production; Tapete finishing path
 Manta direct route; both expedition reversals; delivery correction returning the
 Pedido to `produzindo`; Pedido and OP cancellation gates; customer tracking.
 
-### 9.9.R Remaining blockers
+### 9.9.R Acceptance status and remaining prerequisites
 
-**LR-12 is the only genuine blocker.**
+**No failed material technical contract remains in this section.** The C3 design
+defects (security model, direct-DML containment, cutover restoration, PONR wording
+and deployment phases) were closed and then **proved on a disposable cluster**:
+`NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1` returned **T1–T12: PASS —
+FAILED MATERIAL CONTRACTS: NONE** (§13.8). The two observations that mattered to
+this design are closed by this acceptance:
+
+| Observation | Disposition |
+|---|---|
+| **OBS-2** — the proposed purge mechanism could not run: the append-only guard correctly blocked an unspecified `DELETE` | **RESOLVED.** §9.9.G.2.2 now records the bounded five-guard, generation-scoped, mandatorily-restored mechanism that passed T6, T7 and T8. The bypass is explicitly not generalizable. |
+| **OBS-4** — table-level `INSERT` and `DELETE` on `pedidos`, `ops` and `op_itens` survived the containment migration | **RESOLVED by binding ruling TD2** (§9.9.L.4). It is closed as part of P4, not deferred as optional hardening. |
+| **OBS-3** — prototype harness limitation | **ACCEPTED as a harness limitation of the disposable-cluster proof. It is NOT a blocker** and imposes no design change. |
+
+**LR-12 is the ONLY remaining production-cutover execution prerequisite.**
 
 1. **LR-12 — no fresh verified production backup exists.** It is a hard **entry
    criterion for cutover execution**: the cutover may not be run until a fresh
@@ -1799,19 +2132,26 @@ Pedido to `produzindo`; Pedido and OP cancellation gates; customer tracking.
    cluster for the rehearsal, or an explicit ruling that a named alternative
    artifact satisfies the precondition.
 
-**LR-12 does not block acceptance of this technical design.** It is an execution
-prerequisite, not a design gap: the design is complete and reviewable as it
+**LR-12 did not block acceptance of this technical design.** It is an execution
+prerequisite, not a design gap: the design is complete, reviewed and proved as it
 stands, and LR-12 is discharged immediately before the cutover run of phase P5
-(§9.9.G). **This section may therefore be accepted while LR-12 remains open**,
-provided no cutover is executed until it is discharged.
+(§9.9.G). **This section is accepted while LR-12 remains open**, and no cutover
+may be executed until it is discharged.
 
-The historical-stock question is **no longer a blocker**: supervisor ruling **TD1**
-closed it (§9.9.H). No other unresolved alternative remains in this section.
+The historical-stock question is **not** a blocker: supervisor ruling **TD1**
+closed it (§9.9.H), and T11 proved the isolation holds — the five preserved
+`saldo_fios` rows produce **zero** OP availability. No other unresolved
+alternative remains in this section.
 
 ```
-PROPOSED / AWAITING SUPERVISOR REVIEW
-IMPLEMENTATION NOT AUTHORIZED
-CUTOVER NOT AUTHORIZED
+COORDINATED IMPLEMENTATION-READY TECHNICAL DESIGN:
+CLOSED / ACCEPTED
+
+IMPLEMENTATION:
+NOT AUTHORIZED
+
+NATIVE RECEIPT CUTOVER:
+NOT AUTHORIZED
 ```
 
 ---
@@ -2025,6 +2365,84 @@ and `tests/ordem-compra-c3d-deploy.smoke.js` declares `EXPECTED_TERMINAL = 100`.
 6. No authenticated administrator session has exercised the db/99 or db/100
    end-to-end user flows against production.
 
+### 13.8 Coordinated-release SQL prototype — accepted execution proof (T1–T12)
+
+Accepted under `NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1` as the
+execution proof for the §9.9 technical design.
+
+```text
+T1–T12: PASS
+FAILED MATERIAL CONTRACTS: NONE
+```
+
+**Prototype environment.** A **disposable** local PostgreSQL **18.4** cluster,
+created and destroyed for this proof, cluster `system_identifier`
+7668720358489816576 — **not** production, **not** staging, and never connected to
+either. A synthetic Supabase-platform preamble supplied only what `db/01..db/100`
+assume the managed platform provides (`anon` / `authenticated` / `service_role`,
+the `auth` schema, `auth.uid()`, `auth.role()`). The legacy corpus was **64
+fully synthetic `ordens_compra_fio` rows** classified 27/12/13/12, applied between
+db/66 and db/67 so the db/67 seed self-check passes. **No production or staging
+row, identifier or quantity was copied.** All 100 migrations applied cleanly
+(`MIGRATIONS_APPLIED=100`). Teardown was proved complete: server stopped, port
+closed, PID absent, data directory absent.
+
+**Result matrix.**
+
+| # | Material contract | Result |
+|---|---|---|
+| T1 | Disposable-cluster build — PG 18.4, synthetic preamble, 64-row synthetic corpus, clean apply of `db/01..db/100`, fixture loaded | **PASS** |
+| T2 | **Owner-only helper denial** — all fifteen prototype functions catalogued; every owner-only helper returns `42501 permission denied` to `anon`, to `authenticated` non-admin **and to `authenticated` admin** | **PASS** |
+| T3 | **Functional SECURITY DEFINER public wrappers** — `anon` refused by grant; `authenticated` non-admin refused by the in-body `sem_permissao` check; `authenticated` admin permitted and reaching the owner-only helpers; zero helper/role leak pairs | **PASS** |
+| T4 | **Direct-DML containment and failed GUC spoofing** — direct `UPDATE` of `pedidos.status`, `pedidos.revisao`, `op_itens.metros_ajustados`, `ops.ajuste_revisao`, `ops.status` and all `saldo_fios_op` DML refused `42501`; **with every proposed diagnostic GUC spoofed by the client (including `role=service_role`) the identical DML still failed `42501`**, while the authorized `SECURITY DEFINER` writers still succeeded | **PASS** |
+| T5 | **Strictly additive P1** — 0 removed and **0 altered** across functions, table grants, column grants, function grants, policies, triggers, columns and indexes; only additions (16 functions, 27 column grants, 48 function grants, 19 columns, 2 indexes); `table_grants`, `policies` and `triggers` hashes **byte-identical** before and after | **PASS** |
+| T6 | **Exact ACL and policy close/restore round trip** — 1074 manifest lines captured, `close_final_acl` reduced them to 513, `restore_acl_manifest` returned the live state to the captured one | **PASS** |
+| T7 | **Generation-scoped purge** and full field reset — imported footprint returned to zero, `legacy_active` branch of `ordem_compra_cutover_c3c_state_check` satisfied, unrelated facts preserved, **a second cutover generation completed with no idempotency collision after the purge** | **PASS** |
+| T8 | **Full restoration to a genuinely usable `legacy_active` / `flat` state** — `authenticated` privileges restored, 11 policies restored, an authenticated legacy flat read returned its 64 rows and the native read its 51 | **PASS** |
+| T9 | **Surplus-only receipt crosses the PONR** — a receipt routing 100 % of the physical quantity to surplus returned `ok`, stamped `productive_receipt_started_at`, and thereafter `pre_ponr_rollback`, `purge_generation` and `resume_legacy` **all refused** with `forward_recovery_only` | **PASS** |
+| T10 | **Planning-history preservation** — `cancelar_pedido` released the balance with **no physical DELETE**: the planning row survives with `cancelado_em`/`cancelado_por`/`motivo` set, active balance 250.000 → 0, both OPs cancelled, events written, second cancellation refused `PEDIDO_JA_CANCELADO` | **PASS** |
+| T11 | **TD1 isolation** — 5 `saldo_fios` rows / 2685.020 kg produced **zero OP availability**: every OP ceiling 0.000, native received total 0.000, zero allocation-destined ledger lines, no Pedido/OP lineage created from stock | **PASS** |
+| T12 | **Complete disposable-cluster teardown** — server stopped, port closed, PID absent, directory absent | **PASS** |
+
+**Decisive catalog/hash evidence — the ACL/policy round trip.**
+
+| Stage | ACL/policy hash | Manifest lines |
+|---|---|---|
+| Before `close_final_acl` | `d231b4d5f3573323e24ba4f35fe918a0` | 1074 |
+| Closed | `452d909c608fb142be8b29871f7d82bc` | 513 |
+| Restored | `d231b4d5f3573323e24ba4f35fe918a0` | 1074 |
+
+The restored hash is **equal to the pre-closure hash**, so the round trip is
+exact and not approximate.
+
+**Additional decisive facts, measured not inferred.**
+
+1. A **second cutover generation** ran fence → snapshot → assert → import →
+   purge → `resume_legacy` to `legacy_active`/`flat` **without collision** after
+   the first generation was purged.
+2. A **surplus-only successful receipt crossed the PONR**, confirming the G.1
+   wording: the PONR is the first *successful native receipt command*, not the
+   first allocation-destined one.
+3. **Planning history survived cancellation** — released, not deleted.
+4. **TD1 stock produced zero OP availability**, before and after a surplus
+   receipt.
+5. `saldo_fios` was **value-identical** before and after the whole cutover and
+   restoration cycle: `algodao/1=1000.000, algodao/2=685.020, algodao/3=100.000,
+   poliester/BRANCO=400.000, poliester/PRETO=500.000`.
+
+**The one prototype correction, recorded exactly.** The first
+`ordem_compra_c3c_purge_generation` attempt **failed** because
+`trg_lancamento_append_only_guard` correctly blocked an unspecified `DELETE`. The
+corrected bounded mechanism — the five named guards disabled inside the function's
+own transaction, every one re-enabled before returning, and a hard failure if any
+guard remains `tgenabled = 'D'` — then passed **T6, T7 and T8** on a clean
+disposable clone. See §9.9.G.2.2. This is the only correction made to the design
+during the prototype, and the bypass is not generalizable to any other function.
+
+**Raw transcripts are deliberately not reproduced in this canonical plan.** They
+are prototype artifacts of a destroyed disposable cluster and carry no
+production evidence.
+
 ---
 
 ## 14. Current checkpoint
@@ -2037,7 +2455,7 @@ TARGET FUNCTIONAL PRODUCT DESIGN:
 CLOSED / ACCEPTED
 
 COORDINATED IMPLEMENTATION-READY TECHNICAL DESIGN:
-NOT YET ACCEPTED
+CLOSED / ACCEPTED
 
 IMPLEMENTATION:
 NOT AUTHORIZED
@@ -2049,12 +2467,24 @@ db/100 SUPERVISOR REVIEW:
 STILL OUTSTANDING
 
 CURRENT BLOCKING WORK:
-NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1 (DESIGN ONLY)
+NONE IN THIS TRACK. The technical design of section 9.9 is closed and accepted
+under NATIVE-RECEIPT-COORDINATED-RELEASE-TECHNICAL-DESIGN-ACCEPTANCE-R1, on the
+accepted execution proof NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1
+(T1-T12: PASS; FAILED MATERIAL CONTRACTS: NONE, section 13.8).
 
-NEXT ACCEPTANCE GATE:
-One implementation-ready coordinated design with exact manifests, invariants,
-cutover state machine, PONR, recovery matrix, authenticated acceptance plan,
-and resolution of the remaining Tapete/expedition/delivery edges.
+NEXT AUTHORIZABLE PHASE:
+Implementation planning and execution of the coordinated release, SUBJECT TO A
+SEPARATE ORDER. No phase is chained to this acceptance.
+
+ONLY REMAINING PRODUCTION-CUTOVER EXECUTION PREREQUISITE:
+LR-12 - no fresh verified production backup exists. It did not block acceptance
+of the technical design and must be discharged before the phase P5 cutover run.
+
+BINDING RULINGS CARRIED BY THE ACCEPTED TECHNICAL DESIGN:
+TD1 (section 9.9.H) - preserved historical global stock, never productive OP
+availability. TD2 (section 9.9.L.4) - authenticated direct table-level INSERT and
+DELETE on pedidos, ops and op_itens is NOT accepted after the P4 authority
+switch; TD2 closes OBS-4 and is not deferred as optional hardening.
 
 ACCEPTED FUNCTIONAL-DESIGN CHECKPOINT:
 a41a3db98372a3976635d8ffbd27a7832bb168a4 — the corrected target-design content of
@@ -2109,5 +2539,7 @@ correction.
 | 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1` | 9.9 (new), 16 | PROPOSED implementation-ready coordinated technical design added as section 9.9, marked PROPOSED / AWAITING SUPERVISOR REVIEW. The accepted functional specification of sections 9.1-9.8 and rulings R1-R13 / D1-D7 are unchanged. Repository and read-only production reconciliation established five findings that reduced the design: the native receipt architecture (registrar/estornar_recebimento_ordem_compra) already exists complete; the ledger already carries allocation, OP, material and colour lineage; receipt distribution is already explicit operator allocation; the db/75 cutover state machine already exists with productive_receipt_started_at as the enforced PONR; and ordem_compra.aceite_exigido_na_emissao already exists as the D3 frozen field with both live orders already correct, so no backfill is required. Closes every section 9.7 item: availability as server-side calculation functions with no new cache (A); shared-polyester serialization by Pedido-row lock plus ascending ops/op_itens order with ops.revisao optimistic concurrency (A); salvar_ajuste_producao_op as the single atomic writer with an explicit transaction-membership table (B); post-receipt Revisar producao continuation with 1-OP and N-OP routing (C); per-supplier exige_aceite with emission freeze and accept/reject writers (D); receipt activation without a new writer (E); the exact eight-step cutover sequence with the PONR identified as the first productive receipt (F); the five saldo_fios rows classified as preserved historical snapshot captured into the inventory baseline and explicitly excluded from OP ceilings (G); explicit operator allocation for multi-origin receipt (H); finishing idempotency by origem_entrega_id plus split_seq with an op_acabamento_tentativas failure record (I); estornar_expedicao_tapete_parcial over a shared primitive (J); corrigir_entrega_expedicao returning an incomplete non-cancelled Pedido to produzindo (K); and alterar_status_pedido with the D7 gates (L). Adds the 23-item implementation manifest with every flat consumer given an exact target owner, the five-migration topology with the PONR outside every migration, the 17-case recovery matrix and the authenticated acceptance plan. Two genuine blockers reported and not invented around: LR-12 (no fresh verified production backup) and the 2685.020 kg of lineage-less saldo_fios that cannot become productive availability without a separate ruling. No commit, no push, no database mutation, no implementation authorization. |
 | 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C1` | 9.9 (rewritten) | Applies the twelve supervisor corrections found on direct review of the proposed technical design. C1 availability is now ORIGIN-SCOPE AWARE: OP-origin cotton is not reduced by sibling reservations, Pedido-origin polyester is, and the productive-receipt predicate selects allocation-destined ledger lines (alocacao_id NOT NULL AND kg_excesso = 0) instead of the withdrawn SUM(kg_recebido - kg_excesso); surplus is reported separately and never enters a ceiling; function security is explicit with owner-only SECURITY DEFINER internals behind one SECURITY INVOKER entry point and a security_invoker view. C2 one concurrency domain with an eleven-writer lock matrix, every writer in the manifest. C3 locks precede revision acceptance; a narrow ops.ajuste_revisao replaces a general ops.revisao; adjustment events go to op_eventos, never ordem_compra_eventos; alterar_status_op is corrected to take locks. C4 adds the server-owned atomic iniciar_producao_op. C5 removes the impossible predates-the-column fallback and makes the supplier column the sole authority with a deterministic seed and a demotion trigger. C6 withdraws the false full-reversibility claim, adds the missing ordem_compra_c3c_resume_legacy, and replaces the topology with a P1-P6 prepare/deploy/prove/contain/cutover/PONR sequence so the old UI never breaks. C7 removes the autonomous-transaction claim and makes split_seq replay-stable through a persisted command identity. C8 splits public alterar_status_pedido from owner-only _pedido_status_recalcular and adds the real grant matrix plus a fail-closed status fence, since authenticated holds table-level UPDATE on pedidos. C9 defines the twelve-step cancellation compensation and the eligibility refusal codes. C10 names expedicao_comandos, the shared primitive, idempotency scopes and duplicate behaviour. C11 makes every manifest entry an exact RETIRE or REPOINT. C12 keeps the historical-stock ruling explicitly OPEN. No commit, no push, no database mutation, no implementation authorization. |
 | 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C2` | 9.9.0 (F11), 9.9.H, 9.9.N, 9.9.P, 9.9.Q, 9.9.R | Applies binding supervisor ruling TD1, which CLOSES the historical-stock product decision: the existing saldo_fios balance of 2685.020 kg is PRESERVED HISTORICAL GLOBAL STOCK and NOT PRODUCTIVE OP AVAILABILITY. Section 9.9.H is rewritten from an open architect ruling into TD1 with its nine binding consequences mapped one-to-one onto their exact technical effect: the five rows are preserved unchanged and touched by no migration or writer; they are captured verbatim into ordem_compra_cutover_inventory_baseline and hashed; they receive no retroactive Pedido, need, allocation or OP assignment; they are excluded from every OP ceiling because the section 9.9.A predicate reaches only ordem_compra_fio_lancamentos rows carrying recebimento_id, an allocation id and kg_excesso = 0, which no saldo_fios row can satisfy; they are excluded from the native received-material pool; they stay visible as historical global stock reported in its own column; productive availability comes only from native ledger lines with valid allocation lineage; no automatic or silent allocation mechanism is designed or permitted; and any future audited allocation is explicitly separately authorized work outside this coordinated release. The accepted operational consequence is recorded: the first productive ceilings after cutover may begin at zero until native receipts are registered. Historical stock is removed from the blocker list, leaving LR-12 as the ONLY genuine blocker, now classified as a cutover-execution prerequisite rather than a design gap, with the explicit statement that this technical design may be accepted while LR-12 remains open provided no cutover runs until it is discharged. The acceptance plan gains a TD1 disposable-cluster proof that a non-zero saldo_fios row raises no OP ceiling and appears in no productive-receipt total, and a production preflight assertion that the five rows are unchanged and absent from every ceiling; the manifest cutover runbook gains the TD1 baseline-capture assertion; the recovery matrix gains a TD1-violation row keyed on a baseline hash mismatch. Sections 9.1-9.8 are byte-identical. No commit, no push, no database mutation, no implementation authorization. |
+| 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C3` | 9.9.A.5, 9.9.C, 9.9.D, 9.9.G, 9.9.L, 9.9.M, 9.9.N, 9.9.Q, 9.9.R | Closes the security, containment, rollback, PONR and phasing defects found on direct review. SECURITY: vw_disponibilidade_op is WITHDRAWN because a security_invoker view executing as the caller could never reach an owner-only helper; the sole client-facing read is one guarded SECURITY DEFINER wrapper, and every public mutation writer (salvar_ajuste_producao_op, iniciar_producao_op, alterar_status_pedido, cancelar_pedido, the supplier acceptance writers, the expedition and delivery writers) is SECURITY DEFINER with an explicit auth.uid plus role check, since the containment migration removes the very privileges an invoker function would need. A full function-security matrix and a call-graph invariant are added. CONTAINMENT: the GUC-based fence is withdrawn as spoofable and replaced by a trigger predicate on current_user being the owner role under which the granted definer writers execute; containment now covers pedidos.status and revisao, op_itens.metros_ajustados, ops.ajuste_revisao and status, and all saldo_fios_op DML, with the table-level REVOKE issued before the column re-grant because PostgreSQL unions the two. CUTOVER: option A selected and option B rejected as incompatible with the fixed PONR; a new ACL/policy manifest is captured before close_final_acl, which now refuses without it, and restore_acl_manifest replays grants, column grants and policies with an equality assertion; purge_generation removes generation-scoped snapshot, baseline, legacy_initial_balance_v1 headers, import_saldo_inicial ledger lines and their stock movements while never touching the five TD1 saldo_fios rows; resume_legacy now resets ALL ten fields the legacy_active branch of ordem_compra_cutover_c3c_state_check requires plus reconciliation_status and the six snapshot/baseline metrics, correcting a previous version that cleared four and would have violated the constraint. PONR: fixed as THE FIRST SUCCESSFUL NATIVE RECEIPT COMMAND including a surplus-only command, proved from the db/75 wrapper which stamps productive_receipt_started_at after any ok result with no allocation filter; the earlier first-productive-receipt wording is withdrawn. PHASES: P1 is now strictly additive with no body replacement, no grant revocation and no demotion trigger; the emission freeze and configuration demotion move to a new db/103b, and db/104 is reclassified to P4 because it replaces existing bodies; P3 is proved on a disposable cluster restored from backup, never against real production rows. CANCELLATION: live planning rows are no longer physically deleted, which contradicted D7; typed cancelado_em/por/motivo fields release the balance while preserving the supplier assignment and quantity for audit. Acceptance gains permission-denial tests for every owner-only helper, a GUC-spoofing rejection test, a surplus-only PONR test and a genuine legacy-restoration test. Sections 9.1-9.8, R1-R13, D1-D7 and TD1 are unchanged. No commit, no push, no database mutation, no implementation authorization. |
+| 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-TECHNICAL-DESIGN-ACCEPTANCE-R1` | 9.9 (header), 9.9.G.2.2, 9.9.L.2, 9.9.L.4 (new), 9.9.N, 9.9.Q, 9.9.R, 13 (new 13.8), 14, 16 | SUPERVISOR ACCEPTANCE CLOSEOUT. The COORDINATED IMPLEMENTATION-READY TECHNICAL DESIGN of section 9.9 is CLOSED / ACCEPTED, on the accepted execution proof NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1 (T1-T12: PASS; FAILED MATERIAL CONTRACTS: NONE). New section 13.8 records the prototype environment (a disposable PostgreSQL 18.4 cluster, system_identifier 7668720358489816576, synthetic platform preamble, 64 fully synthetic legacy rows classified 27/12/13/12, clean apply of db/01..db/100, proved complete teardown - never production and never staging), the twelve-row T1-T12 matrix, and the decisive catalog/hash evidence: the ACL/policy hash was d231b4d5f3573323e24ba4f35fe918a0 before closure, 452d909c608fb142be8b29871f7d82bc when closed, and d231b4d5f3573323e24ba4f35fe918a0 again when restored, so the round trip is exact. Also recorded: a second cutover generation completed with no idempotency collision after the purge; a surplus-only successful receipt crossed the PONR; planning history survived cancellation as a release and not a deletion; and TD1 stock produced zero OP availability. BINDING RULING TD2 is added as new section 9.9.L.4 and CLOSES OBS-4: authenticated direct table-level INSERT and DELETE on public.pedidos, public.ops and public.op_itens is NOT accepted after the P4 authority switch. Where a canonical creation surface still inserts directly, P4 must revoke table-level INSERT, grant column-level INSERT for the exact creation fields only, exclude every lifecycle, revision, adjustment, completion and derived-status field, and assert the safe defaults first (pedidos.status not client-supplied and defaulting to rascunho; pedidos.revisao and the derived tracking/priority fields not client-supplied; ops.status not client-supplied with new weaving OPs beginning as simulada; ops.ajuste_revisao beginning at 0 and not client-supplied; completion and production timestamps not client-supplied; op_itens.metros_ajustados beginning NULL and not client-supplied). A creation path that cannot work under exact column-level grants must be repointed to a bounded SECURITY DEFINER creation writer before P4, and table-level INSERT may not be retained as a compatibility shortcut; three such paths are named. Direct DELETE is revoked from client roles on all three tables, operational removal is represented by validated cancellation preserving history or by the already-canonical server-owned deletion writers remover_pedido and remover_op, and any visible action without such a writer is disabled at P4 rather than keeping direct DELETE. saldo_fios_op receives no direct INSERT, UPDATE or DELETE for authenticated, anon or service_role, and only iniciar_producao_op owns its productive snapshot writes. Section 9.9.G.2.2 is corrected to the PROVEN purge contract (OBS-2, resolved): the owner-only generation-scoped purge validates the cutover generation and pre-PONR eligibility, disables exactly the five guards trg_lancamento_append_only_guard, trg_lancamento_estorno_guard, trg_recebimento_movimento_immutable_guard, trg_recebimento_header_immutable_guard and trg_c3c_command_state_guard inside its transaction, deletes only facts provably belonging to the target generation, re-enables every guard before returning, hard-fails if any guard remains with tgenabled = 'D', preserves all unrelated facts, and never modifies the five TD1 saldo_fios rows. The first attempt failed because the append-only guard correctly blocked an unspecified DELETE; the corrected bounded mechanism passed T6, T7 and T8 on a clean disposable clone. The bypass is explicitly NOT generalizable to any other function. OBS-3 is kept as an accepted harness limitation and is not a blocker. LR-12 is retained as the ONLY production-cutover execution prerequisite and did not block acceptance. IMPLEMENTATION REMAINS NOT AUTHORIZED and the NATIVE RECEIPT CUTOVER REMAINS NOT AUTHORIZED. Sections 9.1-9.8, rulings R1-R13, D1-D7 and TD1 are unchanged. Documentation-only; no product, migration, test, UI, configuration or database change. |
 
 **Every future executor report must identify the exact sections changed here.**
