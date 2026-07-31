@@ -132,12 +132,21 @@
   // sendo reeditada — mesmo calculo que db/99 aplica no servidor
   // (kg_necessario - (total - anterior)), quantizado em tres casas porque
   // as colunas sao NUMERIC(12,3) e a subtracao binaria deixa residuo.
+  // Uma linha cujo Pedido de Compra foi CANCELADO é história: db/100 a mantém
+  // visível e para de contá-la em qualquer saldo. `ativo` é servidor; a
+  // ausência da chave (payload anterior a db/100) é lida como ativa, que é o
+  // comportamento antigo e o único seguro.
+  function isActivePlanRow(row) {
+    return !row || row.ativo !== false;
+  }
+
   function planningBalance(need, ignoredPlanId) {
     var necessary = Number(need && need.kg_necessario);
     if (!Number.isFinite(necessary)) return 0;
     var used = 0;
     (need.planejamentos || []).forEach(function (row) {
       if (ignoredPlanId != null && Number(row.planejamento_id) === Number(ignoredPlanId)) return;
+      if (!isActivePlanRow(row)) return;
       var value = Number(row.kg_planejado);
       if (Number.isFinite(value)) used += value;
     });
@@ -224,6 +233,45 @@
         + 'font-size:var(--rv-fs-sm);font-weight:600;'
         + (skin[family] || skin.caution),
     }, text);
+  }
+
+  // ---------------------------------------------------------------------
+  // Região de erro LOCAL de um modal
+  // ---------------------------------------------------------------------
+  // Uma recusa de negócio nascia no `notice` do topo da página — que fica
+  // ATRÁS do overlay do modal. O operador confirmava, a confirmação continuava
+  // aberta e aparentemente sem resposta, e a explicação estava escondida.
+  //
+  // Cada modal passa a carregar a sua própria região de erro, dentro do seu
+  // próprio corpo. Não é um refactor de window.modal: o corpo do modal já é um
+  // nó que o chamador constrói, então a solução local é suficiente e o dono
+  // compartilhado permanece intocado.
+  function modalErrorRegion() {
+    var node = el('div', {
+      // `role=alert` + `aria-live=assertive` fazem o leitor de tela anunciar a
+      // recusa no instante em que ela aparece, sem que o foco precise ir até
+      // ela. `aria-atomic` garante que a mensagem seja lida inteira.
+      role: 'alert',
+      'aria-live': 'assertive',
+      'aria-atomic': 'true',
+      'data-rv-modal-error': '',
+      style: 'display:none;align-items:center;gap:8px;width:100%;box-sizing:border-box;'
+        + 'border-radius:var(--rv-radius);padding:10px 14px;margin-bottom:12px;'
+        + 'font-size:var(--rv-fs-sm);font-weight:600;'
+        + 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);'
+        + 'color:var(--rv-signal-negative);',
+    });
+    return {
+      node: node,
+      show: function (message) {
+        node.replaceChildren(el('span', {}, message));
+        node.style.display = 'flex';
+      },
+      clear: function () {
+        node.replaceChildren();
+        node.style.display = 'none';
+      },
+    };
   }
 
   function figure(label, value, emphasise) {
@@ -417,7 +465,11 @@
         title: row.fornecedor_nome,
       }, row.fornecedor_nome));
       if (row.gerado) {
-        left.appendChild(window.rvClassificationBadge('Gerado'));
+        // Uma linha gerada cujo documento foi CANCELADO continua visível como
+        // história, mas não ocupa mais saldo. Rotulá-la "Gerado" faria o
+        // operador acreditar que a compra ainda existe.
+        left.appendChild(window.rvClassificationBadge(
+          isActivePlanRow(row) ? 'Gerado' : 'Cancelado'));
       }
 
       return el('div', {
@@ -747,7 +799,12 @@
       renderMode();
       renderList();
 
+      // Recusas desta confirmação aparecem AQUI, dentro do modal aberto, e não
+      // no aviso de página que o overlay esconde.
+      var erro = modalErrorRegion();
+
       var body = el('div', {},
+        erro.node,
         el('p', { style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);margin:0 0 12px;' },
           'Aplique um fornecedor a várias necessidades de uma vez. Nenhum Pedido de Compra é criado aqui.'),
         window.formField({ label: 'Fornecedor', input: supplier }),
@@ -759,9 +816,12 @@
         body: body,
         saveLabel: 'Aplicar',
         onSave: async function () {
+          // Toda nova tentativa começa limpa: uma mensagem antiga ao lado de
+          // um novo resultado é indistinguível de um erro que não saiu.
+          erro.clear();
           var ids = Object.keys(picked);
           if (!supplier.value || !ids.length) {
-            setNotice('error', 'Escolha o fornecedor e ao menos uma necessidade.');
+            erro.show('Escolha o fornecedor e ao menos uma necessidade.');
             return false;
           }
           var itens = [];
@@ -769,7 +829,7 @@
             if (mode === 'ajustado') {
               var raw = String(picked[ids[i]].kg == null ? '' : picked[ids[i]].kg).trim();
               if (!QTY_PATTERN.test(raw) || Number(raw) <= 0) {
-                setNotice('error', errorText('kg_invalido'));
+                erro.show(errorText('kg_invalido'));
                 return false;
               }
               itens.push({ necessidade_id: Number(ids[i]), kg: Number(raw) });
@@ -787,7 +847,9 @@
             p_idempotency_key: commandKey(),
           });
           if (result.ok !== true) {
-            setNotice('error', errorText(result.codigo, result.erro));
+            // Recusa de negócio E falha de transporte: as duas são visíveis
+            // dentro do modal, que permanece aberto para a correção.
+            erro.show(errorText(result.codigo, result.erro));
             return false;
           }
           await reload();
@@ -857,17 +919,35 @@
         el('span', { style: 'font-size:var(--rv-fs-body);font-weight:700;' }, 'Total'),
         el('span', { class: 'tnum', style: 'font-size:var(--rv-fs-summary-total);font-weight:700;' }, kg(total))));
 
+      // Recusas da geração aparecem dentro desta confirmação. Antes iam para o
+      // aviso de página, atrás do overlay: a geração parecia simplesmente não
+      // responder.
+      var erro = modalErrorRegion();
+
+      // Sugestão fresca devolvida pelo servidor quando a numeração avançou.
+      // Fica visível ao lado do campo, e NÃO substitui o que o operador
+      // digitou — o número é uma decisão dele e a tela não a sobrescreve.
+      var sugestaoFresca = el('div', {
+        id: 'oc-sugestao-fresca',
+        'data-rv-sugestao-fresca': '',
+        style: 'display:none;font-size:var(--rv-fs-xs);color:var(--rv-signal-caution);'
+          + 'font-weight:600;margin-top:6px;',
+      });
+
       window.modal({
         title: 'Gerar Pedido de Compra',
         body: el('div', {},
+          erro.node,
           summary,
           window.formField({
             label: 'Número do Pedido de Compra',
             input: codeInput,
             hint: 'Sugerido a partir da numeração deste Pedido. Você pode substituir antes de confirmar; depois de gerado o número não muda.',
-          })),
+          }),
+          sugestaoFresca),
         saveLabel: 'Gerar',
         onSave: async function () {
+          erro.clear();
           var result = await callRpc('gerar_ordem_compra_do_planejamento', {
             p_planejamento_ids: chosen.map(function (entry) { return Number(entry.row.planejamento_id); }),
             p_codigo: String(codeInput.value || '').trim(),
@@ -875,14 +955,21 @@
             p_idempotency_key: commandKey(),
           });
           if (result.ok !== true) {
-            // Sugestão vencida: o servidor devolve a fresca e a confirmação
-            // continua aberta para uma reconfirmação explícita.
+            // Sugestão vencida: falha fechada do servidor, nada foi criado. A
+            // confirmação continua aberta, a sequência esperada interna é
+            // atualizada para que a reconfirmação explícita passe, e a sugestão
+            // fresca é MOSTRADA — mas o código digitado é preservado
+            // exatamente. Sobrescrever o campo apagaria silenciosamente um
+            // número que o operador pode ter escolhido de propósito.
             if (result.codigo === 'sugestao_desatualizada' && result.codigo_sugerido) {
               suggestion.sequencia_sugerida = result.sequencia_sugerida;
               suggestion.codigo_sugerido = result.codigo_sugerido;
-              codeInput.value = result.codigo_sugerido;
+              sugestaoFresca.replaceChildren(el('span', {},
+                'Sugestão atualizada: ' + result.codigo_sugerido
+                + '. O número que você digitou foi mantido.'));
+              sugestaoFresca.style.display = 'block';
             }
-            setNotice('error', errorText(result.codigo, result.erro));
+            erro.show(errorText(result.codigo, result.erro));
             return false;
           }
           state.selecting = false;

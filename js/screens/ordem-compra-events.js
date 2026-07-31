@@ -89,6 +89,16 @@
       // client could only report as the generic "Não foi possível concluir a
       // ação.". The RPC was never reached and no order was ever cancelled.
       // `emitir` below already reads its order at click time for this reason.
+      // CANCELAR (db/68 + db/100). A disponibilidade vem EXCLUSIVAMENTE de
+      // `acoes.cancelar`, decidido pelo servidor em
+      // public.oc_elegivel_cancelamento — inclusive para uma ordem EMITIDA,
+      // que antes nunca podia ser cancelada porque o read model congelava
+      // essa acao em false fora de rascunho.
+      //
+      // A copia anterior — "A distribuição não será alterada por esta ação" —
+      // descrevia o comportamento antigo e passou a ser FALSA: o cancelamento
+      // agora libera imediatamente o saldo ativo. Uma confirmação que descreve
+      // errado a consequência é pior do que nenhuma.
       cancelar: function (o) {
         var atual = o || state.ordem || {};
         var ordemId = atual.ordem_id;
@@ -97,13 +107,34 @@
           return;
         }
         var nome = ns.ocLabel(ordemId, state);
-        window.confirmDialog({
-          title: 'Cancelar ordem de compra',
-          message: 'Cancelar a ordem ' + nome + '? A distribuição não será alterada por esta ação.',
-          confirmLabel: 'Cancelar ordem',
-          onConfirm: async function () {
+        var body = el('div', { style: 'color:var(--rv-color-text);font-size:13.5px;line-height:1.55;' });
+        body.appendChild(el('p', { class: 'mb-2' },
+          'Cancelar a ordem ' + nome + '?'));
+        body.appendChild(el('p', { class: 'mb-2' },
+          'A ordem permanece no histórico com o seu número, os seus itens e a sua origem. '
+          + 'Ela deixa de ser um documento de compra ativo.'));
+        body.appendChild(el('p', { class: 'mb-2' },
+          'As quantidades ativas desta ordem são liberadas e voltam a ficar disponíveis '
+          + 'para novo planejamento no Pedido.'));
+        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-color-muted);' },
+          'Uma ordem com recebimento, lançamento de fio ou movimento de estoque não pode ser '
+          + 'cancelada — nesses casos o caminho é o estorno.'));
+        var submitting = false;
+        window.modal({
+          title: 'Cancelar ordem de compra ' + nome,
+          body: body,
+          saveLabel: 'Cancelar ordem',
+          danger: true,
+          onSave: async function () {
+            if (submitting) return false;
+            submitting = true;
             var data = await rpcWrite('cancelar_ordem_compra', { p_ordem_id: ordemId }, 'Ordem cancelada.');
-            if (data) await reload();
+            submitting = false;
+            if (!data) return false;
+            // Recarga autoritativa: o estado, as ações projetadas e os saldos
+            // vêm todos do servidor, nunca de uma mutação local otimista.
+            await reload();
+            return true;
           },
         });
       },

@@ -3749,3 +3749,125 @@ authority. Detailed disposition is derived in
 | `OC-C4-ADMIN-001` | `§R.29.6` | `C4` | Own the admin receipt UI at `#/ordens-compra/:id`. |
 | `OC-C4-SUPPLIER-001` | `§R.29.6` | `C4` | Keep supplier receipt UI deferred. |
 | `OC-C5-EMISSION-001` | `§R.24.10` | `C5` | Keep native emission behind the separate post-C4 gate. |
+
+---
+
+## §R.32 Post-generation lifecycle — binding amendment (db/100)
+
+`PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1`, applied as
+`db/100_ordem_compra_post_generation_stabilization.sql`. This section is a
+FORWARD CORRECTION: it supersedes the named sentences below and rewrites no
+prior section. Everything not named here is unchanged.
+
+### §R.32.1 Active purchasing coverage has ONE server-owned definition
+
+`public.oc_cobertura_ativa(p_ordem_id BIGINT) RETURNS BOOLEAN` is the single
+definition of *"this planning row / this allocation still consumes purchasing
+balance"*. It is DERIVED from `ordem_compra.status_administrativo`: planning
+that carries no document yet is active, a document is active until it is
+`cancelada`, and a non-existent document covers nothing.
+
+No second lifecycle status, marker column or parallel authority exists, and
+none may be introduced. Every balance owner reads this one definition:
+
+- `necessidade_compra_fio.kg_alocado` (through
+  `public.oc_recalcular_cache_necessidade`, now the sole writer of that cache,
+  called by the db/67 allocation trigger and by cancellation);
+- the deferred planning ceiling `trg_planejamento_saldo_guard`;
+- the planning read model `obter_planejamento_compra_pedido`
+  (`kg_planejado` / `kg_restante` / `kg_gerado`, plus the new `kg_cancelado`
+  and the per-row `ativo` marker);
+- the planning writers `definir_planejamento_compra`,
+  `substituir_planejamento_compra_necessidade` and
+  `aplicar_planejamento_rapido`;
+- the locked ceiling revalidation inside `gerar_ordem_compra_do_planejamento`;
+- every productive gate that consumes the need cache, which is corrected
+  automatically because the cache itself became coverage-aware.
+
+The historical Purchase Order keeps and still displays all of its original
+allocations and planning links. Being historical is a property of the parent
+document, never a deletion of the child rows.
+
+### §R.32.2 Cancellation — supersedes the temporary draft-only restriction
+
+`§R.22.7` already declared the permitted source states as
+`rascunho | emitida → cancelada`. db/68 implemented only the draft half and
+returned `estado_invalido` for everything else, describing that narrowing as
+deferred to `PRE-PROD/Phase C`. **That deferral is now closed.** An emitted
+native Purchase Order with no irreversible history is cancellable.
+
+- `public.oc_elegivel_cancelamento(p_ordem_id BIGINT) RETURNS JSONB` is the
+  SINGLE eligibility owner. It is read by `public.cancelar_ordem_compra` and
+  projected into `obter_ordem_compra_admin.acoes.cancelar` (plus
+  `bloqueio_cancelamento`), so the screen never restates the rule.
+- Eligible: native `rascunho`, native `emitida`. Ineligible: `legado`
+  (`ordem_legado`), already cancelled (`ja_cancelada`), any receipt, yarn
+  ledger entry or stock movement (`historico_irreversivel`). The §R.22.7
+  determination that received quantity blocks cancellation — the correction
+  path being an `estorno` — is preserved verbatim and is now reachable.
+- **Immediate release.** Cancellation stops that order from consuming active
+  purchasing balance at the moment of the transition, not at deletion.
+  Because the release is DERIVED, it is structurally irrepeatable: no
+  "returned quantity" is recorded anywhere that could be returned again.
+- Cancellation preserves the complete historical graph — header, visible code,
+  items, allocations, planning rows and administrative events — sets
+  `cancelada_em` / `cancelada_por`, writes EXACTLY one cancellation event, and
+  returns the released quantities with the affected need identities. A second
+  cancellation returns `ja_cancelada` and mutates nothing.
+- Supplier acceptance semantics are UNCHANGED by this amendment. No acceptance
+  rule was added to cancellation.
+
+### §R.32.3 Permanent deletion — eligibility corrected
+
+db/96/db/97 carried an absolute rule, `emitida_em IS NOT NULL → ordem_emitida`,
+which contradicted the very next clause admitting `cancelada`: an order
+cancelled AFTER being emitted keeps `emitida_em` forever and was therefore
+permanently ineligible, with no product path out. **That rule is withdrawn.**
+
+Eligibility is now governed by the CURRENT lifecycle state plus irreversible
+history: status `rascunho` or `cancelada`, `legado = FALSE`, no decided
+supplier acceptance (`aceite_decidido`, preserved from db/96 unchanged), and
+zero receipts, yarn ledger entries or stock movements. An `emitida` order is
+still not directly deletable — its status excludes it by the first rule, and
+the path is cancel-then-delete.
+
+`public.excluir_ordem_compra` branches explicitly by lifecycle state:
+
+- **`rascunho`** — its coverage was never released, so deletion RETURNS the
+  generated planning quantities to the live planning state with the exact
+  db/99 merge semantics (merge into an existing live row of the same
+  `(necessidade, fornecedor)` pair, otherwise revive the row in place).
+- **`cancelada`** — cancellation already released the coverage, so the
+  historical planning rows are REMOVED with the document and nothing is
+  returned a second time.
+
+Both branches remain atomic, keep the canonical lock order
+(necessidade → planejamento → order-graph children), leave zero orphans, leave
+every need balance correct and touch no other Purchase Order. Purchase Order
+numbering is never rewound; a cancelled code stays reserved while the order
+exists and is released only when an eligible order is permanently deleted.
+
+### §R.32.4 Cancellation and permanent deletion are different acts
+
+- **Cancel** keeps a real document in history and frees its balance.
+- **Delete** removes a document that should not exist.
+
+Deletion is never a substitute for cancellation, and cancellation is never a
+substitute for an `estorno` once physical consequence exists.
+
+### §R.32.5 Receipt registration follows the cutover
+
+`acoes.receber` in `obter_historico_recebimento_ordem_compra` is now
+subordinate to `ordem_compra_cutover`: it may be true only when
+`status = 'canonical_active'` AND `read_authority = 'canonical'`. While the
+cutover is inactive the projection returns
+`bloqueio_recebimento = 'recebimento_canonico_inativo'` and the surface renders
+an honest read-only explanation instead of an actionable control. The writer
+fence of `§R.29` / db/75 / db/76 is INDEPENDENT and unchanged; this amendment
+only stops the read model from offering an action the writer would refuse.
+
+### §R.32.6 Planning ownership is unchanged
+
+`Pedido › Planejamento de compras` (db/99) remains the sole authority over
+supplier and quantity. The Purchase Order detail gained a READ-ONLY
+provenance projection and no allocation-editing authority.

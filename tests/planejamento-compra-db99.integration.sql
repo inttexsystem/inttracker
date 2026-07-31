@@ -478,9 +478,16 @@ END $$;
 -- =====================================================================
 -- N. CANCELLING PRESERVES THE PLANNING LINKAGE
 -- =====================================================================
-\echo '--- N. cancelling a real document preserves its planning linkage'
+-- db/100 AMENDMENT. db/99 proved only that the linkage SURVIVES cancellation.
+-- The decided lifecycle adds the other half: cancellation must ALSO stop that
+-- coverage from consuming purchasing balance, immediately. Both are asserted
+-- here, because they are two halves of one rule — history is kept, balance is
+-- freed.
+\echo '--- N. cancelling preserves the planning linkage and frees the balance'
 DO $$
-DECLARE v_ordem BIGINT; v_r JSONB; v_linked BIGINT;
+DECLARE
+  v_ordem BIGINT; v_r JSONB; v_linked BIGINT;
+  v_ativo NUMERIC(12,3); v_cache NUMERIC(12,3);
 BEGIN
   SELECT id INTO v_ordem FROM public.ordem_compra WHERE NOT legado ORDER BY id LIMIT 1;
   v_r := public.cancelar_ordem_compra(v_ordem);
@@ -492,50 +499,104 @@ BEGIN
   IF v_linked < 1 THEN
     RAISE EXCEPTION 'PROOF FAILED N: cancelling dropped the planning linkage';
   END IF;
-  RAISE NOTICE 'ok N: % planning row(s) still linked to the cancelled document', v_linked;
+
+  -- Need 930000501 carried 60 kg generated into that document plus a 40 kg
+  -- live row. Cancelling must leave exactly the 40 kg live row counting.
+  --
+  -- The active total is restated here in plain SQL rather than read from
+  -- db/100's own helper: the helper is owner-only (proved in the db/100 ACL
+  -- section) and, more importantly, a proof that calls the implementation to
+  -- check the implementation proves nothing.
+  SELECT coalesce(sum(p.kg_planejado), 0)::NUMERIC(12,3) INTO v_ativo
+    FROM public.necessidade_compra_planejamento p
+    LEFT JOIN public.ordem_compra o ON o.id = p.ordem_compra_id
+   WHERE p.necessidade_id = 930000501
+     AND (p.ordem_compra_id IS NULL OR o.status_administrativo <> 'cancelada');
+  IF v_ativo <> 40.000 THEN
+    RAISE EXCEPTION 'PROOF FAILED N: active planned total is % (expected 40.000 after cancellation)', v_ativo;
+  END IF;
+  SELECT kg_alocado INTO v_cache FROM public.necessidade_compra_fio WHERE id = 930000501;
+  IF v_cache <> 0.000 THEN
+    RAISE EXCEPTION 'PROOF FAILED N: the need cache still carries % kg of cancelled allocation', v_cache;
+  END IF;
+
+  RAISE NOTICE 'ok N: % planning row(s) still linked to the cancelled document; 60,000 kg freed', v_linked;
 END $$;
 
 -- =====================================================================
--- O. ELIGIBLE PERMANENT DELETION RELEASES THE PLANNING ROWS
+-- O. DELETING AN ALREADY-CANCELLED ORDER DOES NOT RELEASE TWICE
 -- =====================================================================
-\echo '--- O. permanent deletion releases planning rows atomically'
+-- db/100 AMENDMENT, and a DELIBERATE REVERSAL of what db/99 asserted here.
+-- db/99 cancelled without releasing anything, so deletion was the only moment
+-- the quantity could come back and this proof demanded exactly that. Under the
+-- decided lifecycle the cancellation in N already returned it. Repeating the
+-- release here would ADD the quantity a second time — a silent inflation of
+-- planned kg. The rule under test is therefore the opposite one: the cancelled
+-- document's historical rows are REMOVED with it and no balance moves.
+\echo '--- O. deleting a cancelled document removes its history without a second release'
 DO $$
 DECLARE
   v_ordem BIGINT; v_r JSONB;
-  v_kg_before NUMERIC(12,3); v_kg_after NUMERIC(12,3);
-  v_released BIGINT; v_still BIGINT;
+  v_kg_before NUMERIC(12,3);
+  v_ativo_antes NUMERIC(12,3); v_ativo_depois NUMERIC(12,3);
+  v_removed BIGINT; v_still BIGINT;
 BEGIN
   SELECT id INTO v_ordem FROM public.ordem_compra
    WHERE NOT legado AND status_administrativo = 'cancelada' ORDER BY id LIMIT 1;
 
-  SELECT sum(kg_planejado) INTO v_kg_before FROM public.necessidade_compra_planejamento
-   WHERE ordem_compra_id = v_ordem;
+  SELECT coalesce(sum(kg_planejado), 0) INTO v_kg_before
+    FROM public.necessidade_compra_planejamento WHERE ordem_compra_id = v_ordem;
+  IF v_kg_before <= 0 THEN
+    RAISE EXCEPTION 'PROOF FAILED O: the cancelled document carries no planning history to test';
+  END IF;
+  SELECT coalesce(sum(p.kg_planejado), 0)::NUMERIC(12,3) INTO v_ativo_antes
+    FROM public.necessidade_compra_planejamento p
+    LEFT JOIN public.ordem_compra o ON o.id = p.ordem_compra_id
+   WHERE p.necessidade_id = 930000501
+     AND (p.ordem_compra_id IS NULL OR o.status_administrativo <> 'cancelada');
 
   v_r := public.excluir_ordem_compra(v_ordem);
   IF (v_r->>'ok')::boolean IS NOT TRUE THEN
     RAISE EXCEPTION 'PROOF FAILED O: eligible deletion refused: %', v_r;
   END IF;
-  v_released := (v_r->>'planejamentos_liberados')::BIGINT;
-  IF v_released < 1 THEN
-    RAISE EXCEPTION 'PROOF FAILED O: deletion reported % released planning rows', v_released;
+  IF (v_r->>'origem_cancelada')::boolean IS NOT TRUE THEN
+    RAISE EXCEPTION 'PROOF FAILED O: the writer did not take the cancelada branch: %', v_r;
+  END IF;
+  v_removed := (v_r->>'planejamentos_removidos')::BIGINT;
+  IF v_removed < 1 THEN
+    RAISE EXCEPTION 'PROOF FAILED O: deletion removed % historical planning rows', v_removed;
+  END IF;
+  IF (v_r->>'planejamentos_liberados')::BIGINT <> 0 THEN
+    RAISE EXCEPTION 'PROOF FAILED O: deletion released % row(s) a second time', v_r->>'planejamentos_liberados';
   END IF;
 
   IF EXISTS (SELECT 1 FROM public.ordem_compra WHERE id = v_ordem) THEN
     RAISE EXCEPTION 'PROOF FAILED O: the document survived deletion';
   END IF;
   SELECT count(*) INTO v_still FROM public.necessidade_compra_planejamento
-   WHERE ordem_compra_id = v_ordem OR gerado_em IS NOT NULL;
+   WHERE ordem_compra_id = v_ordem;
   IF v_still <> 0 THEN
-    RAISE EXCEPTION 'PROOF FAILED O: % planning row(s) still marked generated', v_still;
+    RAISE EXCEPTION 'PROOF FAILED O: % planning row(s) still reference the deleted document', v_still;
   END IF;
 
-  -- The decision survives with the SAME quantity and is selectable again.
-  SELECT sum(kg_planejado) INTO v_kg_after FROM public.necessidade_compra_planejamento
-   WHERE necessidade_id = 930000501 AND fornecedor_id = 930000401;
-  IF v_kg_after <> 60.000 THEN
-    RAISE EXCEPTION 'PROOF FAILED O: released planning quantity is % (expected 60.000)', v_kg_after;
+  -- THE POINT OF THE PROOF: the deletion moved no balance at all, because the
+  -- cancellation already had.
+  SELECT coalesce(sum(p.kg_planejado), 0)::NUMERIC(12,3) INTO v_ativo_depois
+    FROM public.necessidade_compra_planejamento p
+    LEFT JOIN public.ordem_compra o ON o.id = p.ordem_compra_id
+   WHERE p.necessidade_id = 930000501
+     AND (p.ordem_compra_id IS NULL OR o.status_administrativo <> 'cancelada');
+  IF v_ativo_depois IS DISTINCT FROM v_ativo_antes THEN
+    RAISE EXCEPTION 'PROOF FAILED O: deletion changed the active planned total (% -> %) — released twice',
+      v_ativo_antes, v_ativo_depois;
   END IF;
-  RAISE NOTICE 'ok O: % planning row(s) released, quantities preserved, document gone', v_released;
+  IF EXISTS (SELECT 1 FROM public.necessidade_compra_planejamento
+              WHERE necessidade_id = 930000501 AND fornecedor_id = 930000401) THEN
+    RAISE EXCEPTION 'PROOF FAILED O: the cancelled decision was resurrected as live planning';
+  END IF;
+
+  RAISE NOTICE 'ok O: % historical row(s) removed with the document, % kg released exactly once (at cancellation)',
+    v_removed, v_kg_before;
 END $$;
 
 -- =====================================================================

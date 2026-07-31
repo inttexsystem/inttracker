@@ -2,6 +2,12 @@
 //
 // PHASE-C3D-A smoke test.
 //
+// PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 note:
+// db/100_ordem_compra_post_generation_stabilization.sql extends this manifest
+// by one further entry, so the expected terminal advances 99 -> 100 and the
+// terminal two become db/99/db/100. The fail-closed mechanism is unchanged
+// (mechanism preserved, only the terminal expectation advanced).
+//
 // Proves, without applying any migration and without touching any shared or
 // remote database:
 //   - the ordered deployment manifest resolves exactly db/01..db/82, with
@@ -152,7 +158,7 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 99;
+const EXPECTED_TERMINAL = 100;
 const DB75_FILENAME = '75_ordem_compra_c3c_inactive_cutover.sql';
 const DB76_FILENAME = '76_ordem_compra_c3c_b_db_prerequisites.sql';
 const DB77_FILENAME = '77_ordem_compra_c5a_emission_readiness.sql';
@@ -178,6 +184,7 @@ const DB96_FILENAME = '96_ordem_compra_codigo_operador_e_exclusao.sql';
 const DB97_FILENAME = '97_ordem_compra_exclusao_read_model.sql';
 const DB98_FILENAME = '98_ordem_compra_identidade_completa_com_codigo.sql';
 const DB99_FILENAME = '99_planejamento_compra_refoundation.sql';
+const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
 const DB77_PATH = path.join(DB_DIR, DB77_FILENAME);
@@ -354,8 +361,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB98_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB99_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB99_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB100_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -374,7 +381,7 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/99, contiguous and unique', () => {
+test('deployment manifest resolves exactly db/01..db/100, contiguous and unique', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   assert.equal(entries.length, EXPECTED_TERMINAL);
@@ -384,12 +391,12 @@ test('deployment manifest resolves exactly db/01..db/99, contiguous and unique',
   );
 });
 
-test('db/98 and db/99 are the terminal two migrations', () => {
+test('db/99 and db/100 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB98_FILENAME);
-  assert.equal(terminal.filename, DB99_FILENAME);
+  assert.equal(penultimate.filename, DB99_FILENAME);
+  assert.equal(terminal.filename, DB100_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {

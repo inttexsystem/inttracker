@@ -1,14 +1,23 @@
 // tests/planejamento-compra-db99.integration.mjs
 //
-// PURCHASE-PLANNING-REFOUNDATION-R1 — disposable-cluster rehearsal for db/99.
+// PURCHASE-PLANNING-REFOUNDATION-R1 — disposable-cluster rehearsal for db/99,
+// EXTENDED THROUGH db/100 by PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1.
 //
 // Reconstructs the production purchase schema on a fresh, disposable
 // PostgreSQL cluster (Supabase-platform preamble + the classification-faithful
-// 64-row corpus + db/01..db/99 in manifest order + synthetic actors), applies
-// db/99 exactly once with fail-fast semantics, drives the SQL assertion suite
-// in tests/planejamento-compra-db99.integration.sql as a real `authenticated`
+// 64-row corpus + db/01..db/100 in manifest order + synthetic actors), applies
+// the terminal migration exactly once with fail-fast semantics, drives the SQL
+// assertion suites in tests/planejamento-compra-db99.integration.sql and
+// tests/planejamento-compra-db100.integration.sql as a real `authenticated`
 // administrator, proves the intended re-apply behaviour, and destroys the
 // cluster with the bootstrap's own PID/port/directory proof.
+//
+// db/100 SCOPE. The post-generation lifecycle suite proves cancellation
+// (rascunho and emitida), the immediate and STRUCTURALLY irrepeatable balance
+// release, permanent deletion branched by lifecycle state, the receipt-cutover
+// gate on acoes.receber, and the ACL posture. db/99's own suite and its three
+// concurrency proofs run first and unchanged, so db/100 is measured against a
+// cluster that already carries the accepted db/99 behaviour.
 //
 // Out of scope by design: no remote host, no managed backend, no credential,
 // no repository write, no production contact of any kind.
@@ -201,6 +210,50 @@ VALUES
 SET session_replication_role = origin;
 `;
 
+// db/100 fixture: six more cotton suppliers and seven more 1,000 kg cotton
+// needs, one per section of the post-generation lifecycle suite. Each section
+// owns its own supplier so that db/67's `ordem_compra_um_rascunho_ativo`
+// (one live draft per Pedido+supplier) never refuses a generation for a
+// reason unrelated to what is under test. Every need takes its own OP, because
+// `necessidade_native_algodao` is unique on (pedido, OP, colour).
+const DB100_FIXTURE_SQL = `
+SET session_replication_role = replica;
+
+INSERT INTO public.fornecedores (id, nome, tipo) VALUES
+  (930000303, 'DB100-FORN-AB', 'fio_algodao'),
+  (930000304, 'DB100-FORN-AD', 'fio_algodao'),
+  (930000305, 'DB100-FORN-AE1', 'fio_algodao'),
+  (930000306, 'DB100-FORN-AE2', 'fio_algodao'),
+  (930000307, 'DB100-FORN-AF', 'fio_algodao'),
+  (930000308, 'DB100-FORN-AH', 'fio_algodao')
+  ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.ops (id, numero, ano, lote_id) VALUES
+  (930000110, 990010, 2099, 930000701),
+  (930000111, 990011, 2099, 930000701),
+  (930000112, 990012, 2099, 930000701),
+  (930000113, 990013, 2099, 930000701),
+  (930000114, 990014, 2099, 930000701),
+  (930000115, 990015, 2099, 930000701),
+  (930000116, 990016, 2099, 930000701)
+  ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.necessidade_compra_fio
+  (id, pedido_id, origem_tipo, op_id, material, cor_id, cor_poliester,
+   kg_necessario, kg_alocado, legado)
+VALUES
+  (930000901, '${PEDIDO_UUID}', 'op', 930000110, 'algodao', 930000201, NULL, 1000.000, 0, FALSE),
+  (930000902, '${PEDIDO_UUID}', 'op', 930000111, 'algodao', 930000201, NULL, 1000.000, 0, FALSE),
+  (930000903, '${PEDIDO_UUID}', 'op', 930000112, 'algodao', 930000201, NULL, 1000.000, 0, FALSE),
+  (930000904, '${PEDIDO_UUID}', 'op', 930000113, 'algodao', 930000201, NULL, 1000.000, 0, FALSE),
+  (930000905, '${PEDIDO_UUID}', 'op', 930000114, 'algodao', 930000201, NULL, 1000.000, 0, FALSE),
+  (930000906, '${PEDIDO_UUID}', 'op', 930000115, 'algodao', 930000201, NULL, 1000.000, 0, FALSE),
+  (930000907, '${PEDIDO_UUID}', 'op', 930000116, 'algodao', 930000201, NULL, 1000.000, 0, FALSE)
+  ON CONFLICT (id) DO NOTHING;
+
+SET session_replication_role = origin;
+`;
+
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
@@ -307,17 +360,18 @@ async function main() {
 
     const manifest = await resolveManifest();
     const terminal = manifest[manifest.length - 1];
-    if (terminal.n !== 99) throw new Error(`manifest terminal must be db/99, got db/${terminal.n}`);
+    if (terminal.n !== 100) throw new Error(`manifest terminal must be db/100, got db/${terminal.n}`);
     log('MANIFEST', { count: manifest.length, terminal: path.basename(terminal.file) });
 
     const preambleFile = await writeTemp(scratchDir, 'preamble.sql', PREAMBLE_SQL);
     const corpusFile = await writeTemp(scratchDir, 'corpus.sql', CORPUS_SQL);
     const fixtureFile = await writeTemp(scratchDir, 'fixture.sql', FIXTURE_SQL);
 
-    // --- Reconstruction: preamble + db/01..66 + corpus + db/67..98 ----------
+    // --- Reconstruction: preamble + db/01..66 + corpus + db/67..99 ----------
+    // The TERMINAL migration is applied separately, below, fail-fast.
     applyFile(handle, preambleFile, 'preamble');
     for (const { n, file } of manifest) {
-      if (n === 99) continue; // db/99 is applied separately, below, fail-fast.
+      if (n === terminal.n) continue;
       applyFile(handle, file, path.basename(file));
       if (n === 66) applyFile(handle, corpusFile, 'corpus (after db/66, before db/67)');
     }
@@ -329,13 +383,17 @@ async function main() {
              (SELECT count(*) FROM public.ordem_compra_item) || '/' ||
              (SELECT count(*) FROM public.ordem_compra_item_alocacao);`);
     if (preShape !== '64/64/51/51/51') {
-      throw new Error(`db/01..98 reconstruction shape unexpected: ${preShape}`);
+      throw new Error(`db/01..99 reconstruction shape unexpected: ${preShape}`);
     }
-    log('RECONSTRUCTED', { through: 'db/98', shape: preShape });
+    log('RECONSTRUCTED', { through: 'db/99', shape: preShape });
 
-    // --- db/99 applied exactly once, fail-fast -----------------------------
-    applyFile(handle, terminal.file, 'db/99');
-    log('DB99_APPLIED', { file: path.basename(terminal.file), attempt: 1 });
+    // --- terminal migration applied exactly once, fail-fast -----------------
+    // db/100's section 12 invariant block runs INSIDE this transaction and
+    // includes a zero-drift assertion: every need cache must already agree
+    // with the canonical coverage definition. A reconstruction that had
+    // drifted would abort here instead of being silently corrected.
+    applyFile(handle, terminal.file, 'db/100');
+    log('DB100_APPLIED', { file: path.basename(terminal.file), attempt: 1 });
 
     // --- Fixture + assertion suite -----------------------------------------
     applyFile(handle, fixtureFile, 'fixture');
@@ -788,10 +846,41 @@ SELECT public.substituir_planejamento_compra_necessidade(${N_DEL},
       if (f > 0) failures += f; else log('C3B_DELETE_VS_REPLACE', { result: 'PASS' });
     }
 
+    // --- db/100 post-generation lifecycle suite -----------------------------
+    // Runs LAST among the behavioural suites, on the cluster the accepted
+    // db/99 proofs already exercised: its needs, suppliers and documents are
+    // dedicated, so it is measured against realistic residue rather than a
+    // pristine fixture.
+    {
+      applyFile(handle, await writeTemp(scratchDir, 'db100-fixture.sql', DB100_FIXTURE_SQL),
+        'db/100 fixture');
+      const db100File = path.join(HERE, 'planejamento-compra-db100.integration.sql');
+      const out100 = applyFile(handle, db100File, 'db/100 assertions');
+      process.stdout.write(out100);
+      if (!out100.includes('DB100_LIFECYCLE_INTEGRATION_PASS')) {
+        failures += 1;
+        log('DB100_ASSERTIONS', { result: 'MARKER_MISSING' });
+      } else {
+        log('DB100_ASSERTIONS', { result: 'PASS' });
+      }
+
+      // The suite plants and then reverts a canonical-active cutover fixture.
+      // Leaving it active would silently change every later proof, so the
+      // restored state is asserted here rather than assumed.
+      const cutover = scalar(handle,
+        `SELECT status || '/' || read_authority FROM public.ordem_compra_cutover WHERE id = 1;`);
+      if (cutover !== 'legacy_active/flat') {
+        failures += 1;
+        log('DB100_CUTOVER', { result: 'NOT_RESTORED', state: cutover });
+      } else {
+        log('DB100_CUTOVER', { result: 'legacy_active/flat' });
+      }
+    }
+
     // --- Re-apply behaviour -------------------------------------------------
     // This repository's migration convention is re-runnable DDL: every recent
-    // migration (db/95..db/98) is written with IF NOT EXISTS / CREATE OR
-    // REPLACE / DROP ... IF EXISTS, and db/99 follows it. The proof required
+    // migration (db/95..db/99) is written with IF NOT EXISTS / CREATE OR
+    // REPLACE / DROP ... IF EXISTS, and db/100 follows it. The proof required
     // here is therefore NOT a refusal — it is that a second application is an
     // exact no-op that leaves the business state byte-identical. A migration
     // that silently DUPLICATED planning rows, re-reserved numbering or
@@ -812,7 +901,7 @@ SELECT public.substituir_planejamento_compra_necessidade(${N_DEL},
     const reapplyAccepted = reapply.status === 0;
     const afterReapply = scalar(handle, shapeQuery);
 
-    log('DB99_REAPPLY', {
+    log('DB100_REAPPLY', {
       attempt: 2,
       accepted: reapplyAccepted,
       shape_before: beforeReapply,
@@ -821,13 +910,13 @@ SELECT public.substituir_planejamento_compra_necessidade(${N_DEL},
     });
     if (!reapplyAccepted) {
       failures += 1;
-      log('DB99_REAPPLY_DIAGNOSTIC', {
+      log('DB100_REAPPLY_DIAGNOSTIC', {
         error: (reapply.stderr || '').split('\n').find((l) => l.includes('ERRO') || l.includes('ERROR')) || 'non-zero exit',
       });
     }
     if (beforeReapply !== afterReapply) {
       failures += 1;
-      log('DB99_REAPPLY_DIAGNOSTIC', { drift: `${beforeReapply} -> ${afterReapply}` });
+      log('DB100_REAPPLY_DIAGNOSTIC', { drift: `${beforeReapply} -> ${afterReapply}` });
     }
   } catch (err) {
     failures += 1;
@@ -844,10 +933,10 @@ SELECT public.substituir_planejamento_compra_necessidade(${N_DEL},
   }
 
   if (failures > 0) {
-    console.error(`DB99_REHEARSAL_FAIL: ${failures} failure(s)`);
+    console.error(`DB100_REHEARSAL_FAIL: ${failures} failure(s)`);
     process.exitCode = 1;
   } else {
-    console.log('DB99_REHEARSAL_PASS');
+    console.log('DB100_REHEARSAL_PASS');
   }
 }
 

@@ -332,6 +332,26 @@
     }
 
     var children = [sectionHeader(registrarBtn)];
+
+    // PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1. O recebimento canônico
+    // só existe depois do cutover (ordem_compra_cutover = canonical_active /
+    // canonical). Enquanto ele não vale, o escritor recusa com
+    // `recebimento_canonico_inativo` — e, antes de db/100, o read model ainda
+    // oferecia a ação: o operador preenchia o formulário inteiro e só então
+    // descobria a recusa.
+    //
+    // O bloqueador é SERVIDOR (`hist.bloqueio_recebimento`). Esta tela apenas
+    // o repete; nunca reconstrói o estado do cutover em JavaScript, e não
+    // existe nenhum caminho aqui que leia ordem_compra_cutover.
+    if (hist.bloqueio_recebimento === 'recebimento_canonico_inativo') {
+      children.push(el('div', {
+        id: 'oc-recebimento-inativo',
+        class: 'px-5 py-3 text-sm',
+        style: 'color:var(--rv-color-muted);border-bottom:1px solid var(--rv-color-line-100);',
+      }, 'Registro de recebimento indisponível: a virada para o recebimento canônico ainda '
+        + 'não foi ativada. O histórico abaixo é somente leitura.'));
+    }
+
     var itens = hist.itens || [];
     children.push(subHeader('Saldos por item'));
     children.push(itens.length ? itensTable(itens) : el('div', { class: 'px-5 py-4 text-sm', style: 'color:var(--rv-color-muted);' }, 'Nenhum item nesta ordem.'));

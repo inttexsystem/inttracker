@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `MIGRATED / PUBLISHED / DEPLOYED / SMOKED AT THE DATABASE, ASSET AND SCHEMA-CACHE LEVEL / AWAITING SUPERVISOR AUTHENTICATED VISUAL AND USER-FLOW REVIEW AND ACCEPTANCE`
-- Objective: Publish the accepted Purchase Planning refoundation as one coordinated backend-first cutover: reconcile the section 14 contract defect, apply db/99 exactly once to ucrjtfswnfdlxwtmxnoo, publish the final implementation commit through staging/dev, and verify the Git-triggered Vercel deployment.
-- Next authorizable action: `SUPERVISOR AUTHENTICATED REVIEW AND ACCEPTANCE OF PURCHASE-PLANNING-REFOUNDATION-R1-PRODUCTION-CUTOVER` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
+- Status: `IMPLEMENTED / PROVED ON A DISPOSABLE CLUSTER / RECORDED AT COMMIT TIME; THE SINGLE AUTHORIZED PRODUCTION APPLICATION OF db/100, ITS POST-APPLICATION VERIFICATION AND THE SINGLE staging/dev PUBLICATION FOLLOW THIS COMMIT UNDER THIS SAME ORDER AND ARE REPORTED IN THE EXECUTION REPORT`
+- Objective: Close the lifecycle AFTER a Purchase Order is generated: make cancellation reachable from rascunho AND emitida, make it release active purchasing balance immediately and irrepeatably, correct permanent-deletion eligibility so a cancelled previously emitted order is no longer trapped, stop offering receipt registration while the canonical cutover is inactive, make modal refusals visible inside the modal that raised them, and mount the read-only Purchase Order provenance.
+- Next authorizable action: `SUPERVISOR AUTHENTICATED REVIEW AND ACCEPTANCE OF PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::## 14. Purchase planning — the stage that had no entity (db/99)`
+- `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.32 Post-generation lifecycle — binding amendment (db/100)`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

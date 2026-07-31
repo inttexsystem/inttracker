@@ -536,7 +536,19 @@ test('C2. the confirmation names the order canonically, never by the primary key
   const copy = text(dialog);
   assert.match(copy, /OC-001-1-26/, 'canonical identity in the confirmation');
   assert.doesNotMatch(copy, /#4210/, 'never the raw primary key');
-  assert.match(copy, /distribui/i, 'still states the distribution is untouched');
+
+  // PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 AMENDMENT. The previous
+  // expectation was that the copy "still states the distribution is
+  // untouched". Under the decided lifecycle that sentence became FALSE:
+  // cancellation now releases the order's active quantities immediately. A
+  // confirmation that mis-describes its own consequence is worse than none, so
+  // the three decided facts are asserted instead.
+  assert.match(copy, /permanece no histórico/i, 'the order stays in history');
+  assert.match(copy, /liberadas/i, 'the active quantities are released');
+  assert.match(copy, /novo planejamento/i, 'released for new planning');
+  assert.match(copy, /recebimento|estorno/i, 'irreversible orders cannot be cancelled');
+  assert.doesNotMatch(copy, /distribuição não será alterada/i,
+    'the superseded promise must not survive');
 });
 
 test('C3. a successful cancellation reloads from the server, never fabricating the state', async () => {
@@ -626,4 +638,128 @@ test('D5. Cancelar and Excluir remain distinct actions', async () => {
   const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(ELIGIBLE_DELETE) });
   assert.ok(findById(env.view, 'oc-cancelar'), 'Cancelar still exists for a real order');
   assert.ok(findById(env.view, 'oc-excluir'), 'Excluir exists alongside it');
+});
+
+// =====================================================================
+// E. POST-GENERATION LIFECYCLE (PURCHASE-ORDER-POST-GENERATION-
+//    STABILIZATION-R1)
+// =====================================================================
+// db/97 froze `acoes.cancelar` to false for every status other than rascunho,
+// so an EMITTED purchase order could never be cancelled from the product —
+// and, because `oc_elegivel_exclusao` also refused anything with emitida_em,
+// it could never be deleted either. The order was stuck forever and its
+// quantities stayed booked against the Pedido's needs. db/100 makes both
+// projections come from their single server-side eligibility owners; the
+// screen's job is only to obey them.
+
+const EMITTED_CANCELLABLE = order({
+  status_administrativo: 'emitida', emitida_em: '2026-07-22T12:00:00Z',
+  acoes: { editar_itens: false, remover_itens: false, cancelar: true, distribuir: false, emitir: false, receber: false, excluir: false },
+  bloqueio_cancelamento: null, bloqueio_exclusao: 'estado_invalido',
+  pode_emitir: false, bloqueio_emissao: null,
+});
+
+const CANCELLED_DELETABLE = order({
+  status_administrativo: 'cancelada', emitida_em: '2026-07-22T12:00:00Z',
+  cancelada_em: '2026-07-30T09:00:00Z',
+  acoes: { editar_itens: false, remover_itens: false, cancelar: false, distribuir: false, emitir: false, receber: false, excluir: true },
+  bloqueio_cancelamento: 'ja_cancelada', bloqueio_exclusao: null,
+  pode_emitir: false, bloqueio_emissao: null,
+});
+
+test('E1. an EMITTED order offers Cancelar, and only because the server projected it', async () => {
+  const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(EMITTED_CANCELLABLE) });
+  assert.ok(findById(env.view, 'oc-cancelar'),
+    'the emitted order exposes Cancelar when acoes.cancelar is true');
+
+  // The signal is the server's, not a client-side status rule: the SAME
+  // emitted status with acoes.cancelar=false must hide the control.
+  const denied = await renderScreen({ obter_ordem_compra_admin: sequencedObter(emitted('nao_aplicavel')) });
+  assert.equal(findById(denied.view, 'oc-cancelar'), null,
+    'the control disappears purely because the server said so');
+});
+
+test('E2. an EMITTED order never exposes a direct Excluir', async () => {
+  const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(EMITTED_CANCELLABLE) });
+  assert.equal(findById(env.view, 'oc-excluir'), null,
+    'permanent deletion of an emitted order must go through cancellation first');
+});
+
+test('E3. a CANCELLED eligible order exposes Excluir and never a repeated Cancelar', async () => {
+  const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(CANCELLED_DELETABLE) });
+  assert.ok(findById(env.view, 'oc-excluir'),
+    'a cancelled, previously emitted order is deletable when the server says so');
+  assert.equal(findById(env.view, 'oc-cancelar'), null,
+    'an already-cancelled order is never offered cancellation again');
+});
+
+// ---- Provenance -----------------------------------------------------
+// `obter_distribuicao_ordem_compra` was already fetched on every open of this
+// screen and the result was thrown away, because nothing mounted the section
+// that consumed it. It is now the source of the read-only provenance card.
+
+const DISTRIBUICAO = {
+  ok: true,
+  ordem: { ordem_id: 4210, modelo: 'nativo', pedido_id: PEDIDO_1, fornecedor_id: 7, status_administrativo: 'rascunho', legado: false },
+  itens: [{
+    item_id: 10, material: 'poliester', cor_id: 3, cor_poliester: 'Azul Marinho', cor_nome: null,
+    kg_pedido: 183, kg_alocado: 183, kg_diferenca: 0,
+    alocacoes: [
+      { alocacao_id: 55, necessidade_id: 31, op_id: 900, kg_alocado: 120 },
+      { alocacao_id: 56, necessidade_id: 32, op_id: null, kg_alocado: 63 },
+    ],
+    necessidades_compativeis: [
+      { necessidade_id: 31, origem_tipo: 'op', op_id: 900, kg_necessario: 200, kg_alocado: 120, kg_restante: 80 },
+      { necessidade_id: 32, origem_tipo: 'pedido', op_id: null, kg_necessario: 63, kg_alocado: 63, kg_restante: 0 },
+    ],
+    acoes: { alocar: true, editar: true, remover: true },
+  }],
+  distribuicao_completa: true, pronta_para_emissao: true, pode_emitir: false,
+  bloqueio_emissao: null,
+};
+
+test('E4. the provenance section is actually mounted from the distribution read model', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(order({ pedido_numero: 1, pedido_ano: 2026 })),
+    obter_distribuicao_ordem_compra: () => ({ data: DISTRIBUICAO, error: null }),
+  });
+  const section = findById(env.view, 'oc-proveniencia');
+  assert.ok(section, 'the provenance card exists in the rendered detail');
+
+  const copy = text(section);
+  assert.match(copy, /Pedido 001\/2026/, 'the Pedido identity is shown');
+  assert.match(copy, /Pedido compartilhado/, 'a NULL-op allocation is attributed honestly');
+  assert.match(copy, /183/, 'the item ordered quantity is shown');
+  assert.match(copy, /120/, 'the original allocated quantity per origin is shown');
+  assert.match(copy, /Diferença/, 'the allocation reconciliation is shown');
+
+  // Both allocations are projected, each addressable by its own identity.
+  assert.equal(findAll(section, (n) => n.getAttribute && n.getAttribute('data-alocacao-id')).length, 2);
+});
+
+test('E5. the provenance section carries no mutation control whatsoever', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(order({ pedido_numero: 1, pedido_ano: 2026 })),
+    obter_distribuicao_ordem_compra: () => ({ data: DISTRIBUICAO, error: null }),
+  });
+  const section = findById(env.view, 'oc-proveniencia');
+  assert.equal(findButtons(section).length, 0, 'zero buttons: no allocate, no remove, no synchronize');
+  assert.equal(findAll(section, (n) => n.tagName === 'INPUT' || n.tagName === 'SELECT').length, 0,
+    'zero inputs: supplier assignment does not live here');
+  const copy = text(section);
+  assert.doesNotMatch(copy, /Fase F2/i, 'the stale Phase F2 activation copy is gone');
+  assert.doesNotMatch(copy, /Sincronizar/i, 'no synchronization control');
+  assert.match(copy, /somente leitura/i, 'the section states its read-only nature');
+});
+
+test('E6. a cancelled order states that its origins are released history', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(
+      Object.assign({}, CANCELLED_DELETABLE, { pedido_numero: 1, pedido_ano: 2026 })),
+    obter_distribuicao_ordem_compra: () => ({ data: DISTRIBUICAO, error: null }),
+  });
+  const section = findById(env.view, 'oc-proveniencia');
+  assert.ok(section, 'a cancelled order still shows its provenance — it is history, not deletion');
+  assert.ok(findById(section, 'oc-proveniencia-cancelada'), 'the released-history state is declared');
+  assert.match(text(section), /liberadas/i, 'the copy says the quantities were released');
 });

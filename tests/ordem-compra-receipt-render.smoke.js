@@ -238,3 +238,75 @@ test('reversal control absent on estorno (negative) command rows', () => {
     'no reversal control on an estorno command');
   assert.match(text(view), /Estorno/, 'estorno command rendered');
 });
+
+// =====================================================================
+// PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 — the receipt action
+// obeys the cutover.
+// =====================================================================
+// The canonical receipt writer is fenced until ordem_compra_cutover reaches
+// canonical_active/canonical (db/75/db/76), but the read model used to project
+// `acoes.receber` from the order's lifecycle ALONE. The operator was offered
+// "Registrar recebimento", filled the whole form, confirmed, and only then met
+// `recebimento_canonico_inativo`. db/100 subordinates the projection to the
+// same fence and returns the blocker; this section proves the screen obeys it
+// and never reconstructs the cutover state for itself.
+
+test('an inactive canonical cutover exposes no actionable receipt control', () => {
+  const sandbox = makeSandbox();
+  const node = render(sandbox,
+    { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({
+      acoes: { receber: false, estornar: false },
+      recebimento_canonico_ativo: false,
+      bloqueio_recebimento: 'recebimento_canonico_inativo',
+    }));
+
+  assert.equal(findById(node, 'oc-registrar-recebimento'), null,
+    'no Registrar recebimento control exists while the cutover is inactive');
+
+  const aviso = findById(node, 'oc-recebimento-inativo');
+  assert.ok(aviso, 'an honest read-only explanation is rendered instead');
+  assert.match(text(aviso), /indisponível/i);
+  assert.match(text(aviso), /somente leitura/i);
+
+  // Whatever else the section renders, none of it is an enabled receipt action.
+  const enabled = findButtons(node).filter((b) => !b.disabled);
+  assert.equal(enabled.filter((b) => /Registrar recebimento/i.test(b.textContent || '')).length, 0);
+});
+
+test('the blocker is server-derived: the screen never reconstructs the cutover', () => {
+  const src = read('js/screens/ordem-compra-receipt-render.js');
+  assert.match(src, /hist\.bloqueio_recebimento === 'recebimento_canonico_inativo'/,
+    'the render reads the server blocker verbatim');
+
+  // Comments are stripped first. The rule under test is that no CODE reads or
+  // re-derives the cutover state; a comment that explains WHY the blocker
+  // exists must be allowed to name it, or the guard would forbid documenting
+  // its own subject.
+  // CRLF is normalised first: this checkout runs with core.autocrlf=true, so a
+  // per-line `.*$` would never reach the end of a CRLF line and would silently
+  // strip nothing at all.
+  const code = src
+    .replace(/\r\n/g, '\n')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').map((line) => line.replace(/(^|[^:])\/\/.*$/, '$1')).join('\n');
+  assert.doesNotMatch(code, /ordem_compra_cutover/,
+    'the cutover table is never read or reconstructed on this surface');
+  assert.doesNotMatch(code, /canonical_active/,
+    'the cutover state machine is not re-implemented in JavaScript');
+});
+
+test('an ACTIVE canonical cutover restores the receipt action', () => {
+  const sandbox = makeSandbox();
+  const node = render(sandbox,
+    { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({
+      acoes: { receber: true, estornar: true },
+      recebimento_canonico_ativo: true,
+      bloqueio_recebimento: null,
+    }));
+  assert.ok(findById(node, 'oc-registrar-recebimento'),
+    'the action returns exactly when the server says the cutover is canonical');
+  assert.equal(findById(node, 'oc-recebimento-inativo'), null,
+    'and the inactive explanation disappears with it');
+});

@@ -99,10 +99,21 @@ test('the number appears once, pre-filled from the server suggestion and editabl
   assert.doesNotMatch(confirm, /codeInput\.disabled\s*=\s*true/);
 });
 
-test('a stale suggestion refreshes the field and keeps the confirmation open', () => {
+// PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 AMENDMENT. The previous
+// expectation was `codeInput.value = result.codigo_sugerido` — the screen
+// overwrote whatever the operator had typed with the server's fresh
+// suggestion. That is a silent loss of a deliberate business decision: the
+// number is the operator's to choose, and a stale-sequence refusal is not a
+// reason to discard it. The decided behaviour is: update the internal expected
+// sequence, SHOW the refreshed suggestion, and leave the field exactly as it
+// was typed.
+test('a stale suggestion refreshes the internal sequence and PRESERVES the typed code', () => {
   const confirm = ui.slice(ui.indexOf('async function openGenerationConfirm'));
   assert.match(confirm, /sugestao_desatualizada/);
-  assert.match(confirm, /codeInput\.value\s*=\s*result\.codigo_sugerido/);
+  assert.match(confirm, /suggestion\.sequencia_sugerida\s*=\s*result\.sequencia_sugerida/);
+  assert.match(confirm, /sugestaoFresca/);
+  assert.doesNotMatch(confirm, /codeInput\.value\s*=/,
+    'the operator-entered code must never be overwritten automatically');
   assert.match(confirm, /return false/);
 });
 
@@ -715,6 +726,15 @@ const zeroRowOf = (h) => h.findOne(h.byAttr('data-rv-planning-row-zero'));
 const noticeText = (h) => h.textOf(
   h.findOne((n) => n.getAttribute && n.getAttribute('id') === 'pedido-insumos-distribuicao-notice'),
 );
+// A refusal raised while a confirmation is open belongs INSIDE that modal: the
+// page-level notice sits behind js/ui.js::modal()'s full-screen overlay, so an
+// error written there is literally invisible while the operator is looking at
+// the confirmation that produced it.
+const modalErrorNode = (h) => h.findOne(h.byAttr('data-rv-modal-error'), modalOf(h));
+const modalErrorText = (h) => {
+  const node = modalErrorNode(h);
+  return node ? h.textOf(node) : '';
+};
 const FALSE_WARNING = /Informe fornecedor e quantidade em cada distribuição/;
 
 test('B1. the real select popover is what the screen renders, not a native select', async () => {
@@ -943,7 +963,11 @@ test('B7. adjusted-quantity mode sends the operator quantity and validates it', 
   await h.settle();
   assert.equal(h.rpcCalls.filter((c) => c.name === 'aplicar_planejamento_rapido').length, 0,
     'a non-positive quantity never reaches the server');
-  assert.match(noticeText(h), /quantidade válida/);
+  // The refusal is visible where the operator is looking — inside the open
+  // confirmation — and NOT only in the page notice hidden behind the overlay.
+  assert.match(modalErrorText(h), /quantidade válida/);
+  assert.doesNotMatch(noticeText(h), /quantidade válida/,
+    'the refusal must not be written behind the modal overlay');
 
   // A valid one is sent verbatim.
   h.type(qty, '250.5');
@@ -955,4 +979,152 @@ test('B7. adjusted-quantity mode sends the operator quantity and validates it', 
   assert.equal(quick.length, 1);
   assert.deepEqual(quick[0].params.p_itens, [{ necessidade_id: 145, kg: 250.5 }]);
   assert.deepEqual(figuresOf(h, cardOf(h)), ['1024,800 kg', '250,500 kg', '774,300 kg']);
+});
+
+// =====================================================================
+// G. GENERATION REFUSALS ARE VISIBLE INSIDE THE CONFIRMATION
+//    (PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1)
+// =====================================================================
+// Every refusal of the generation confirmation used to be written to the
+// page-level notice — which sits BEHIND js/ui.js::modal()'s full-screen
+// overlay. The operator pressed "Gerar", the confirmation stayed open with no
+// visible reaction, and the explanation was rendered where it could not be
+// seen. The decided behaviour is a LOCAL error region inside the modal.
+
+// Mounts the planning screen with the shared fake server, then lets a test
+// override individual RPCs. The generation pair is not part of makeServer's
+// vocabulary (it answers `{ok:true}` to anything it does not know), so a
+// generation test must supply both halves itself.
+async function mountPlanningWith(needs, overrides) {
+  const server = makeServer(needs);
+  const h = createScreenHarness({
+    files: ['js/screens/pedido-insumos-distribuicao.js'],
+    rpc: async (name, params) => {
+      if (overrides && Object.prototype.hasOwnProperty.call(overrides, name)) {
+        return overrides[name](params);
+      }
+      return server.rpc(name, params);
+    },
+  });
+  h.mount(await h.win.screenPedidoInsumosDistribuicao(PEDIDO_ID));
+  await h.settle();
+  return { h, server };
+}
+
+// Plans one supplier line, enters generation selection, ticks the saved line
+// and opens the confirmation. Returns the open overlay.
+async function openGeneration(h) {
+  const row = zeroRowOf(h);
+  h.pickOption(row.children[0], 4);
+  h.type(row.children[1], '500');
+  h.click(row.children[3]);
+  await h.settle();
+  await h.settle();
+
+  h.click(h.findOne(h.buttonLabelled('Gerar pedido de compra')));
+  await h.settle();
+
+  const box = h.findOne(
+    (n) => n.tagName === 'INPUT' && n.getAttribute('type') === 'checkbox', cardOf(h),
+  );
+  box.checked = true;
+  h.fire(box, 'change', { target: box });
+  await h.settle();
+
+  h.click(h.findOne((n) => n.tagName === 'BUTTON' && /^Confirmar /.test(h.textOf(n))));
+  await h.settle();
+  await h.settle();
+  return modalOf(h);
+}
+
+test('G1. a generation refusal is shown INSIDE the confirmation, not behind it', async () => {
+  const { h } = await mountPlanningWith([NEED_145], {
+    sugerir_codigo_ordem_compra: () => ({
+      data: { ok: true, codigo: 'ok', sequencia_sugerida: 1, codigo_sugerido: 'OC-001-1-26' },
+      error: null,
+    }),
+    gerar_ordem_compra_do_planejamento: () => ({
+      data: { ok: false, codigo: 'codigo_ordem_duplicado', erro: 'Ja existe um Pedido de Compra com este numero' },
+      error: null,
+    }),
+  });
+
+  const overlay = await openGeneration(h);
+  assert.ok(overlay, 'the generation confirmation opened');
+
+  h.click(h.findOne(h.buttonLabelled('Gerar'), overlay));
+  await h.settle();
+  await h.settle();
+
+  assert.match(modalErrorText(h), /Já existe um Pedido de Compra com este número/i,
+    'the refusal is visible inside the open confirmation');
+  assert.doesNotMatch(noticeText(h), /Já existe um Pedido de Compra com este número/i,
+    'and NOT written to the page notice hidden behind the overlay');
+  assert.ok(modalOf(h), 'the confirmation stays open so the operator can correct it');
+
+  // The error region carries accessible semantics, so a screen-reader user is
+  // told about the refusal without having to go looking for it.
+  const region = modalErrorNode(h);
+  assert.equal(region.getAttribute('role'), 'alert');
+  assert.equal(region.getAttribute('aria-live'), 'assertive');
+});
+
+test('G2. a stale suggestion refreshes the sequence, shows it, and keeps the typed code', async () => {
+  let sequenciaAceita = 3;
+  const { h } = await mountPlanningWith([NEED_145], {
+    sugerir_codigo_ordem_compra: () => ({
+      data: { ok: true, codigo: 'ok', sequencia_sugerida: 1, codigo_sugerido: 'OC-001-1-26' },
+      error: null,
+    }),
+    gerar_ordem_compra_do_planejamento: (params) => {
+      if (params.p_sequencia_esperada !== sequenciaAceita) {
+        return {
+          data: {
+            ok: false, codigo: 'sugestao_desatualizada',
+            erro: 'A numeracao deste Pedido avancou enquanto a confirmacao estava aberta.',
+            sequencia_esperada: params.p_sequencia_esperada,
+            sequencia_sugerida: sequenciaAceita,
+            codigo_sugerido: 'OC-001-3-26',
+          },
+          error: null,
+        };
+      }
+      return { data: { ok: true, codigo: 'ok', ordem_compra_id: 77 }, error: null };
+    },
+  });
+
+  const overlay = await openGeneration(h);
+  const codeInput = h.findOne(
+    (n) => n.tagName === 'INPUT' && n.getAttribute('maxlength') === '40', overlay,
+  );
+  assert.ok(codeInput, 'the number field is present and editable');
+
+  // The operator deliberately replaces the suggestion with their own number.
+  h.type(codeInput, 'PC-2026-0042');
+
+  h.click(h.findOne(h.buttonLabelled('Gerar'), overlay));
+  await h.settle();
+  await h.settle();
+
+  // THE REGRESSION: the screen used to overwrite this field with the server's
+  // fresh suggestion, silently discarding a deliberate business decision.
+  assert.equal(codeInput.value, 'PC-2026-0042',
+    'the operator-entered code survives a stale-sequence refusal');
+  assert.match(modalErrorText(h), /numeração deste Pedido avançou/i,
+    'the refusal is visible inside the confirmation');
+
+  const fresca = h.findOne(h.byAttr('data-rv-sugestao-fresca'), modalOf(h));
+  assert.ok(fresca, 'the refreshed suggestion node exists');
+  assert.match(h.textOf(fresca), /OC-001-3-26/, 'the refreshed suggestion is visibly presented');
+  assert.equal(fresca.style.display, 'block', 'and it is actually shown, not left hidden');
+
+  // Re-confirming now carries the refreshed sequence and the operator's code.
+  h.click(h.findOne(h.buttonLabelled('Gerar'), modalOf(h)));
+  await h.settle();
+  await h.settle();
+
+  const gens = h.rpcCalls.filter((c) => c.name === 'gerar_ordem_compra_do_planejamento');
+  assert.equal(gens.length, 2, 'exactly one refused attempt and one accepted retry');
+  assert.equal(gens[1].params.p_sequencia_esperada, 3, 'the refreshed sequence was adopted');
+  assert.equal(gens[1].params.p_codigo, 'PC-2026-0042', 'the operator code was sent verbatim');
 });

@@ -335,7 +335,19 @@
     }
     box.appendChild(itemsCard);
 
-    // Distribution of native needs (PRE-PROD-A, §R.23.10) — native orders only.
+    // PROVENIÊNCIA (PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1).
+    // `state.distribuicao` já era carregado a cada abertura desta tela e o
+    // resultado era descartado, porque nada montava a seção que o consumia.
+    // Agora ele alimenta a seção de proveniência somente-leitura: de onde
+    // veio cada quilo deste documento (Pedido, necessidade, OP ou Pedido
+    // compartilhado, quantidade original por origem e a reconciliação com a
+    // quantidade pedida do item). Nenhum controle de mutação é montado — o
+    // planejamento continua pertencendo a Pedido › Planejamento de compras.
+    var distribApi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.ordemCompraDistribuicao;
+    if (distribApi && typeof distribApi.renderProvenance === 'function') {
+      var provenance = distribApi.renderProvenance(state.distribuicao, o);
+      if (provenance) box.appendChild(provenance);
+    }
 
     // Event history
     var evCard = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
