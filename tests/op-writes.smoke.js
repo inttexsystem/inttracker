@@ -253,19 +253,18 @@ test('9. inline NÃO contém mais function atribuirFornecedorFio (extraído para
   const inline = extractInlineScript(indexSrc);
   assert.equal(/function\s+atribuirFornecedorFio\s*\(/.test(inline), false,
     'inline ainda declara atribuirFornecedorFio — função deveria ter sido extraída');
-  // O helper continua sendo propriedade exclusiva de op-writes.js e segue
-  // exposto como global legado. O call-site que morava em op-nova.js saiu
-  // de lá nas fases de reforma da OP/fio; NENHUM módulo o chama hoje.
-  // Isso é registrado como débito do dono OP/fio (não corrigido aqui:
-  // decidir entre religar a UI ou aposentar o helper é decisão de produto,
-  // fora do escopo desta ordem). O que este teste guarda é a extração:
-  // a função existe em UM lugar só e continua exportada.
-  assert.match(opwSrc, /async\s+function\s+atribuirFornecedorFioOp\s*\(/,
-    'op-writes.js deve declarar atribuirFornecedorFioOp');
-  assert.match(opwSrc, /window\.atribuirFornecedorFioOp\s*=/,
-    'op-writes.js deve expor o global legado atribuirFornecedorFioOp');
-  assert.equal(/function\s+atribuirFornecedorFioOp\s*\(/.test(opnSrc), false,
-    'op-nova.js não pode redeclarar o helper extraído');
+  // O débito que este comentário registrava — helper sem chamador, decisão de
+  // produto pendente entre religar a UI ou aposentar — foi DECIDIDO em P2-A:
+  // APOSENTAR (fecha DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR). As três
+  // asserções de presença viraram asserções de ausência, no arquivo inline e
+  // em op-nova.js igualmente: um símbolo retirado não pode reaparecer em
+  // superfície nenhuma.
+  assert.equal(/function\s+atribuirFornecedorFioOp\s*\(/.test(opwSrc), false,
+    'atribuirFornecedorFioOp foi aposentado e não pode voltar a op-writes.js');
+  assert.equal(/window\.atribuirFornecedorFioOp\s*=/.test(opwSrc), false,
+    'o global legado não pode voltar a ser publicado');
+  assert.equal(/atribuirFornecedorFioOp/.test(opnSrc), false,
+    'op-nova.js não pode declarar nem citar o helper aposentado');
 });
 
 test('10. inline NÃO contém mais persistir (extraído para op-persistir.js)', () => {
@@ -771,193 +770,90 @@ test('25. op-writes.js ainda expõe registrarRecebimentoOrdemFio', () => {
     'registrarRecebimentoOrdemFio não é função após boot completo');
 });
 
-test('26. op-writes.js expõe atribuirFornecedorFioOp', () => {
+// -----------------------------------------------------------------------------
+// APOSENTADORIA DE atribuirFornecedorFioOp — P2-A (§9.9.N linha 12)
+//
+// Os casos 26 a 43 provavam, em dezoito asserções, a EXISTÊNCIA e o
+// comportamento passo-a-passo de window.atribuirFornecedorFioOp: os quatro
+// argumentos obrigatórios, o UPDATE plano em ordens_compra_fio.fornecedor_id,
+// o par DELETE/INSERT em op_fornecedores e os steps 1/2/3 de falha parcial.
+//
+// O P2-A APOSENTOU esse helper (decisão do supervisor: RETIRE, não "retire ou
+// reponte"; fecha DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR). Ele não tinha
+// chamador na aplicação, gravava direto no modelo plano em dois writes soltos
+// e não transacionais, e a escolha de fornecedor de compra passou a ser feita
+// pelo planejamento nativo em Pedido -> Insumos.
+//
+// Aquelas dezoito asserções descreviam uma IMPLEMENTAÇÃO que deixou de
+// existir, e por isso são substituídas — não apagadas — pelo mecanismo
+// canônico do P2-A: provar que o símbolo foi retirado inteiro, que os dois
+// writes planos sumiram, que nenhum escritor manual de alocação nasceu no
+// lugar e que o helper que PERMANECE segue intacto. A cobertura dedicada e
+// mais ampla está em tests/op-writes-retirado.smoke.js.
+// -----------------------------------------------------------------------------
+
+test('26. após o boot completo, atribuirFornecedorFioOp NÃO existe como global', () => {
   const sandbox = makeFullBootSandbox();
-  assert.equal(typeof vm.runInContext('window.atribuirFornecedorFioOp', sandbox), 'function',
-    'atribuirFornecedorFioOp não é função após boot completo');
+  assert.equal(typeof vm.runInContext('window.atribuirFornecedorFioOp', sandbox), 'undefined',
+    'o helper aposentado não pode sobreviver ao boot completo');
 });
 
-test('27. window.RAVATEX_SCREENS.opWrites.atribuirFornecedorFioOp existe', () => {
+test('27. a namespace RAVATEX_SCREENS.opWrites não expõe mais o helper aposentado', () => {
   const { sandbox } = makeAtribuirFornSandbox();
-  const fn = vm.runInContext('window.RAVATEX_SCREENS.opWrites.atribuirFornecedorFioOp', sandbox);
-  assert.equal(typeof fn, 'function', 'opWrites.atribuirFornecedorFioOp não é função');
+  assert.equal(
+    vm.runInContext("'atribuirFornecedorFioOp' in window.RAVATEX_SCREENS.opWrites", sandbox), false,
+    'a namespace não pode reexpor o helper aposentado');
 });
 
-test('28. window.atribuirFornecedorFioOp é função', () => {
+test('28. op-writes.js expõe EXATAMENTE um helper: o recebimento', () => {
   const { sandbox } = makeAtribuirFornSandbox();
-  assert.equal(typeof vm.runInContext('window.atribuirFornecedorFioOp', sandbox), 'function');
+  const chaves = vm.runInContext(
+    'Object.keys(window.RAVATEX_SCREENS.opWrites).sort().join(",")', sandbox);
+  assert.equal(chaves, 'registrarRecebimentoOrdemFio',
+    'op-writes.js tem de expor só o recebimento depois da aposentadoria');
 });
 
-test('29. atribuirFornecedorFioOp rejeita opId ausente sem chamar supa', async () => {
+test('29. a função aposentada não é redeclarada em lugar nenhum do módulo', () => {
+  assert.equal(/function\s+atribuirFornecedorFioOp\s*\(/.test(opwSrc), false,
+    'a implementação tem de estar retirada, não apenas desexportada');
+});
+
+test('30. os dois writes planos do helper aposentado sumiram', () => {
+  // O UPDATE de fornecedor_id em ordens_compra_fio e o par DELETE/INSERT em
+  // op_fornecedores eram exclusivos do helper retirado.
+  assert.equal(/fornecedor_id:\s*fornecedorId/.test(opwSrc), false,
+    'o UPDATE plano de fornecedor tem de sumir');
+  assert.equal(/from\(\s*['"]op_fornecedores['"]\s*\)/.test(opwSrc), false,
+    'o par DELETE/INSERT em op_fornecedores tem de sumir');
+});
+
+// Só as linhas EXECUTÁVEIS: uma proibição de mecanismo não pode ser violada
+// por um comentário que registra a aposentadoria.
+function apenasExecutavel(src) {
+  return src.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+}
+
+test('31. nenhum escritor manual de alocação nasceu no lugar', () => {
+  assert.equal(/alocacao|alocar|ordem_compra_item_alocacao/i.test(apenasExecutavel(opwSrc)), false,
+    'a alocação de compra é do escritor do servidor, não desta tela');
+});
+
+test('32. a semântica de falha parcial por steps 1/2/3 desapareceu com o helper', () => {
+  assert.equal(/step:\s*[123]/.test(apenasExecutavel(opwSrc)), false,
+    'os steps de falha parcial eram do helper retirado e não podem sobreviver');
+});
+
+test('33. o helper que PERMANECE continua íntegro e funcional', async () => {
   const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
+  assert.equal(typeof vm.runInContext('window.registrarRecebimentoOrdemFio', sandbox), 'function',
+    'a aposentadoria não pode ter levado junto o recebimento');
   const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ etapa: "fio_algodao", tipo: "algodao", fornecedorId: 1 })',
+    'window.registrarRecebimentoOrdemFio({ ordemId: 10, kgRecebido: 7, dataRecebimento: "2026-07-31", status: "recebido_total" })',
     sandbox);
-  assert.ok(result.error, 'deveria retornar error');
-  assert.equal(result.step, 0);
-  assert.equal(fakeSupa._calls.length, 0, 'não deve chamar supa');
+  assert.equal(result.error, null, 'o recebimento legado tem de continuar funcionando');
+  assert.ok(fakeSupa._calls.length > 0, 'o recebimento tem de continuar alcançando o transporte');
 });
 
-test('30. atribuirFornecedorFioOp rejeita etapa ausente', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, tipo: "algodao", fornecedorId: 1 })',
-    sandbox);
-  assert.ok(result.error);
-  assert.equal(result.step, 0);
-  assert.equal(fakeSupa._calls.length, 0);
-});
-
-test('31. atribuirFornecedorFioOp rejeita tipo ausente', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", fornecedorId: 1 })',
-    sandbox);
-  assert.ok(result.error);
-  assert.equal(result.step, 0);
-  assert.equal(fakeSupa._calls.length, 0);
-});
-
-test('32. atribuirFornecedorFioOp rejeita fornecedorId ausente', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao" })',
-    sandbox);
-  assert.ok(result.error);
-  assert.equal(result.step, 0);
-  assert.equal(fakeSupa._calls.length, 0);
-});
-
-test('33. sucesso: chama ordens_compra_fio.update({ fornecedor_id })', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  const updateCalls = fakeSupa._calls.filter(c => c.op === 'update' && c.table === 'ordens_compra_fio');
-  assert.equal(updateCalls.length, 1, 'esperado 1 update em ordens_compra_fio');
-  assert.equal(updateCalls[0].args[0].fornecedor_id, 5, 'payload deve ter fornecedor_id=5');
-});
-
-test('34. sucesso: filtra ordens_compra_fio por .eq("op_id", opId)', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  const eqCalls = fakeSupa._calls.filter(c => c.op === 'eq');
-  // First eqs are for the update (op_id + tipo)
-  const opIdEq = eqCalls.find(c => c.col === 'op_id' && c.val === 10);
-  assert.ok(opIdEq, 'update deve filtrar por op_id=10');
-});
-
-test('35. sucesso: filtra ordens_compra_fio por .eq("tipo", tipo)', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  const eqCalls = fakeSupa._calls.filter(c => c.op === 'eq');
-  const tipoEq = eqCalls.find(c => c.col === 'tipo' && c.val === 'algodao');
-  assert.ok(tipoEq, 'update deve filtrar por tipo="algodao"');
-});
-
-test('36. sucesso: chama op_fornecedores.delete()', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  const deleteCalls = fakeSupa._calls.filter(c => c.op === 'delete' && c.table === 'op_fornecedores');
-  assert.equal(deleteCalls.length, 1, 'esperado 1 delete em op_fornecedores');
-});
-
-test('37. sucesso: filtra delete por .eq("op_id", opId)', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  const eqCalls = fakeSupa._calls.filter(c => c.op === 'eq');
-  const deleteOpIdEq = eqCalls.filter(c => c.col === 'op_id' && c.val === 10);
-  // Pelo menos 2 calls eq com op_id=10: uma do update e uma do delete
-  assert.ok(deleteOpIdEq.length >= 2, `esperado >= 2 eq op_id=10, encontrado ${deleteOpIdEq.length}`);
-});
-
-test('38. sucesso: filtra delete por .eq("etapa", etapa)', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  const eqCalls = fakeSupa._calls.filter(c => c.op === 'eq');
-  const etapaEq = eqCalls.find(c => c.col === 'etapa' && c.val === 'fio_algodao');
-  assert.ok(etapaEq, 'delete deve filtrar por etapa="fio_algodao"');
-});
-
-test('39. sucesso: chama op_fornecedores.insert([{ op_id, fornecedor_id, etapa }])', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox();
-  await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  const insertCalls = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'op_fornecedores');
-  assert.equal(insertCalls.length, 1, 'esperado 1 insert em op_fornecedores');
-  const payload = insertCalls[0].args[0];
-  assert.ok(Array.isArray(payload), 'insert em op_fornecedores deve ser array');
-  assert.equal(payload.length, 1);
-  assert.equal(payload[0].op_id, 10);
-  assert.equal(payload[0].fornecedor_id, 5);
-  assert.equal(payload[0].etapa, 'fio_algodao');
-});
-
-test('40. falha no step 1 retorna { error, step: 1 } e não executa steps 2/3', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox({
-    ordensUpdateResult: { data: null, error: { message: 'fake fail' } },
-  });
-  const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  assert.ok(result.error, 'deveria retornar error');
-  assert.equal(result.step, 1);
-  assert.equal(result.error.message, 'fake fail');
-  const deleteCalls = fakeSupa._calls.filter(c => c.op === 'delete');
-  const insertCalls = fakeSupa._calls.filter(c => c.op === 'insert');
-  assert.equal(deleteCalls.length, 0, 'não deve chamar delete se step 1 falhou');
-  assert.equal(insertCalls.length, 0, 'não deve chamar insert se step 1 falhou');
-});
-
-test('41. falha no step 2 retorna { error, step: 2 } e não executa step 3', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox({
-    opFornecedoresDeleteResult: { data: null, error: { message: 'delete fail' } },
-  });
-  const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  assert.ok(result.error, 'deveria retornar error');
-  assert.equal(result.step, 2);
-  const updateCalls = fakeSupa._calls.filter(c => c.op === 'update');
-  const insertCalls = fakeSupa._calls.filter(c => c.op === 'insert');
-  assert.equal(updateCalls.length, 1, 'step 1 update deve ter sido chamado');
-  assert.equal(insertCalls.length, 0, 'não deve chamar insert se step 2 falhou');
-});
-
-test('42. falha no step 3 retorna { error, step: 3 }', async () => {
-  const { sandbox, fakeSupa } = makeAtribuirFornSandbox({
-    opFornecedoresInsertResult: { data: null, error: { message: 'insert fail' } },
-  });
-  const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  assert.ok(result.error, 'deveria retornar error');
-  assert.equal(result.step, 3);
-  const updateCalls = fakeSupa._calls.filter(c => c.op === 'update');
-  const deleteCalls = fakeSupa._calls.filter(c => c.op === 'delete');
-  assert.equal(updateCalls.length, 1, 'step 1 update deve ter sido chamado');
-  assert.equal(deleteCalls.length, 1, 'step 2 delete deve ter sido chamado');
-});
-
-test('43. sucesso retorna { error: null, step: 0 }', async () => {
-  const { sandbox } = makeAtribuirFornSandbox();
-  const result = await vm.runInContext(
-    'window.atribuirFornecedorFioOp({ opId: 10, etapa: "fio_algodao", tipo: "algodao", fornecedorId: 5 })',
-    sandbox);
-  assert.equal(result.error, null);
-  assert.equal(result.step, 0);
-});
 
 test('44. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
@@ -1009,10 +905,12 @@ test('49. boot chain com todos os helpers não lança SyntaxError', () => {
       threw = true;
     }
   }
-  assert.equal(threw, false, 'boot lançou SyntaxError de duplicate identifier com atribuirFornecedorFioOp');
-  // Valida que ambas as funções estão disponíveis como globais
+  assert.equal(threw, false, 'boot lançou SyntaxError de duplicate identifier em op-writes.js');
+  // O helper que PERMANECE tem de estar disponível como global; o aposentado
+  // não pode ressurgir no boot completo.
   assert.equal(typeof vm.runInContext('window.registrarRecebimentoOrdemFio', sandbox), 'function');
-  assert.equal(typeof vm.runInContext('window.atribuirFornecedorFioOp', sandbox), 'function');
+  assert.equal(typeof vm.runInContext('window.atribuirFornecedorFioOp', sandbox), 'undefined',
+    'o helper aposentado não pode reaparecer depois do boot completo');
 });
 
 // -----------------------------------------------------------------------------

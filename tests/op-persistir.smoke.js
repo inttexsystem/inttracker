@@ -523,7 +523,9 @@ function makePersistirOPSandbox({
   // PRE-PROD-A (§R.23.2): the server decides the Pedido purchasing regime.
   // Default 'legacy' keeps the flat-path behavior these tests assert; 'native'
   // exercises the cutover (no flat rows, need synchronization).
-  regimeModelo = 'legacy',
+  // P2-A: o ramo plano foi removido; o regime padrão do harness passa a ser
+  // 'native', que é o único com escritor de compra depois desta fase.
+  regimeModelo = 'native',
   regimeResolveResult = null,
   sincronizarResult = null,
 } = {}) {
@@ -806,9 +808,8 @@ test('33. sucesso criar OP simulada retorna { error:null, step:"ok", partial:fal
 });
 
 test('34. sucesso criar OP aberta retorna { error:null, step:"ok", partial:false, opId }', async () => {
-  const { sandbox } = makePersistirOPSandbox({
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
+  // P2-A: abrir uma OP conclui pela sincronização NATIVA das necessidades.
+  const { sandbox } = makePersistirOPSandbox({ regimeModelo: 'native' });
   sandbox.payload = { ...payloadBase(), status: 'aberta' };
   const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
   assert.equal(result.error, null);
@@ -1038,90 +1039,83 @@ test('46. status="simulada" NÃO chama ordens_compra_fio', async () => {
   assert.equal(ordensCalls.length, 0, 'simulada NÃO devia tocar ordens_compra_fio');
 });
 
-test('47. status="aberta" chama calcularFiosOP', async () => {
-  const { sandbox, calls } = makePersistirOPSandbox({
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
+// -----------------------------------------------------------------------------
+// O RAMO PLANO DE ABERTURA DE OP — RETIRADO EM P2-A (§9.9.N linha 9)
+//
+// Os casos 47 a 50e provavam o ramo LEGADO: que abrir uma OP chamava
+// calcularFiosOP e montarOrdensCompraFio, gravava as linhas planas com
+// delete+insert em ordens_compra_fio, e traduzia o sinal legacy_receipt_fenced
+// da guarda do db/75 sobre essas escritas.
+//
+// Esse ramo não existe mais. A proibição canônica é explícita: nenhuma escrita
+// dupla nativo-para-plano e nenhuma materialização sintética de
+// ordens_compra_fio, nem como medida temporária de compatibilidade. Com ele
+// saiu clearFenceError, que só existia para traduzir o erro daquelas escritas.
+//
+// As asserções abaixo substituem — não apagam — aquela cobertura: o mesmo
+// cenário (abrir uma OP) continua guardado, agora do lado nativo, e o que era
+// "grava o plano" virou "NÃO grava o plano, em nenhuma circunstância".
+// -----------------------------------------------------------------------------
+
+test('47. abrir OP NÃO computa mais o cálculo de fio para virar documento plano', async () => {
+  const { sandbox, calls } = makePersistirOPSandbox();
   sandbox.payload = { ...payloadBase(), status: 'aberta' };
   await vm.runInContext('window.persistirOP(payload)', sandbox);
-  const calcularCall = calls.find((c) => c.op === 'calcularFiosOP');
-  assert.ok(calcularCall, 'devia ter chamado calcularFiosOP');
+  assert.equal(calls.filter((c) => c.op === 'calcularFiosOP').length, 0,
+    'a receita não é mais transformada em documento de compra por esta tela');
 });
 
-test('48. status="aberta" chama montarOrdensCompraFio', async () => {
-  const { sandbox, calls } = makePersistirOPSandbox({
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
+test('48. abrir OP NÃO monta mais payload de ordens de compra planas', async () => {
+  const { sandbox, calls } = makePersistirOPSandbox();
   sandbox.payload = { ...payloadBase(), status: 'aberta' };
   await vm.runInContext('window.persistirOP(payload)', sandbox);
-  const montarCall = calls.find((c) => c.op === 'montarOrdensCompraFio');
-  assert.ok(montarCall, 'devia ter chamado montarOrdensCompraFio');
+  assert.equal(calls.filter((c) => c.op === 'montarOrdensCompraFio').length, 0,
+    'montarOrdensCompraFio foi renomeado e não produz mais payload de documento');
 });
 
-test('49. falha em ordens_compra_fio.delete retorna step "ordens_compra_fio_delete"', async () => {
-  const { sandbox } = makePersistirOPSandbox({
-    ordensDeleteError: new Error('mock ordens delete'),
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
+test('49. abrir OP NÃO faz delete em ordens_compra_fio', async () => {
+  const { sandbox, calls } = makePersistirOPSandbox();
+  sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
+  await vm.runInContext('window.persistirOP(payload)', sandbox);
+  assert.equal(calls.filter((c) => c.op === 'ordens_compra_fio_delete').length, 0,
+    'nenhum delete plano pode restar');
+});
+
+test('50. abrir OP NÃO faz insert em ordens_compra_fio', async () => {
+  const { sandbox, calls } = makePersistirOPSandbox();
+  sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
+  await vm.runInContext('window.persistirOP(payload)', sandbox);
+  assert.equal(calls.filter((c) => c.op === 'ordens_compra_fio_insert').length, 0,
+    'nenhum insert plano pode restar');
+});
+
+test('50c. um Pedido em regime LEGADO falha honestamente, sem escritor e sem fingir sucesso', async () => {
+  const { sandbox, calls } = makePersistirOPSandbox({ regimeModelo: 'legacy' });
   sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
   const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
-  assert.equal(result.step, 'ordens_compra_fio_delete');
+  assert.equal(result.step, 'regime_legado_sem_escritor',
+    'o regime legado não tem mais escritor de compra nesta tela');
   assert.equal(result.partial, true);
+  assert.ok(result.error, 'a recusa tem de ser observável');
+  assert.equal(calls.filter((c) => c.op === 'ordens_compra_fio_insert' || c.op === 'ordens_compra_fio_delete').length, 0,
+    'o regime legado NÃO pode recriar as linhas planas');
+  assert.equal(calls.filter((c) => c.op === 'rpc' && c.fn === 'sincronizar_necessidades_compra_fio').length, 0,
+    'o regime legado não pode ser sincronizado como se fosse nativo');
 });
 
-test('50. falha em ordens_compra_fio.insert retorna step "ordens_compra_fio_insert"', async () => {
-  const { sandbox } = makePersistirOPSandbox({
-    ordensInsertError: new Error('mock ordens insert'),
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
+test('50d. o regime legado devolve a OP a simulada', async () => {
+  const { sandbox, calls } = makePersistirOPSandbox({ regimeModelo: 'legacy' });
   sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
-  const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
-  assert.equal(result.step, 'ordens_compra_fio_insert');
-  assert.equal(result.partial, true);
+  await vm.runInContext('window.persistirOP(payload)', sandbox);
+  const volta = calls.filter((c) => c.op === 'ops_update' && c.payload && c.payload.status === 'simulada');
+  assert.ok(volta.length >= 1, 'a OP não pode ficar aberta sem compra sincronizada');
 });
 
-// PHASE-C3C-B (docs/architecture/ORDEM_COMPRA_C3C_B_PHASE_CONTRACT.md §32):
-// clearFenceError() replaces a raw legacy_receipt_fenced Postgres error with
-// a clear, non-crashing message, through the exact same
-// { error, step, partial } return shape — no bridge, mapping, canonical
-// order creation, or db/76 RPC call. Not reachable while legacy_active;
-// unit-tested here with a mocked db/75 fence signal.
-test('50c. legacy_receipt_fenced no delete de ordens_compra_fio: erro claro, sem crash, mesmo { step, partial }', async () => {
-  const { sandbox } = makePersistirOPSandbox({
-    ordensDeleteError: { code: '55000', message: 'legacy_receipt_fenced' },
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
-  sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
-  const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
-  assert.equal(result.step, 'ordens_compra_fio_delete');
-  assert.equal(result.partial, true);
-  assert.ok(result.error, 'esperado error');
-  assert.notEqual(result.error.message, 'legacy_receipt_fenced', 'deve substituir a mensagem crua do Postgres por uma mensagem clara');
-  assert.equal(result.error.codigo, 'legacy_receipt_fenced');
+test('50e. clearFenceError saiu junto com as escritas planas que ele traduzia', () => {
+  assert.equal(/function\s+clearFenceError/.test(oppSrc), false,
+    'clearFenceError existia só para o sinal db/75 sobre as escritas planas de fio');
 });
 
-test('50d. legacy_receipt_fenced no insert de ordens_compra_fio: erro claro, sem crash, mesmo { step, partial }', async () => {
-  const { sandbox } = makePersistirOPSandbox({
-    ordensInsertError: { code: '55000', message: 'legacy_receipt_fenced' },
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
-  sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
-  const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
-  assert.equal(result.step, 'ordens_compra_fio_insert');
-  assert.equal(result.partial, true);
-  assert.ok(result.error, 'esperado error');
-  assert.equal(result.error.codigo, 'legacy_receipt_fenced');
-});
-
-test('50e. um erro 55000 diferente (nao legacy_receipt_fenced) permanece intacto, sem reescrita', async () => {
-  const { sandbox } = makePersistirOPSandbox({
-    ordensDeleteError: { code: '55000', message: 'estado_cutover_invalido' },
-    montarOrdensResult: [{ tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_pedido: 50 }],
-  });
-  sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
-  const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
-  assert.equal(result.error.message, 'estado_cutover_invalido', 'apenas legacy_receipt_fenced deve ser reescrito');
-});
 
 // ---- PRE-PROD-A (§R.23.2): native-mode regime cutover ---------------
 

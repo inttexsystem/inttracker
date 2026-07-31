@@ -550,9 +550,24 @@ test('cénario forçado: auth.getSession NÃO é bloqueado', async () => {
 // comportamento publicado (que rejeitava as três leituras) e passar com a
 // correção, e tem de continuar provando que o default é NEGAR.
 
-// As 14 entradas autorizadas. Esta lista é o contrato: uma entrada nova no
+// As 18 entradas autorizadas. Esta lista é o contrato: uma entrada nova no
 // módulo sem passar por aqui derruba o teste, que é exatamente o ponto — cada
 // nome precisa ser reprovado sobre a definição SQL antes de entrar.
+//
+// P2-A (NATIVE-RECEIPT-COORDINATED-RELEASE-P2-A-NATIVE-FOUNDATIONS-R2,
+// Emenda 1) acrescentou QUATRO leituras nativas, e apenas quatro. Cada uma foi
+// reprovada pelas três verificações do módulo sobre a definição SQL versionada
+// — todas STABLE, e todo o fecho transitivo que alcançam
+// (_oc_disponibilidade_linhas, _oc_material_recebido_liquido,
+// _oc_reserva_ativa, oc_cobertura_ativa) também STABLE, sem DML:
+//   oc_disponibilidade_op          db/101
+//   pedido_elegivel_cancelamento   db/105
+//   listar_fila_aceite_fornecedor  db/103
+//   pode_recuperar_op_acabamento   db/108
+//
+// As DEZ escritoras do P2 continuam FORA: entrar aqui é contornar o
+// write-guard, e uma escritora nesta lista deixaria um preview gravar no banco
+// de produção. Ver tests/native-rpc-allowlist.smoke.js.
 const READ_ONLY_RPCS_ESPERADAS = [
   'admin_alteracao_comparacao',
   'admin_usuarios_last_sign_in',
@@ -561,12 +576,16 @@ const READ_ONLY_RPCS_ESPERADAS = [
   'cliente_pedido_summary',
   'consultar_saldo_expedicao_latex',
   'diagnosticar_impacto_pedido',
+  'listar_fila_aceite_fornecedor',
   'listar_ordens_compra_admin',
   'listar_ordens_compra_fio_compat',
   'obter_distribuicao_ordem_compra',
   'obter_historico_recebimento_ordem_compra',
   'obter_ordem_compra_admin',
   'obter_planejamento_compra_pedido',
+  'oc_disponibilidade_op',
+  'pedido_elegivel_cancelamento',
+  'pode_recuperar_op_acabamento',
   'sugerir_codigo_ordem_compra',
 ];
 
@@ -600,11 +619,11 @@ function rpcCalls(fakeSupa) {
   return fakeSupa._calls.filter((c) => c.op === 'rpc');
 }
 
-test('allowlist: o módulo declara exatamente as 14 RPCs de leitura provadas', () => {
+test('allowlist: o módulo declara exatamente as 18 RPCs de leitura provadas', () => {
   const doFonte = allowlistDoFonte().slice().sort();
   assert.deepEqual(doFonte, READ_ONLY_RPCS_ESPERADAS.slice().sort(),
-    'a allowlist literal de js/supabase-client.js divergiu do contrato de 14 entradas');
-  assert.equal(new Set(doFonte).size, 14, 'a allowlist tem de ter 14 entradas distintas');
+    'a allowlist literal de js/supabase-client.js divergiu do contrato de 18 entradas');
+  assert.equal(new Set(doFonte).size, 18, 'a allowlist tem de ter 18 entradas distintas');
   // Nenhuma escritora conhecida pode ter entrado na lista.
   for (const w of WRITE_RPCS_BLOQUEADAS) {
     assert.equal(doFonte.includes(w), false,

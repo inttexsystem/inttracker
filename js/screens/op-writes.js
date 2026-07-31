@@ -4,7 +4,9 @@
 // de dentro de screenNovaOP. Concentra:
 //
 //   - registrarRecebimentoOrdemFio(...)
-//   - atribuirFornecedorFioOp(...)
+//
+// P2-A aposentou atribuirFornecedorFioOp e sua exportação em window (ver o
+// bloco APOSENTADO abaixo). Este arquivo expõe UM único helper.
 //
 // Carregar via <script src="js/screens/op-writes.js"></script> no
 // <head>, DEPOIS de js/screens/op-form-helpers.js e ANTES de jspdf +
@@ -24,9 +26,8 @@
 // NÃO faz select ou rpc diretamente — apenas update, delete, insert, e a
 // delegação ao adapter acima (que por sua vez isola o único rpc do arquivo).
 //
-// Compatibilidade: window.registrarRecebimentoOrdemFio e
-// window.atribuirFornecedorFioOp seguem disponíveis para os
-// call-sites do inline.
+// Compatibilidade: window.registrarRecebimentoOrdemFio segue disponível para
+// os call-sites do inline.
 // =====================================================================
 
 (function (window) {
@@ -101,55 +102,29 @@
   }
 
   // -------------------------------------------------------------------
-  // atribuirFornecedorFioOp — assign a fornecedor to a fio type for an OP.
-  // Replaces the old op_fornecedores record for the etapa with the new
-  // fornecedorId, and also updates all ordens_compra_fio of the given
-  // tipo to point to the same fornecedor. Returns { error, step }.
-  async function atribuirFornecedorFioOp({
-    opId,
-    etapa,
-    tipo,
-    fornecedorId,
-  }) {
-    if (!opId || !etapa || !tipo || !fornecedorId) {
-      return {
-        error: new Error('opId, etapa, tipo and fornecedorId are required'),
-        step: 0,
-      };
-    }
-
-    let result = await window.supa
-      .from('ordens_compra_fio')
-      .update({ fornecedor_id: fornecedorId })
-      .eq('op_id', opId)
-      .eq('tipo', tipo);
-
-    if (result.error) return { error: result.error, step: 1 };
-
-    result = await window.supa
-      .from('op_fornecedores')
-      .delete()
-      .eq('op_id', opId)
-      .eq('etapa', etapa);
-
-    if (result.error) return { error: result.error, step: 2 };
-
-    result = await window.supa
-      .from('op_fornecedores')
-      .insert([{ op_id: opId, fornecedor_id: fornecedorId, etapa }]);
-
-    if (result.error) return { error: result.error, step: 3 };
-
-    return { error: null, step: 0 };
-  }
+  // APOSENTADO — atribuirFornecedorFioOp
+  //
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P2-A (§9.9.N linha 12; fecha
+  // DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR). A decisão do supervisor é
+  // APOSENTAR, não "aposentar ou repontar".
+  //
+  // O que existia aqui gravava DIRETO no modelo PLANO em dois writes soltos e
+  // não transacionais: UPDATE ordens_compra_fio.fornecedor_id por (op_id,
+  // tipo), seguido de DELETE + INSERT em op_fornecedores. Não tinha nenhum
+  // chamador na aplicação, e a escolha de fornecedor de compra passou a ser
+  // feita em Pedido -> Insumos, pelo planejamento nativo, contra
+  // necessidade_compra_planejamento e ordem_compra.
+  //
+  // NENHUM escritor manual de alocação substitui este: quem aloca compra é o
+  // escritor do servidor. Não reintroduzir este símbolo, nem sua exportação em
+  // window, nem seus dois writes planos.
+  // -------------------------------------------------------------------
 
   window.RAVATEX_SCREENS = window.RAVATEX_SCREENS || {};
   window.RAVATEX_SCREENS.opWrites = {
     ...window.RAVATEX_SCREENS.opWrites,
     registrarRecebimentoOrdemFio,
-    atribuirFornecedorFioOp,
   };
 
   window.registrarRecebimentoOrdemFio = registrarRecebimentoOrdemFio;
-  window.atribuirFornecedorFioOp = atribuirFornecedorFioOp;
 })(window);

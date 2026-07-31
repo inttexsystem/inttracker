@@ -41,22 +41,35 @@ function calcularFiosOP(itens, modelosById, parametrosByLargura) {
   return { algodaoPorCor, poliester };
 }
 
-// Transforma o resultado de calcularFiosOP em payloads de ordens_compra_fio.
-// kg_pedido > 0 (schema CHECK) e arredondado a 3 casas (NUMERIC(10,3)).
-// op_id e fornecedor_id são preenchidos na hora de salvar (não aqui).
-function montarOrdensCompraFio(calculo) {
+// Transforma o resultado de calcularFiosOP em NECESSIDADES DE COMPRA nativas.
+//
+// NATIVE-RECEIPT-COORDINATED-RELEASE-P2-A (§9.9.N linha 13): antes chamava-se
+// montarOrdensCompraFio e emitia linhas do modelo PLANO (`ordens_compra_fio`:
+// tipo/kg_pedido, uma Ordem de Compra por cor, por OP). Esse payload plano foi
+// APOSENTADO — o modelo nativo separa NECESSIDADE (o que a receita exige) de
+// ORDEM DE COMPRA (o documento que a cobre), e a necessidade é sincronizada
+// pelo escritor do servidor, nunca montada como documento aqui.
+//
+// A MATEMÁTICA DA RECEITA É IDÊNTICA: mesmas somas de calcularFiosOP, mesmo
+// arredondamento a 3 casas, mesmo descarte de linhas <= 0, mesma ordem
+// (algodão por cor, depois PRETO e BRANCO). Só os NOMES DOS CAMPOS mudam, para
+// os do eixo nativo lido por oc_disponibilidade_op:
+//   tipo       -> material
+//   kg_pedido  -> kg_necessario
+// e nenhum campo de documento (status, op_id, fornecedor_id) é produzido.
+function montarNecessidadesCompra(calculo) {
   const round3 = (n) => Math.round(n * 1000) / 1000;
-  const ordens = [];
+  const necessidades = [];
 
   for (const { corId, kg } of Object.values(calculo.algodaoPorCor)) {
-    const kgPedido = round3(kg);
-    if (kgPedido > 0) ordens.push({ tipo: 'algodao', cor_id: corId, cor_poliester: null, kg_pedido: kgPedido });
+    const kgNecessario = round3(kg);
+    if (kgNecessario > 0) necessidades.push({ material: 'algodao', cor_id: corId, cor_poliester: null, kg_necessario: kgNecessario });
   }
   for (const cor of ['PRETO', 'BRANCO']) {
-    const kgPedido = round3(calculo.poliester[cor]);
-    if (kgPedido > 0) ordens.push({ tipo: 'poliester', cor_id: null, cor_poliester: cor, kg_pedido: kgPedido });
+    const kgNecessario = round3(calculo.poliester[cor]);
+    if (kgNecessario > 0) necessidades.push({ material: 'poliester', cor_id: null, cor_poliester: cor, kg_necessario: kgNecessario });
   }
-  return ordens;
+  return necessidades;
 }
 
 // Recalcula a OP a partir do fio realmente recebido (fator-gargalo).
@@ -183,5 +196,5 @@ function agruparOrdensCompraFio(ordens) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { larguraKey, calcularFiosOP, montarOrdensCompraFio, recalcularOP, consumoPorOrdem, totalEntregueCimaPorItem, percentualEntregueOP, agruparOrdensCompraFio };
+  module.exports = { larguraKey, calcularFiosOP, montarNecessidadesCompra, recalcularOP, consumoPorOrdem, totalEntregueCimaPorItem, percentualEntregueOP, agruparOrdensCompraFio };
 }

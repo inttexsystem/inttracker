@@ -373,11 +373,18 @@ test('15. runtime: window.RAVATEX_SCREENS.opRecalculo.maxMetrosItem existe', () 
     'window.RAVATEX_SCREENS.opRecalculo.maxMetrosItem não existe');
 });
 
-test('16. runtime: window.RAVATEX_SCREENS.opRecalculo.normalizarChaveSaldo existe', () => {
+// P2-A: `normalizarChaveSaldo` era a chave de filtro (cor_id / cor_poliester)
+// das escritas diretas no totalizador `saldo_fios`. Essas escritas foram
+// retiradas — quem grava saldo agora é `iniciar_producao_op`, escritor único
+// do snapshot — e a chave morreu junto. O que este par de casos passa a
+// guardar é a AUSÊNCIA do símbolo nas duas superfícies onde ele era publicado.
+test('16. runtime: opRecalculo NÃO expõe mais normalizarChaveSaldo', () => {
   const { sandbox } = makeFullBootSandbox();
-  assert.ok(vm.runInContext('window.RAVATEX_SCREENS.opRecalculo.normalizarChaveSaldo', sandbox),
-    'window.RAVATEX_SCREENS.opRecalculo.normalizarChaveSaldo não existe');
+  assert.equal(
+    vm.runInContext("'normalizarChaveSaldo' in window.RAVATEX_SCREENS.opRecalculo", sandbox), false,
+    'a chave de saldo foi retirada junto com as escritas diretas em saldo_fios');
 });
+
 
 test('17. runtime: window.maxMetrosItem é função', () => {
   const { sandbox } = makeFullBootSandbox();
@@ -385,11 +392,12 @@ test('17. runtime: window.maxMetrosItem é função', () => {
     'window.maxMetrosItem não é função');
 });
 
-test('18. runtime: window.normalizarChaveSaldo é função', () => {
+test('18. runtime: window.normalizarChaveSaldo NÃO existe mais', () => {
   const { sandbox } = makeFullBootSandbox();
-  assert.equal(typeof vm.runInContext('window.normalizarChaveSaldo', sandbox), 'function',
-    'window.normalizarChaveSaldo não é função');
+  assert.equal(typeof vm.runInContext('window.normalizarChaveSaldo', sandbox), 'undefined',
+    'o global legado da chave de saldo não pode sobreviver');
 });
+
 
 // -------------------------------------------------------------------------
 // 3. Testes unitários de maxMetrosItem
@@ -406,7 +414,13 @@ function makeUnitSandbox() {
   return sandbox;
 }
 
-test('19. maxMetrosItem com ordens válidas retorna cap numérico esperado (round down)', () => {
+// P2-A (§9.9.A): maxMetrosItem passou a ler a DISPONIBILIDADE NATIVA
+// (oc_disponibilidade_op) no lugar das linhas planas de ordens_compra_fio. Uma
+// linha de Ordem de Compra é um documento; teto produtivo é outra coisa, e o
+// teto nativo já é consciente de origem. A ARITMÉTICA é a mesma: para cada cor
+// consumida, kg disponível / kg por metro, com o menor quociente ganhando e
+// arredondamento para baixo. Os números deste caso são os mesmos de antes.
+test('19. maxMetrosItem com disponibilidade nativa retorna cap numérico esperado (round down)', () => {
   const sandbox = makeUnitSandbox();
   const modelosById = {
     1: { id: 1, nome: 'Test', largura: 1.40, cor_1: { id: 10, nome: 'Azul' }, cor_2: { id: 11, nome: 'Branco' } },
@@ -414,30 +428,31 @@ test('19. maxMetrosItem com ordens válidas retorna cap numérico esperado (roun
   const parametrosByLargura = {
     '1.40': { algodao_por_ml: 0.5, poliester_por_ml: 0.3, valor_x: 2 },
   };
-  const ordens = [
-    { id: 1, tipo: 'algodao', cor_id: 10, kg_recebido: 100 },
-    { id: 2, tipo: 'algodao', cor_id: 11, kg_recebido: 80 },
-    { id: 3, tipo: 'poliester', cor_poliester: 'PRETO', kg_recebido: 50 },
-    { id: 4, tipo: 'poliester', cor_poliester: 'BRANCO', kg_recebido: 60 },
+  const disponibilidade = [
+    { material: 'algodao', cor_id: 10, cor_poliester: null, kg_disponivel: 100 },
+    { material: 'algodao', cor_id: 11, cor_poliester: null, kg_disponivel: 80 },
+    { material: 'poliester', cor_id: null, cor_poliester: 'PRETO', kg_disponivel: 50 },
+    { material: 'poliester', cor_id: null, cor_poliester: 'BRANCO', kg_disponivel: 60 },
   ];
 
   // rAlg = 0.5 * 2 = 1.0; rPol = 0.3 * 2 = 0.6
   // Alg 10: 100/1 = 100; Alg 11: 80/1 = 80
   // Pol PRETO: 50/0.6 = 83.33; Pol BRANCO: 60/0.6 = 100
-  // Min = 80 → floor(80) = 80
+  // Min = 80 -> floor(80) = 80
 
   sandbox.modelosByIdArr = modelosById;
   sandbox.parametrosArr = parametrosByLargura;
-  sandbox.ordensArr = ordens;
+  sandbox.disponibilidadeArr = disponibilidade;
 
   const cap = vm.runInContext(
-    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, ordensArr)',
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, disponibilidadeArr)',
     sandbox
   );
   assert.ok(Number.isFinite(cap), 'cap não é finito');
   assert.ok(cap >= 0, 'cap deve ser >= 0');
   assert.equal(cap, 80, 'cap deveria ser 80 (gargalo = algodao cor 11)');
 });
+
 
 test('20. maxMetrosItem sem ordens correspondentes retorna 0', () => {
   const sandbox = makeUnitSandbox();
@@ -490,36 +505,29 @@ test('21. maxMetrosItem com ordens de kg_recebido = 0 retorna 0', () => {
 // 4. Testes unitários de normalizarChaveSaldo
 // -------------------------------------------------------------------------
 
-test('22. normalizarChaveSaldo algodao retorna chave com cor_id', () => {
+// P2-A: os casos 22 e 23 exercitavam a chave de filtro do totalizador
+// `saldo_fios` — algodao por cor_id, poliester por is(cor_id, null) +
+// cor_poliester. Essa chave so existia para as escritas diretas em saldo_fios,
+// que foram retiradas: `iniciar_producao_op` e hoje o escritor unico do
+// snapshot de saldo. A cobertura vira, entao, a prova de que nem o simbolo nem
+// o mecanismo que ele servia sobreviveram.
+test('22. a chave de saldo foi retirada junto com as escritas diretas em saldo_fios', () => {
   const sandbox = makeUnitSandbox();
-  const result = vm.runInContext(
-    'window.normalizarChaveSaldo("algodao", 1, null)',
-    sandbox
-  );
-  assert.ok(result, 'normalizarChaveSaldo algodao retornou falsy');
-  assert.ok(result.eq, 'result.eq deve existir para algodao');
-  assert.equal(result.eq.tipo, 'algodao');
-  assert.equal(result.eq.cor_id, 1);
-  assert.equal(result.is, undefined, 'algodao NÃO deve ter is');
+  assert.equal(typeof vm.runInContext('window.normalizarChaveSaldo', sandbox), 'undefined',
+    'normalizarChaveSaldo nao pode continuar publicado');
+  assert.equal(/function\s+normalizarChaveSaldo/.test(oprSrc), false,
+    'a implementacao da chave de saldo tem de estar retirada');
 });
 
-test('23. normalizarChaveSaldo poliéster retorna chave com cor_id null', () => {
-  const sandbox = makeUnitSandbox();
-  const result = vm.runInContext(
-    'window.normalizarChaveSaldo("poliester", null, "PRETO")',
-    sandbox
-  );
-  assert.ok(result, 'normalizarChaveSaldo poliéster retornou falsy');
-  assert.ok(result.is, 'result.is deve existir para poliéster');
-  assert.equal(result.is.cor_id, null);
-  assert.ok(result.eq, 'result.eq deve existir para poliéster');
-  assert.equal(result.eq.tipo, 'poliester');
-  assert.equal(result.eq.cor_poliester, 'PRETO');
+test('23. nenhum filtro de totalizador de saldo resta no modulo', () => {
+  // Os dois eixos que a chave montava: eq(cor_id) para algodao e
+  // is(cor_id, null) + eq(cor_poliester) para poliester.
+  assert.equal(/\.is\(\s*['"]cor_id['"]\s*,\s*null\s*\)/.test(oprSrc), false,
+    'o filtro de poliester do totalizador nao pode restar');
+  assert.equal(/kg_total/.test(oprSrc), false,
+    'o totalizador saldo_fios.kg_total nao e mais escrito por esta tela');
 });
 
-// -------------------------------------------------------------------------
-// 5. Integração / boot chain
-// -------------------------------------------------------------------------
 
 test('24. boot chain: ui + router + system-screens + common + cadastros + ops-list + entrega-form + entrega-writes + fornecedor + op-form-helpers + op-writes + op-latex-admin + painel + op-recalculo + inline coexiste sem SyntaxError', () => {
   // Após ROUTES-BOOT-MODULE-A, o inline foi removido. O entrypoint
@@ -746,290 +754,181 @@ function ordensManter(extras = []) {
 
 // ---- 1-2: Exports -----------------------------------------------------
 
-test('27. window.aplicarRecalculoOP existe', () => {
-  const { sandbox } = makeRecalculoSandbox();
-  assert.equal(typeof vm.runInContext('window.aplicarRecalculoOP', sandbox), 'function',
-    'window.aplicarRecalculoOP não é função');
-});
+// -----------------------------------------------------------------------------
+// O ESCRITOR ANTIGO — RETIRADO EM P2-A (secoes 9.9.C e 9.9.D)
+//
+// Os casos 27 a 42 provavam `aplicarRecalculoOP` e todo o seu maquinario:
+// o laco de UPDATE item a item em op_itens, o calculo local de sobras a partir
+// de kg_recebido - kg_pedido das ordens planas, o INSERT em saldo_fios_op, o
+// select/update/insert do totalizador saldo_fios, o `UPDATE ops SET
+// status='em_producao'` feito pelo cliente, os steps de falha e a semantica de
+// sucesso PARCIAL — que deixava metade dos itens gravados quando um write
+// falhava no meio.
+//
+// Nada disso existe mais. O servidor e o dono: `salvar_ajuste_producao_op`
+// valida o payload COMPLETO contra os tetos por eixo ANTES de qualquer
+// escrita, e `iniciar_producao_op` e o escritor unico do snapshot saldo_fios_op
+// e da transicao de status. Nao ha mais estado parcial para o cliente relatar,
+// e por isso nao ha mais o que asserir sobre steps intermediarios.
+//
+// As assercoes abaixo substituem aquele bloco pelo mecanismo canonico do P2-A.
+// A cobertura comportamental ampla vive em tests/op-ajuste-atomico.smoke.js.
+// -----------------------------------------------------------------------------
 
-test('28. window.RAVATEX_SCREENS.opRecalculo.aplicarRecalculoOP existe', () => {
-  const { sandbox } = makeRecalculoSandbox();
-  assert.ok(vm.runInContext('window.RAVATEX_SCREENS.opRecalculo.aplicarRecalculoOP', sandbox),
-    'window.RAVATEX_SCREENS.opRecalculo.aplicarRecalculoOP não existe');
-});
-
-// ---- 3-7: op_itens.update ---------------------------------------------
-
-test('29. sucesso completo modo="aceitar" retorna { error:null, step:"ok", partial:false }', async () => {
-  const { sandbox } = makeRecalculoSandbox();
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.error, null, 'error deveria ser null');
-  assert.equal(result.step, 'ok', 'step deveria ser "ok"');
-  assert.equal(result.partial, false, 'partial deveria ser false');
-});
-
-test('30. sucesso completo modo="manter" retorna sucesso', async () => {
-  const { sandbox } = makeRecalculoSandbox();
-  sandbox.resultado = { fator: 1, itens: resultadoAceitar().itens, sobras: [] };
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "manter", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.error, null);
-  assert.equal(result.step, 'ok');
-});
-
-test('31. modo="manter" calcula sobras localmente a partir de ordens (kg_recebido - kg_pedido)', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox();
-  sandbox.resultado = { fator: 1, itens: [], sobras: [] };
-  sandbox.ordens = ordensManter();
-  await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "manter", ordens: ordens })',
-    sandbox
-  );
-  const insertCalls = calls.filter((c) => c.op === 'saldo_fios_op_insert');
-  assert.ok(insertCalls.length >= 2,
-    `esperado >=2 inserts em saldo_fios_op, encontrado ${insertCalls.length}`);
-  // ordem 1 (algodao): 35-30 = 5; ordem 3 (poliester PRETO): 23-20 = 3
-  const algInsert = insertCalls.find((c) => c.payload && c.payload.tipo === 'algodao');
-  const polInsert = insertCalls.find((c) => c.payload && c.payload.tipo === 'poliester');
-  assert.ok(algInsert, 'devia ter insert tipo algodao');
-  assert.ok(polInsert, 'devia ter insert tipo poliester');
-  assert.equal(algInsert.payload.kg_sobra, 5);
-  assert.equal(polInsert.payload.kg_sobra, 3);
-});
-
-test('32. falha em op_itens.update retorna step "op_itens_update" e partial=true', async () => {
-  const { sandbox } = makeRecalculoSandbox({ opItensFailAlways: true });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.ok(result.error, 'error deveria estar setado');
-  assert.equal(result.step, 'op_itens_update');
-  assert.equal(result.partial, true);
-});
-
-test('33. falha em op_itens.update no 2º item retorna step "op_itens_update"', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox({ opItensFailOnCall: 2 });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  const opItensCalls = calls.filter((c) => c.op === 'op_itens_update');
-  assert.equal(opItensCalls.length, 2, 'devia ter 2 chamadas op_itens_update');
-  assert.equal(result.step, 'op_itens_update');
-  // saldo_fios_op.insert NÃO deve ter sido chamado
-  const saldoCalls = calls.filter((c) => c.op === 'saldo_fios_op_insert');
-  assert.equal(saldoCalls.length, 0, 'saldo_fios_op_insert não devia ter sido chamado');
-});
-
-// ---- 8-13: saldo_fios_op.insert + saldo_fios -------------------------
-
-test('34. falha em saldo_fios_op.insert retorna step "saldo_fios_op_insert"', async () => {
-  const { sandbox } = makeRecalculoSandbox({ saldoFiosOpFailAlways: true });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.step, 'saldo_fios_op_insert');
-  assert.equal(result.partial, true);
-});
-
-test('35. falha em saldo_fios.select retorna step "saldo_fios_select"', async () => {
-  const { sandbox } = makeRecalculoSandbox({ saldoFiosSelectError: true });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.step, 'saldo_fios_select');
-  assert.equal(result.partial, true);
-});
-
-test('36. saldo existente chama saldo_fios.update (NÃO insert)', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox({
-    saldoFiosExistingData: { kg_total: 100 },
-  });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  const updateCalls = calls.filter((c) => c.op === 'saldo_fios_update');
-  const insertCalls = calls.filter((c) => c.op === 'saldo_fios_insert');
-  assert.ok(updateCalls.length >= 1, 'devia ter >=1 update em saldo_fios');
-  assert.equal(insertCalls.length, 0, 'NÃO devia ter insert em saldo_fios');
-});
-
-test('37. falha em saldo_fios.update retorna step "saldo_fios_update"', async () => {
-  const { sandbox } = makeRecalculoSandbox({
-    saldoFiosExistingData: { kg_total: 100 },
-    saldoFiosUpdateError: true,
-  });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.step, 'saldo_fios_update');
-  assert.equal(result.partial, true);
-});
-
-test('38. saldo inexistente chama saldo_fios.insert (NÃO update)', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox({
-    saldoFiosExistingData: null,
-  });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  const updateCalls = calls.filter((c) => c.op === 'saldo_fios_update');
-  const insertCalls = calls.filter((c) => c.op === 'saldo_fios_insert');
-  assert.equal(updateCalls.length, 0, 'NÃO devia ter update em saldo_fios');
-  assert.ok(insertCalls.length >= 1, 'devia ter >=1 insert em saldo_fios');
-});
-
-test('39. falha em saldo_fios.insert retorna step "saldo_fios_insert"', async () => {
-  const { sandbox } = makeRecalculoSandbox({
-    saldoFiosExistingData: null,
-    saldoFiosInsertError: true,
-  });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.step, 'saldo_fios_insert');
-  assert.equal(result.partial, true);
-});
-
-// PHASE-C3C-B (docs/architecture/ORDEM_COMPRA_C3C_B_PHASE_CONTRACT.md §32):
-// clearFenceError() replaces a raw legacy_receipt_fenced Postgres error
-// (db/75's protected-mutation guard on saldo_fios/saldo_fios_op) with a
-// clear, non-crashing message, through the exact same
-// { error, step, partial } shape — no canonical RPC is called here, and
-// op-recalculo.js's exact current saldo write logic is unchanged. Not
-// reachable while legacy_active; unit-tested with a mocked fence signal.
-test('39b. legacy_receipt_fenced no insert de saldo_fios_op: erro claro, sem crash, mesmo { step, partial }', async () => {
-  const { sandbox } = makeRecalculoSandbox({
-    saldoFiosOpFailAlways: { code: '55000', message: 'legacy_receipt_fenced' },
-  });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.step, 'saldo_fios_op_insert');
-  assert.equal(result.partial, true);
-  assert.ok(result.error);
-  assert.notEqual(result.error.message, 'legacy_receipt_fenced', 'deve substituir a mensagem crua do Postgres por uma mensagem clara');
-  assert.equal(result.error.codigo, 'legacy_receipt_fenced');
-});
-
-test('39c. legacy_receipt_fenced no update de saldo_fios: erro claro, sem crash', async () => {
-  const { sandbox } = makeRecalculoSandbox({
-    saldoFiosExistingData: { kg_total: 100 },
-    saldoFiosUpdateError: { code: '55000', message: 'legacy_receipt_fenced' },
-  });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.step, 'saldo_fios_update');
-  assert.equal(result.error.codigo, 'legacy_receipt_fenced');
-});
-
-test('39d. um erro 55000 diferente (nao legacy_receipt_fenced) permanece intacto, sem reescrita', async () => {
-  const { sandbox } = makeRecalculoSandbox({
-    saldoFiosOpFailAlways: { code: '55000', message: 'estado_cutover_invalido' },
-  });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.error.message, 'estado_cutover_invalido', 'apenas legacy_receipt_fenced deve ser reescrito');
-});
-
-// ---- 14: ops.update status -------------------------------------------
-
-test('40. falha em ops.update status retorna step "ops_update_status"', async () => {
-  const { sandbox } = makeRecalculoSandbox({ opsStatusError: true });
-  sandbox.resultado = resultadoAceitar();
-  sandbox.ordens = ordensManter();
-  const result = await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  assert.equal(result.step, 'ops_update_status');
-  assert.equal(result.partial, true);
-});
-
-// ---- 15-16: algodão vs poliéster ------------------------------------
-
-test('41. saldo de algodão usa filtro por cor_id (eq)', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox();
-  // Apenas algodao para isolar o teste
-  sandbox.resultado = {
-    fator: 0.8,
-    itens: [{ op_item_id: 100, modelo_id: 1, metros_pedidos: 50, metros_ajustados: 40 }],
-    sobras: [{ ordem_id: 1, tipo: 'algodao', cor_id: 10, cor_poliester: null, kg_sobra: 5 }],
+// Sandbox local com transporte RPC controlado (o makeRecalculoSandbox acima
+// mocka por TABELA, que e justamente o que este modulo deixou de usar).
+function makeRpcSandbox(rpcHandler) {
+  const rpcCalls = [];
+  const tableCalls = [];
+  const sandbox = { console, Promise, Object, Array, Number, String, Math, JSON, Error, Boolean };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  sandbox.supa = {
+    from(table) { tableCalls.push(table); return new Proxy({}, { get: () => () => ({}) }); },
+    rpc(fn, params) {
+      rpcCalls.push({ fn, params });
+      return Promise.resolve(rpcHandler ? rpcHandler(fn, params) : { data: null, error: null });
+    },
   };
-  sandbox.ordens = ordensManter();
-  await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  const saldoFiosEqCalls = calls.filter((c) => c.op === 'eq' && c.table === 'saldo_fios');
-  const corIdCall = saldoFiosEqCalls.find((c) => c.col === 'cor_id' && c.val === 10);
-  assert.ok(corIdCall, 'devia ter eq(cor_id, 10) para saldo_fios de algodao');
-  const isNullCall = calls.filter((c) => c.op === 'is' && c.table === 'saldo_fios' && c.col === 'cor_id');
-  assert.equal(isNullCall.length, 0, 'algodão NÃO devia usar is(cor_id, null)');
+  vm.createContext(sandbox);
+  vm.runInContext(oprSrc, sandbox, { filename: 'js/screens/op-recalculo.js' });
+  return { sandbox, rpcCalls, tableCalls };
+}
+
+test('27. window.aplicarRecalculoOP NAO existe mais', () => {
+  const { sandbox } = makeRpcSandbox();
+  assert.equal(typeof sandbox.aplicarRecalculoOP, 'undefined',
+    'o escritor antigo foi retirado e nao pode continuar publicado');
 });
 
-test('42. saldo de poliéster usa is("cor_id", null) + eq("cor_poliester", ...)', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox();
-  // Apenas poliester para isolar o teste
-  sandbox.resultado = {
-    fator: 0.8,
-    itens: [{ op_item_id: 100, modelo_id: 1, metros_pedidos: 50, metros_ajustados: 40 }],
-    sobras: [{ ordem_id: 3, tipo: 'poliester', cor_id: null, cor_poliester: 'PRETO', kg_sobra: 3 }],
-  };
-  sandbox.ordens = ordensManter();
-  await vm.runInContext(
-    'window.aplicarRecalculoOP({ opId: 42, resultado: resultado, modo: "aceitar", ordens: ordens })',
-    sandbox
-  );
-  const isNullCall = calls.filter((c) => c.op === 'is' && c.table === 'saldo_fios' && c.col === 'cor_id' && c.val === null);
-  assert.ok(isNullCall.length >= 1, 'devia ter is(cor_id, null) para poliéster');
-  const corPolEq = calls.filter((c) => c.op === 'eq' && c.table === 'saldo_fios' && c.col === 'cor_poliester' && c.val === 'PRETO');
-  assert.ok(corPolEq.length >= 1, 'devia ter eq(cor_poliester, PRETO)');
+test('28. RAVATEX_SCREENS.opRecalculo NAO expoe mais aplicarRecalculoOP', () => {
+  const { sandbox } = makeRpcSandbox();
+  assert.equal('aplicarRecalculoOP' in sandbox.RAVATEX_SCREENS.opRecalculo, false,
+    'a namespace nao pode reexpor o escritor retirado');
 });
 
-// ---- YARN-BUTTONS-PHASE-1: split salvarDistribuicaoOP / iniciarProducaoOP ----
+test('29. o modulo expoe exatamente os quatro donos do P2-A', () => {
+  const { sandbox } = makeRpcSandbox();
+  assert.deepEqual(
+    Object.keys(sandbox.RAVATEX_SCREENS.opRecalculo).sort().join(','),
+    'carregarDisponibilidadeOP,iniciarProducaoOP,maxMetrosItem,salvarDistribuicaoOP',
+    'a superficie do modulo tem de ser exatamente a do P2-A');
+});
+
+test('30. salvar a distribuicao e UMA chamada ao escritor atomico, sem DML', async () => {
+  const { sandbox, rpcCalls, tableCalls } = makeRpcSandbox(
+    () => ({ data: { ok: true, ajuste_revisao: 8, itens_aplicados: 2 }, error: null }));
+  const r = await sandbox.salvarDistribuicaoOP({
+    opId: 900001, baseAjusteRevisao: 7,
+    itens: [{ op_item_id: 100, metros_ajustados: 40 }, { op_item_id: 101, metros_ajustados: 48 }],
+  });
+  assert.equal(r.error, null);
+  assert.equal(r.ajusteRevisao, 8);
+  assert.deepEqual(rpcCalls.map((c) => c.fn), ['salvar_ajuste_producao_op']);
+  assert.deepEqual(tableCalls, [], 'nenhum DML direto pode restar');
+});
+
+test('31. o laco de UPDATE item a item sumiu: o payload viaja inteiro', async () => {
+  const { sandbox, rpcCalls } = makeRpcSandbox(() => ({ data: { ok: true }, error: null }));
+  await sandbox.salvarDistribuicaoOP({
+    opId: 900001, baseAjusteRevisao: 0,
+    itens: [{ op_item_id: 1, metros_ajustados: 10 }, { op_item_id: 2, metros_ajustados: 20 },
+            { op_item_id: 3, metros_ajustados: 30 }],
+  });
+  assert.equal(rpcCalls.length, 1, 'tres itens continuam sendo UMA chamada');
+  assert.equal(rpcCalls[0].params.p_itens.length, 3);
+});
+
+test('32. limpar um ajuste viaja como null pelo MESMO escritor', async () => {
+  const { sandbox, rpcCalls } = makeRpcSandbox(() => ({ data: { ok: true }, error: null }));
+  await sandbox.salvarDistribuicaoOP({
+    opId: 900001, baseAjusteRevisao: 0,
+    itens: [{ op_item_id: 1, metros_ajustados: null }],
+  });
+  assert.equal(rpcCalls[0].fn, 'salvar_ajuste_producao_op');
+  assert.equal(rpcCalls[0].params.p_itens[0].metros_ajustados, null);
+});
+
+test('33. a semantica de sucesso PARCIAL desapareceu do contrato de retorno', async () => {
+  const { sandbox } = makeRpcSandbox(() => ({ data: { ok: true }, error: null }));
+  const r = await sandbox.salvarDistribuicaoOP({ opId: 1, baseAjusteRevisao: 0, itens: [] });
+  assert.equal('partial' in r, false, 'as RPCs do P2 sao atomicas: nao ha sucesso parcial');
+  assert.equal('step' in r, false, 'nao ha mais steps intermediarios para relatar');
+});
+
+test('34. uma recusa de negocio vira { error, codigo } sem lancar', async () => {
+  const { sandbox } = makeRpcSandbox(
+    () => ({ data: { ok: false, codigo: 'AJUSTE_EXCEDE_DISPONIVEL' }, error: null }));
+  const r = await sandbox.salvarDistribuicaoOP({ opId: 1, baseAjusteRevisao: 0, itens: [] });
+  assert.ok(r.error, 'a recusa tem de ser observavel');
+  assert.equal(r.codigo, 'AJUSTE_EXCEDE_DISPONIVEL');
+});
+
+test('35. revisao desatualizada e sinalizada explicitamente ao chamador', async () => {
+  const { sandbox } = makeRpcSandbox(
+    () => ({ data: { ok: false, codigo: 'AJUSTE_REVISAO_DESATUALIZADA', ajuste_revisao_atual: 9 }, error: null }));
+  const r = await sandbox.salvarDistribuicaoOP({ opId: 1, baseAjusteRevisao: 7, itens: [] });
+  assert.equal(r.revisaoDesatualizada, true,
+    'o conflito de revisao tem de ser distinguivel de qualquer outro erro');
+});
+
+test('36. uma negacao de permissao do Postgres e traduzida, nao engolida', async () => {
+  const { sandbox } = makeRpcSandbox(
+    () => ({ data: null, error: Object.assign(new Error('permission denied'), { code: '42501' }) }));
+  const r = await sandbox.salvarDistribuicaoOP({ opId: 1, baseAjusteRevisao: 0, itens: [] });
+  assert.equal(r.codigo, 'sem_permissao');
+  assert.ok(r.error);
+});
+
+test('37. iniciar producao e UMA chamada ao escritor do servidor, sem DML', async () => {
+  const { sandbox, rpcCalls, tableCalls } = makeRpcSandbox(
+    () => ({ data: { ok: true, ajuste_revisao: 9, proxima_acao: { rota: '#/ops/1', rotulo: 'X' } }, error: null }));
+  const r = await sandbox.iniciarProducaoOP({ opId: 900001, baseAjusteRevisao: 8 });
+  assert.equal(r.error, null);
+  assert.deepEqual(rpcCalls.map((c) => c.fn), ['iniciar_producao_op']);
+  assert.deepEqual(tableCalls, [], 'nem saldo nem status sao escritos pelo cliente');
+});
+
+test('38. o snapshot de saldo NAO e mais montado nem enviado pelo cliente', async () => {
+  const { sandbox, rpcCalls } = makeRpcSandbox(() => ({ data: { ok: true }, error: null }));
+  await sandbox.iniciarProducaoOP({ opId: 900001, baseAjusteRevisao: 0 });
+  assert.deepEqual(Object.keys(rpcCalls[0].params).sort(), ['p_base_ajuste_rev', 'p_op_id'],
+    'iniciar_producao_op recebe so a OP e a revisao — sobras sao derivadas no servidor');
+});
+
+test('39. a rota e o rotulo de continuacao vem do servidor', async () => {
+  const { sandbox } = makeRpcSandbox(
+    () => ({ data: { ok: true, proxima_acao: { rota: '#/pedidos/p1/producao', rotulo: 'Revisar producao' } }, error: null }));
+  const r = await sandbox.iniciarProducaoOP({ opId: 1, baseAjusteRevisao: 0 });
+  assert.equal(r.proximaAcao.rota, '#/pedidos/p1/producao');
+  assert.equal(r.proximaAcao.rotulo, 'Revisar producao');
+});
+
+test('40. uma OP fora de aberta e recusada pelo servidor e o codigo chega ao chamador', async () => {
+  const { sandbox } = makeRpcSandbox(
+    () => ({ data: { ok: false, codigo: 'INICIO_OP_ESTADO_INVALIDO', status: 'simulada' }, error: null }));
+  const r = await sandbox.iniciarProducaoOP({ opId: 1, baseAjusteRevisao: 0 });
+  assert.equal(r.codigo, 'INICIO_OP_ESTADO_INVALIDO');
+  assert.equal(r.proximaAcao, null, 'uma recusa nao pode trazer continuacao');
+});
+
+test('41. a disponibilidade vem da projecao nativa e nunca de tabela', async () => {
+  const linhas = [{ material: 'algodao', cor_id: 10, kg_disponivel: 100 }];
+  const { sandbox, rpcCalls, tableCalls } = makeRpcSandbox(() => ({ data: linhas, error: null }));
+  const r = await sandbox.carregarDisponibilidadeOP({ opId: 900001 });
+  assert.equal(r.error, null);
+  assert.deepEqual(Array.from(r.data), linhas);
+  assert.deepEqual(rpcCalls.map((c) => c.fn), ['oc_disponibilidade_op']);
+  assert.deepEqual(tableCalls, [], 'o teto nunca e lido por tabela');
+});
+
+test('42. um erro ao carregar a disponibilidade nao vira lista silenciosa', async () => {
+  const { sandbox } = makeRpcSandbox(() => ({ data: null, error: new Error('boom') }));
+  const r = await sandbox.carregarDisponibilidadeOP({ opId: 1 });
+  assert.ok(r.error, 'o erro tem de ser propagado');
+  assert.equal(r.data, null, 'um teto ausente nao pode virar teto vazio silencioso');
+});
+
 
 test('42.1 window.salvarDistribuicaoOP e window.iniciarProducaoOP são funções', () => {
   const { sandbox } = makeRecalculoSandbox();
@@ -1045,87 +944,53 @@ test('42.2 RAVATEX_SCREENS.opRecalculo expõe salvarDistribuicaoOP e iniciarProd
   assert.ok(vm.runInContext('window.RAVATEX_SCREENS.opRecalculo.iniciarProducaoOP', sandbox));
 });
 
-test('42.3 salvarDistribuicaoOP grava APENAS op_itens.metros_ajustados (sem saldo, sem status)', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox();
-  sandbox.itens = [
-    { op_item_id: 100, metros_ajustados: 40 },
-    { op_item_id: 101, metros_ajustados: 48 },
-  ];
-  const result = await vm.runInContext(
-    'window.salvarDistribuicaoOP({ opId: 42, itens: itens })',
-    sandbox
-  );
-  assert.equal(result.error, null);
-  assert.equal(result.step, 'ok');
-  const opItensCalls = calls.filter((c) => c.op === 'op_itens_update');
-  assert.equal(opItensCalls.length, 2, 'devia gravar metros_ajustados dos 2 itens');
-  // NÃO toca saldo nem status
-  assert.equal(calls.filter((c) => c.op === 'saldo_fios_op_insert').length, 0,
-    'salvarDistribuicaoOP NÃO deve inserir saldo_fios_op');
-  assert.equal(calls.filter((c) => c.op === 'ops_update_status').length, 0,
-    'salvarDistribuicaoOP NÃO deve mudar status da OP');
+test('42.3 salvarDistribuicaoOP fala SO com salvar_ajuste_producao_op', async () => {
+  const { sandbox, rpcCalls, tableCalls } = makeRpcSandbox(() => ({ data: { ok: true }, error: null }));
+  await sandbox.salvarDistribuicaoOP({ opId: 1, baseAjusteRevisao: 0, itens: [{ op_item_id: 1, metros_ajustados: 5 }] });
+  assert.deepEqual(rpcCalls.map((c) => c.fn), ['salvar_ajuste_producao_op'],
+    'salvar distribuicao nao pode gravar saldo nem status');
+  assert.deepEqual(tableCalls, []);
 });
 
-test('42.4 salvarDistribuicaoOP: falha em op_itens.update retorna step "op_itens_update"', async () => {
-  const { sandbox } = makeRecalculoSandbox({ opItensFailAlways: true });
-  sandbox.itens = [{ op_item_id: 100, metros_ajustados: 40 }];
-  const result = await vm.runInContext(
-    'window.salvarDistribuicaoOP({ opId: 42, itens: itens })',
-    sandbox
-  );
-  assert.ok(result.error);
-  assert.equal(result.step, 'op_itens_update');
-  assert.equal(result.partial, true);
+test('42.4 salvarDistribuicaoOP submete a revisao-base recebida, sem inventa-la', async () => {
+  const { sandbox, rpcCalls } = makeRpcSandbox(() => ({ data: { ok: true }, error: null }));
+  await sandbox.salvarDistribuicaoOP({ opId: 77, baseAjusteRevisao: 12, itens: [] });
+  assert.equal(rpcCalls[0].params.p_op_id, 77);
+  assert.equal(rpcCalls[0].params.p_base_ajuste_rev, 12);
 });
 
-test('42.5 iniciarProducaoOP grava saldo + status, mas NÃO grava op_itens (distribuição já salva)', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox();
-  sandbox.sobras = resultadoAceitar().sobras;
-  const result = await vm.runInContext(
-    'window.iniciarProducaoOP({ opId: 42, sobras: sobras })',
-    sandbox
-  );
-  assert.equal(result.error, null);
-  assert.equal(result.step, 'ok');
-  assert.equal(calls.filter((c) => c.op === 'op_itens_update').length, 0,
-    'iniciarProducaoOP NÃO deve gravar op_itens (já salvo por salvarDistribuicaoOP)');
-  assert.ok(calls.filter((c) => c.op === 'saldo_fios_op_insert').length >= 2,
-    'iniciarProducaoOP deve inserir saldo_fios_op');
-  assert.ok(calls.filter((c) => c.op === 'ops_update_status').length >= 1,
-    'iniciarProducaoOP deve mudar status para em_producao');
+test('42.5 iniciarProducaoOP NAO grava op_itens (a distribuicao ja foi salva)', async () => {
+  const { sandbox, rpcCalls } = makeRpcSandbox(() => ({ data: { ok: true }, error: null }));
+  await sandbox.iniciarProducaoOP({ opId: 1, baseAjusteRevisao: 0 });
+  assert.equal(rpcCalls.length, 1);
+  assert.equal('p_itens' in rpcCalls[0].params, false,
+    'iniciar producao nao reenvia a distribuicao');
 });
 
-test('42.6 iniciarProducaoOP: falha em ops.update retorna step "ops_update_status"', async () => {
-  const { sandbox } = makeRecalculoSandbox({ opsStatusError: true });
-  sandbox.sobras = resultadoAceitar().sobras;
-  const result = await vm.runInContext(
-    'window.iniciarProducaoOP({ opId: 42, sobras: sobras })',
-    sandbox
-  );
-  assert.equal(result.step, 'ops_update_status');
-  assert.equal(result.partial, true);
+test('42.6 iniciarProducaoOP devolve a falha do servidor sem lancar', async () => {
+  const { sandbox } = makeRpcSandbox(
+    () => ({ data: { ok: false, codigo: 'concorrencia_ocupada' }, error: null }));
+  const r = await sandbox.iniciarProducaoOP({ opId: 1, baseAjusteRevisao: 0 });
+  assert.equal(r.codigo, 'concorrencia_ocupada');
+  assert.ok(r.error);
 });
 
-test('42.7 iniciarProducaoOP com sobras vazias: só muda status, sem insert de saldo', async () => {
-  const { sandbox, calls } = makeRecalculoSandbox();
-  const result = await vm.runInContext(
-    'window.iniciarProducaoOP({ opId: 42, sobras: [] })',
-    sandbox
-  );
-  assert.equal(result.error, null);
-  assert.equal(result.step, 'ok');
-  assert.equal(calls.filter((c) => c.op === 'saldo_fios_op_insert').length, 0,
-    'sem sobras, não deve inserir saldo_fios_op');
-  assert.ok(calls.filter((c) => c.op === 'ops_update_status').length >= 1,
-    'ainda deve mudar status para em_producao');
+test('42.7 o modulo nao tem mais nenhum caminho que escreva saldo ou status', () => {
+  const executavel = oprSrc.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  assert.equal(/saldo_fios/.test(executavel), false, 'nenhuma escrita de saldo pode restar');
+  assert.equal(/em_producao/.test(executavel), false, 'a transicao de status e do servidor');
 });
 
-// ---- 17-20: helper usa normalizarChaveSaldo + não chama toast/navigate/DOM
 
-test('43. helper usa normalizarChaveSaldo (chamada presente na source)', () => {
-  assert.match(oprSrc, /normalizarChaveSaldo\s*\(/,
-    'op-recalculo.js deve chamar normalizarChaveSaldo dentro de aplicarRecalculoOP');
+test('43. o modulo usa os tres escritores/leitores canonicos do P2-A', () => {
+  assert.match(oprSrc, /rpc\('oc_disponibilidade_op'/,
+    'a disponibilidade tem de vir da projecao nativa');
+  assert.match(oprSrc, /rpc\('salvar_ajuste_producao_op'/,
+    'o ajuste tem de ser do escritor atomico');
+  assert.match(oprSrc, /rpc\('iniciar_producao_op'/,
+    'o inicio tem de ser do escritor do servidor');
 });
+
 
 test('44. helper não chama toast()', () => {
   assert.equal(/toast\s*\(/.test(oprSrc), false,
@@ -1209,12 +1074,20 @@ test('52. builder compartilhado NÃO faz writes inline de saldo/status (usa help
     'builder compartilhado não deve mudar status de ops diretamente');
 });
 
-test('53. writes de saldo/status permanecem centralizados em op-recalculo.js', () => {
-  assert.match(oprSrc, /from\s*\(\s*['"]saldo_fios_op['"]\s*\)/,
-    'op-recalculo.js deve conter o write de saldo_fios_op');
-  assert.match(oprSrc, /status\s*:\s*['"]em_producao['"]/,
-    'op-recalculo.js deve conter a transição para em_producao');
+test('53. os writes de saldo e de status passaram a ser do SERVIDOR', () => {
+  // Este caso afirmava o oposto — que saldo_fios_op e a transicao
+  // em_producao deviam estar em op-recalculo.js. Em P2-A esses writes
+  // migraram para iniciar_producao_op (db/102), escritor unico do snapshot e
+  // da transicao, e o modulo virou cliente fino.
+  const executavel = oprSrc.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  assert.equal(/from\s*\(\s*['"]saldo_fios_op['"]\s*\)/.test(executavel), false,
+    'op-recalculo.js nao pode mais conter o write de saldo_fios_op');
+  assert.equal(/status\s*:\s*['"]em_producao['"]/.test(executavel), false,
+    'op-recalculo.js nao pode mais conter a transicao para em_producao');
+  assert.match(oprSrc, /rpc\('iniciar_producao_op'/,
+    'os dois writes agora sao do servidor, atraves de iniciar_producao_op');
 });
+
 
 test('54. sem bloco aplicarRecalculo em op-nova.js (fluxo retirado)', () => {
   assert.equal(extractAplicarRecalculoBlock(opnSrc), null,

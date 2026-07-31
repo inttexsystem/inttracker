@@ -53,7 +53,8 @@
 //      identifier;
 //  28. screenNovaOP ainda consegue resolver window.renderOPLatexAdmin;
 //  29. op-writes.js continua expondo registrarRecebimentoOrdemFio;
-//  30. op-writes.js continua expondo atribuirFornecedorFioOp.
+//  30. após o boot completo op-writes.js expõe só o recebimento — o helper
+//      plano atribuirFornecedorFioOp está aposentado (P2-A).
 
 'use strict';
 
@@ -775,10 +776,21 @@ test('29. op-writes.js continua expondo registrarRecebimentoOrdemFio', () => {
     'window.registrarRecebimentoOrdemFio não é função após o boot completo');
 });
 
-test('30. op-writes.js continua expondo atribuirFornecedorFioOp', () => {
+// P2-A (§9.9.N linha 12): atribuirFornecedorFioOp foi APOSENTADO e este caso
+// afirmava o oposto. O que ele realmente protegia é a integridade do boot
+// completo em torno de op-writes.js — que o módulo carrega, publica o helper
+// que PERMANECE e não deixa para trás um símbolo global morto. É isso que a
+// versão abaixo prova, agora do lado certo da aposentadoria.
+// A cobertura dedicada está em tests/op-writes-retirado.smoke.js.
+test('30. após o boot completo, op-writes.js expõe só o recebimento; o helper plano ficou aposentado', () => {
   const { sandbox } = makeFullBootSandbox();
-  assert.equal(typeof vm.runInContext('window.atribuirFornecedorFioOp', sandbox), 'function',
-    'window.atribuirFornecedorFioOp não é função após o boot completo');
+  assert.equal(typeof vm.runInContext('window.registrarRecebimentoOrdemFio', sandbox), 'function',
+    'o helper que permanece tem de sobreviver ao boot completo');
+  assert.equal(typeof vm.runInContext('window.atribuirFornecedorFioOp', sandbox), 'undefined',
+    'o helper aposentado não pode ressurgir como global no boot completo');
+  assert.equal(
+    vm.runInContext("'atribuirFornecedorFioOp' in window.RAVATEX_SCREENS.opWrites", sandbox), false,
+    'a namespace não pode reexpor o helper aposentado');
 });
 
 function collectNodeText(node) {

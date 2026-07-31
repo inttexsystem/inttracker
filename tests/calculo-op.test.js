@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { calcularFiosOP, larguraKey, montarOrdensCompraFio, recalcularOP, consumoPorOrdem, totalEntregueCimaPorItem, percentualEntregueOP, agruparOrdensCompraFio } = require('../js/calculo-op.js');
+const { calcularFiosOP, larguraKey, montarNecessidadesCompra, recalcularOP, consumoPorOrdem, totalEntregueCimaPorItem, percentualEntregueOP, agruparOrdensCompraFio } = require('../js/calculo-op.js');
 
 // Parâmetros do seed (db/04_seed.sql)
 const PARAMS = {
@@ -54,30 +54,34 @@ test('largura sem parâmetro lança erro', () => {
   assert.throws(() => calcularFiosOP([{ modeloId: 9, metros: 100 }], modelos, PARAMS), /largura/);
 });
 
-test('montarOrdensCompraFio gera 1 ordem por cor de algodão + PRETO + BRANCO', () => {
+// P2-A: montarOrdensCompraFio virou montarNecessidadesCompra e passou a emitir
+// NECESSIDADE nativa (material / kg_necessario) em vez de linha de documento
+// plano (tipo / kg_pedido). A cardinalidade e os eixos que estes três casos
+// sempre protegeram continuam valendo, agora sobre o payload nativo.
+test('montarNecessidadesCompra gera 1 necessidade por cor de algodão + PRETO + BRANCO', () => {
   const calc = calcularFiosOP(
     [{ modeloId: 1, metros: 200 }, { modeloId: 2, metros: 100 }],
     MODELOS, PARAMS
   );
-  const ordens = montarOrdensCompraFio(calc);
-  const algodao = ordens.filter(o => o.tipo === 'algodao');
-  const poliester = ordens.filter(o => o.tipo === 'poliester');
+  const necessidades = montarNecessidadesCompra(calc);
+  const algodao = necessidades.filter(o => o.material === 'algodao');
+  const poliester = necessidades.filter(o => o.material === 'poliester');
   assert.strictEqual(algodao.length, 2);
   assert.strictEqual(poliester.length, 2);
-  for (const o of algodao) { assert.ok(o.cor_id); assert.strictEqual(o.cor_poliester, null); assert.ok(o.kg_pedido > 0); }
+  for (const o of algodao) { assert.ok(o.cor_id); assert.strictEqual(o.cor_poliester, null); assert.ok(o.kg_necessario > 0); }
   for (const o of poliester) { assert.strictEqual(o.cor_id, null); assert.ok(['PRETO','BRANCO'].includes(o.cor_poliester)); }
 });
 
-test('montarOrdensCompraFio arredonda kg_pedido para 3 casas', () => {
+test('montarNecessidadesCompra arredonda kg_necessario para 3 casas', () => {
   const calc = calcularFiosOP([{ modeloId: 1, metros: 200 }], MODELOS, PARAMS);
-  const ordens = montarOrdensCompraFio(calc);
-  const branco = ordens.find(o => o.tipo === 'algodao' && o.cor_id === 1);
-  assert.strictEqual(branco.kg_pedido, 0.07);
+  const necessidades = montarNecessidadesCompra(calc);
+  const branco = necessidades.find(o => o.material === 'algodao' && o.cor_id === 1);
+  assert.strictEqual(branco.kg_necessario, 0.07);
 });
 
-test('montarOrdensCompraFio não gera ordens sem itens', () => {
-  const ordens = montarOrdensCompraFio(calcularFiosOP([], MODELOS, PARAMS));
-  assert.strictEqual(ordens.length, 0);
+test('montarNecessidadesCompra não gera necessidades sem itens', () => {
+  const necessidades = montarNecessidadesCompra(calcularFiosOP([], MODELOS, PARAMS));
+  assert.strictEqual(necessidades.length, 0);
 });
 
 test('recalcularOP fator < 1 escala metros pra baixo e gera saldo da cor não-gargalo', () => {

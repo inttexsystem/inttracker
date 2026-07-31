@@ -391,23 +391,21 @@
     var canonicalOrdens = cutover ? await cutover.attemptCanonicalRead({ pedidoId: pedidoId }) : null;
     if (canonicalOrdens && canonicalOrdens.outcome === 'canonical_success') {
       state.ordensFio = canonicalOrdens.rows;
-    } else if (canonicalOrdens && canonicalOrdens.outcome === 'hard_failure') {
+    } else {
+      // P2-A (§9.9.N linha 11): o FALLBACK PLANO foi REMOVIDO. Antes, quando a
+      // projeção canônica não respondia, esta tela relia `ordens_compra_fio`
+      // direto e seguia como se nada tivesse acontecido — voltando ao modelo
+      // plano em silêncio, que é justamente o que a proibição canônica veda.
+      //
+      // Agora a falha é HONESTA: lista vazia e docsLoadError, que a tela já
+      // renderiza como estado de erro. Um dado ausente é melhor do que um dado
+      // de outra autoridade apresentado como se fosse o corrente.
       state.ordensFio = [];
       state.docsLoadError = true;
-      console.error('pedido-detail: erro ao carregar ordens_compra_fio (canonico)', canonicalOrdens.error);
-    } else {
-      var ordensRes = await window.supa
-        .from('ordens_compra_fio')
-        .select('id, op_id, tipo, cor_id, cor_poliester, kg_pedido, kg_recebido, status, cores:cor_id(id, nome)')
-        .in('op_id', opIds);
-
-      if (ordensRes.error) {
-        state.ordensFio = [];
-        state.docsLoadError = true;
-        console.error('pedido-detail: erro ao carregar ordens_compra_fio', ordensRes.error);
-      } else {
-        state.ordensFio = ordensRes.data || [];
-      }
+      console.error(
+        'pedido-detail: leitura canonica de ordens de fio indisponivel; sem fallback plano',
+        canonicalOrdens ? (canonicalOrdens.error || canonicalOrdens.outcome) : 'adaptador ausente'
+      );
     }
 
     if (state.parciais.length > 0) {

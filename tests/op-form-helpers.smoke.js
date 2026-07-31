@@ -82,6 +82,9 @@ const ofhSrc    = fs.readFileSync(OFH,   'utf8');
 const opnSrc    = fs.readFileSync(OPN,   'utf8');
 // Builder de distribuição COMPARTILHADO (YARN-BUTTONS-FINAL-CONTRACT).
 const oduSrc    = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-distribuicao-ui.js'), 'utf8');
+// P2-A: o cliente dos escritores canônicos (salvar_ajuste_producao_op /
+// iniciar_producao_op), lido para provar que a delegação termina no servidor.
+const oprSrc    = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-recalculo.js'), 'utf8');
 const bootSrc   = fs.readFileSync(BOOT,  'utf8');
 const efSrc     = fs.readFileSync(EF,    'utf8');
 const uiSrc     = fs.readFileSync(UI,    'utf8');
@@ -267,10 +270,34 @@ test('10. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)
   //     compartilhado js/screens/op-distribuicao-ui.js.
   assert.equal(/function\s+aplicarRecalculo\s*\(/.test(opnSrc), false,
     'o wrapper morto aplicarRecalculo não pode voltar a op-nova.js');
-  assert.match(opnSrc, /window\.aplicarRecalculoOP/,
-    'op-nova.js deve usar o helper canônico window.aplicarRecalculoOP');
+
+  // P2-A (Emenda 2): `window.aplicarRecalculoOP` foi APOSENTADO por
+  // consequência — seu corpo era feito só dos mecanismos que o P2-A elimina
+  // (laço de UPDATE item a item, sucesso parcial e o snapshot de saldo), e ele
+  // não tinha chamador legítimo depois do repontamento para o escritor
+  // atômico.
+  //
+  // A asserção positiva anterior exigia o nome no fonte de op-nova.js e era
+  // satisfeita APENAS por comentários — um guard verde sustentado por texto
+  // morto. O que ele realmente devia proteger é a DELEGAÇÃO: op-nova.js não
+  // reimplementa ajuste de produção, delega ao dono compartilhado, e o dono
+  // compartilhado fala com os escritores canônicos do servidor. É isso que as
+  // três asserções abaixo provam.
+  assert.doesNotMatch(opnSrc, /aplicarRecalculoOP/,
+    'o símbolo aposentado não pode sobreviver em op-nova.js — nem em código, nem em comentário de call-site');
+  assert.match(opnSrc, /window\.buildDistribuicaoBlock\(/,
+    'op-nova.js tem de DELEGAR o ajuste de produção ao dono compartilhado');
   assert.match(oduSrc, /function buildDistribuicaoBlock/,
     'o bloco de distribuição deve viver no módulo compartilhado');
+  assert.match(oduSrc, /window\.salvarDistribuicaoOP\(/,
+    'o dono compartilhado tem de usar o caminho canônico de ajuste');
+  assert.match(oduSrc, /window\.iniciarProducaoOP\(/,
+    'o dono compartilhado tem de usar o caminho canônico de início de produção');
+  // E esses dois caminhos canônicos são, de facto, as RPCs do servidor.
+  assert.match(oprSrc, /rpc\('salvar_ajuste_producao_op'/,
+    'salvarDistribuicaoOP tem de ser um cliente de salvar_ajuste_producao_op');
+  assert.match(oprSrc, /rpc\('iniciar_producao_op'/,
+    'iniciarProducaoOP tem de ser um cliente de iniciar_producao_op');
 });
 
 test('11. op-nova.js usa window.rotuloFio (não rotuloFioOrdem local)', () => {

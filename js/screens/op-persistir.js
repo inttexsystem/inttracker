@@ -19,8 +19,10 @@
 //
 // Dependências resolvidas em tempo de chamada (não no load):
 //   - window.supa (js/supabase-client.js) — usado por persistirOP
-//   - window.calcularFiosOP, window.montarOrdensCompraFio
-//     (js/calculo-op.js) — usados por persistirOP quando status='aberta'
+//   - window.RAVATEX_SCREENS.opCompraRegime (js/screens/op-compra-regime.js)
+//     — regime de compra e sincronização NATIVA das necessidades quando
+//     status='aberta'. P2-A removeu o ramo plano, que era o único consumidor
+//     de window.calcularFiosOP/montarOrdensCompraFio aqui.
 //
 // NÃO depende de: window.toast, window.modal, window.confirmDialog,
 // window.CURRENT_USER, window.navigate, window.saving.
@@ -34,21 +36,10 @@
 (function (window) {
   'use strict';
 
-  // PHASE-C3C-B (docs/architecture/ORDEM_COMPRA_C3C_B_PHASE_CONTRACT.md §32):
-  // replaces a raw legacy_receipt_fenced Postgres error with a clear message,
-  // through the caller's existing non-crashing { error, ... } return shape.
-  // Not reachable while legacy_active; returns the original error unchanged
-  // for every other condition.
-  function clearFenceError(error) {
-    var cutover = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.ordemCompraReceiptCutover;
-    if (cutover && cutover.isLegacyReceiptFenced(error)) {
-      return Object.assign(
-        new Error('Recebimento de fio bloqueado pelo fechamento do cutover legado.'),
-        { code: '55000', codigo: 'legacy_receipt_fenced', cause: error }
-      );
-    }
-    return error;
-  }
+  // P2-A: clearFenceError foi REMOVIDO junto com o ramo plano. Ele existia só
+  // para traduzir o erro `legacy_receipt_fenced` da guarda de mutação
+  // protegida do db/75 sobre as escritas planas de ordens_compra_fio, e este
+  // arquivo não faz mais nenhuma dessas escritas.
 
   function itensValidosOP(itens) {
     return (itens || []).filter((item) => item && item.modeloId && Number(item.metros) > 0);
@@ -125,7 +116,12 @@
   //   'lotes_insert' / 'lotes_update' / 'lotes_vincular' — falhas no lote
   //   'op_itens_delete' / 'op_itens_insert' — falhas em itens
   //   'op_fornecedores_delete' / 'op_fornecedores_insert' — falhas em fornecedores
-  //   'ordens_compra_fio_delete' / 'ordens_compra_fio_insert' — falhas em ordens
+  //   'regime_resolve' — o servidor não resolveu o regime de compra
+  //   'regime_legado_sem_escritor' — Pedido em regime legado, sem escritor
+  //   'necessidades_sync' — falha na sincronização NATIVA das necessidades
+  //
+  // P2-A retirou 'ordens_compra_fio_delete' / 'ordens_compra_fio_insert':
+  // não existe mais escrita plana de ordens de fio aqui.
   //
   // NÃO chama toast, navigate, saving, ou DOM. NÃO acessa estado
   // de closure de screenNovaOP — recebe tudo por argumento e usa
@@ -217,7 +213,15 @@
       opRow = r.data;
       opIdSalvo = opRow.id;
     } else {
-      const r = await supa.from('ops').insert({ numero: numeroPersistido, ano: anoInt, status }).select().single();
+      // P2-A (§9.9.L.4 / TD2.1, caminho 3): NÃO enviar ops.status na criação
+      // quando o valor é o próprio default canônico. Uma OP nova nasce
+      // 'simulada' por DEFAULT do schema (db/01) e o cliente não precisa —
+      // nem deve — declarar esse fato protegido. Só permanece explícito o
+      // status que NÃO é o default; quando o P4 estreitar o grant por coluna,
+      // o caminho do default já estará limpo.
+      const insertPayload = { numero: numeroPersistido, ano: anoInt };
+      if (status !== 'simulada') insertPayload.status = status;
+      const r = await supa.from('ops').insert(insertPayload).select().single();
       if (r.error) {
         return { error: r.error, step: 'ops_insert', partial: false, opId: null };
       }
@@ -302,42 +306,37 @@
         return { error: regime && regime.error ? regime.error : { message: (regime && regime.erro) || 'Falha ao resolver regime de compra' }, step: 'regime_resolve', partial: true, opId: opIdSalvo };
       }
 
-      if (regime.modelo === 'native') {
-        // Native: no flat ordens_compra_fio; synchronize native needs through
-        // the canonical server writer. Failure stops the operation (no fallback).
-        const sync = await regimeApi.sincronizarNecessidadesCompraFio(pedidoId);
-        if (!sync || sync.ok !== true) {
-          await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-          return { error: sync && sync.error ? sync.error : { message: (sync && sync.erro) || 'Falha ao sincronizar necessidades nativas' }, step: 'necessidades_sync', partial: true, opId: opIdSalvo };
-        }
-        return { error: null, step: 'ok', partial: false, opId: opIdSalvo, numero: numeroPersistido, modelo: 'native' };
+      // P2-A (§9.9.N linha 9): SOMENTE sincronização NATIVA. O ramo legado —
+      // que montava linhas planas de `ordens_compra_fio` a partir da receita
+      // e as gravava com delete+insert diretos — foi REMOVIDO. A proibição
+      // canônica é explícita: nenhuma escrita dupla nativo-para-plano, nenhuma
+      // materialização sintética de ordens_compra_fio, nem sequer como medida
+      // temporária de compatibilidade.
+      //
+      // O regime continua sendo do SERVIDOR e não é ignorado. Um Pedido que o
+      // servidor ainda classifica como 'legacy' (evidência de compra plana
+      // pré-existente) não tem mais escritor de compra nesta tela: a operação
+      // FALHA HONESTAMENTE e devolve a OP a 'simulada'. Fingir sucesso, ou
+      // recriar as linhas planas, seria exatamente o que a proibição veda.
+      if (regime.modelo !== 'native') {
+        await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
+        return {
+          error: { message: 'Este Pedido está no regime de compra legado, que não tem mais escritor de ordens de fio nesta tela. Trate a compra pelo planejamento nativo antes de abrir a OP.' },
+          step: 'regime_legado_sem_escritor',
+          partial: true,
+          opId: opIdSalvo,
+        };
       }
 
-      // legacy: preserve the existing flat-row creation/deletion EXACTLY.
-      // PHASE-C3C-B (docs/architecture/ORDEM_COMPRA_C3C_B_PHASE_CONTRACT.md
-      // §32): no bridge, mapping, canonical order creation, or db/76 RPC
-      // call is added here. clearFenceError() only replaces a raw
-      // legacy_receipt_fenced Postgres error (db/75's protected-mutation
-      // guard, not reachable while legacy_active) with a clear message,
-      // through the exact same non-crashing { error, step, partial } shape.
-      const calc = window.calcularFiosOP(validos, modelosById, parametrosByLargura);
-      const ordens = window.montarOrdensCompraFio(calc).map((o) => ({
-        op_id: opIdSalvo,
-        fornecedor_id: null,
-        tipo: o.tipo, cor_id: o.cor_id, cor_poliester: o.cor_poliester,
-        kg_pedido: o.kg_pedido, status: 'pendente',
-      }));
-      const delOrd = await supa.from('ordens_compra_fio').delete().eq('op_id', opIdSalvo);
-      if (delOrd.error) {
+      // O que persiste é NECESSIDADE, não documento, e quem persiste é o
+      // escritor do servidor. Falha para a operação e devolve a OP a
+      // 'simulada' — nunca cai para o modelo plano em silêncio.
+      const sync = await regimeApi.sincronizarNecessidadesCompraFio(pedidoId);
+      if (!sync || sync.ok !== true) {
         await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-        return { error: clearFenceError(delOrd.error), step: 'ordens_compra_fio_delete', partial: true, opId: opIdSalvo };
+        return { error: sync && sync.error ? sync.error : { message: (sync && sync.erro) || 'Falha ao sincronizar necessidades nativas' }, step: 'necessidades_sync', partial: true, opId: opIdSalvo };
       }
-      const ordRes = await supa.from('ordens_compra_fio').insert(ordens);
-      if (ordRes.error) {
-        await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-        return { error: clearFenceError(ordRes.error), step: 'ordens_compra_fio_insert', partial: true, opId: opIdSalvo };
-      }
-      return { error: null, step: 'ok', partial: false, opId: opIdSalvo, numero: numeroPersistido, modelo: 'legacy' };
+      return { error: null, step: 'ok', partial: false, opId: opIdSalvo, numero: numeroPersistido, modelo: 'native' };
     }
 
     return { error: null, step: 'ok', partial: false, opId: opIdSalvo, numero: numeroPersistido };

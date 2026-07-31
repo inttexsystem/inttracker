@@ -93,9 +93,13 @@
     'admin_usuarios_last_sign_in',              // db/59
     'cliente_alteracao_resumo',                 // db/94
     'cliente_pedido_summary',                   // db/30
+    'listar_fila_aceite_fornecedor',            // db/103
     'listar_ordens_compra_fio_compat',          // db/76
     'obter_historico_recebimento_ordem_compra', // db/70
     'obter_planejamento_compra_pedido',         // db/99
+    'oc_disponibilidade_op',                    // db/101
+    'pedido_elegivel_cancelamento',             // db/105
+    'pode_recuperar_op_acabamento',             // db/108
     'sugerir_codigo_ordem_compra',              // db/99
     // VOLATILE (padrão do PL/pgSQL) — corpo e fecho transitivo sem mutação
     'avaliar_necessidades_compra_fio',          // db/69
@@ -105,6 +109,47 @@
     'obter_distribuicao_ordem_compra',          // db/69
     'obter_ordem_compra_admin'                  // db/97
   ]);
+
+  // -- 2c. INVENTÁRIO DECLARATIVO DAS RPCs DO P2 (METADADO, NÃO AUTORIZAÇÃO) --
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P2: as catorze RPCs nativas que o
+  // front-end do P2 consome. Esta lista é DOCUMENTAÇÃO e superfície de teste,
+  // NADA MAIS.
+  //
+  // Ela NÃO concede execução, NÃO é lida pelo proxy do write-guard, NÃO é
+  // passada para `_READ_ONLY_RPCS` e NUNCA pode ser unida a ela: apenas as
+  // QUATRO entradas provadas como leitura (oc_disponibilidade_op,
+  // pedido_elegivel_cancelamento, listar_fila_aceite_fornecedor,
+  // pode_recuperar_op_acabamento) estão na allowlist acima, cada uma aprovada
+  // pelas três verificações de 2b sobre a definição SQL versionada — todas
+  // STABLE, e todo o seu fecho transitivo (_oc_disponibilidade_linhas,
+  // _oc_material_recebido_liquido, _oc_reserva_ativa, oc_cobertura_ativa)
+  // também STABLE.
+  //
+  // As DEZ escritoras abaixo continuam BLOQUEADAS em ambiente guardado, como
+  // qualquer outra escrita: aparecer aqui não as libera. Os auxiliares
+  // owner-only (_op_status_aplicar, _pedido_status_recalcular,
+  // _expedicao_estorno_aplicar, _oc_*) são deliberadamente omitidos — não são
+  // superfície de cliente.
+  const _P2_RPC_INVENTORY = Object.freeze({
+    leitura: Object.freeze([
+      'oc_disponibilidade_op',                  // db/101
+      'pedido_elegivel_cancelamento',           // db/105
+      'listar_fila_aceite_fornecedor',          // db/103
+      'pode_recuperar_op_acabamento'            // db/108
+    ]),
+    escrita: Object.freeze([
+      'salvar_ajuste_producao_op',              // db/102
+      'iniciar_producao_op',                    // db/102
+      'alterar_status_pedido',                  // db/105
+      'cancelar_pedido',                        // db/105
+      'aceitar_ordem_compra',                   // db/103
+      'rejeitar_ordem_compra',                  // db/103
+      'registrar_entrega_cima_com_acabamento',  // db/111
+      'gerar_op_acabamento',                    // db/108
+      'estornar_expedicao_tapete_parcial',      // db/109
+      'corrigir_entrega_expedicao'              // db/109
+    ])
+  });
 
   const _WG_ERROR = (op) => new Error(
     'WRITE-GUARD: gravação bloqueada' + (op ? ' (' + op + ')' : '') + '. Este ' +
@@ -210,6 +255,9 @@
     GUARD_BLOCK_WRITES: _GUARD_BLOCK_WRITES,
     LOCAL_HOSTS: _LOCAL_HOSTS,
     renderWriteGuardBanner: _renderWriteGuardBanner,
+    // Metadado declarativo do P2. Publicado para documentação e teste; o
+    // proxy acima nunca o consulta e ele não concede execução a ninguém.
+    P2_RPC_INVENTORY: _P2_RPC_INVENTORY,
   };
 
   // Compatibilidade com o script inline atual.

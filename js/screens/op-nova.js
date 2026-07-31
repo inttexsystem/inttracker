@@ -7,10 +7,10 @@
 //   - a closure inteira (estado local + ~20 subfunções);
 //   - a assinatura async function screenNovaOP(opId);
 //   - os call-sites já modularizados
-//     (window.persistirOP, window.aplicarRecalculoOP,
+//     (window.persistirOP, window.carregarDisponibilidadeOP,
 //      window.maxMetrosItem, window.itensValidosOP,
 //      window.registrarRecebimentoOrdemFio,
-//      window.atribuirFornecedorFioOp, window.renderOPLatexAdmin,
+//      window.renderOPLatexAdmin,
 //      window.renderOPTecelagemProducaoAdmin,
 //      window.rotuloModelo, window.fmtKg, window.fmtMetros,
 //      window.disabledAttr, window.rotuloFio, window.OCF_STATUS_LABEL);
@@ -404,6 +404,13 @@
   let clienteSel = '';
   let opItensRaw = [];
   let ordens = [];
+  // P2-A (§9.9.A): DISPONIBILIDADE NATIVA — linhas de oc_disponibilidade_op.
+  // É a ÚNICA fonte de teto produtivo, ajuste e início de produção nesta
+  // tela. NÃO se confunde com `ordens` acima, que continua sendo a projeção
+  // de ENTIDADE de Ordem de Compra (resumo read-only, linhas de recebimento
+  // legado enquanto o recebimento nativo está inativo, métrica e PDF) e não
+  // tem autoridade produtiva nenhuma.
+  let disponibilidade = [];
   // ORDEM-COMPRA-B1: is the db/65 dimension layer present on this database?
   // Set by fetchOrdensCompraFio's extended-select-with-fallback. When false
   // (pre-db/65 database, e.g. production before Phase A lands there), the
@@ -616,7 +623,7 @@
 
   if (opId) {
     const { data, error } = await supa.from('ops')
-      .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, observacao, origem_op_id, lote_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa)')
+      .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, ajuste_revisao, tipo, observacao, origem_op_id, lote_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa)')
       .eq('id', opId).single();
     if (error || !data) {
       toast('OP não encontrada', 'error'); console.error(error);
@@ -644,6 +651,7 @@
       const ordRes = await fetchOrdensCompraFio(op.id);
       if (ordRes.error) { toast('Erro ao carregar ordens de fio', 'error'); console.error(ordRes.error); }
       ordens = ordRes.data || [];
+      await carregarDisponibilidadeNativa();
       // ORDEM-COMPRA-B1: global config (Aceite dispensado/exigido chip).
       // Best-effort — absent table (pre-db/65) or error → default dispensado.
       const cfgRes = await supa.from('ordem_compra_config').select('exige_aceite').eq('id', 1).maybeSingle();
@@ -677,8 +685,9 @@
 
       // Blocos 4/7 da OP Em Produção Tecelagem: leituras read-only
       // adicionais (db/21_op_lifecycle_status_eventos.sql já aplicada em
-      // staging para op_eventos; saldo_fios_op já existe e é escrita por
-      // window.aplicarRecalculoOP em op-recalculo.js, não alterado aqui).
+      // staging para op_eventos; saldo_fios_op já existe e é escrito
+      // EXCLUSIVAMENTE pelo servidor, em iniciar_producao_op — db/102 é o
+      // único escritor desse snapshot e nenhuma tela grava lá).
       // Puro SELECT — nenhuma escrita, nenhuma RPC de transição de status.
       // Erro ou ausência de dados cai no fallback controlado da UI.
       if (op.status === 'em_producao' && op.tipo !== 'latex') {
@@ -799,16 +808,17 @@
           op_fornecedores_insert: 'Erro ao salvar fornecedor de tecelagem',
           pedido_required: 'Nao e possivel abrir OP sem Pedido vinculado.',
           route_homogeneity: 'OP nao pode misturar Tapete e Manta; crie OPs separadas por tipo de produto.',
-          ordens_compra_fio_delete: 'Falha ao gerar ordens de compra — OP mantida como simulada',
-          ordens_compra_fio_insert: 'Falha ao gerar ordens de compra — OP mantida como simulada',
+          // P2-A: os steps 'ordens_compra_fio_delete'/'_insert' deixaram de
+          // existir com a remoção do ramo plano em op-persistir.js.
           regime_resolve: 'Falha ao resolver o regime de compra do Pedido — OP mantida como simulada',
+          regime_legado_sem_escritor: 'Pedido em regime de compra legado — trate a compra pelo planejamento nativo antes de abrir a OP',
           necessidades_sync: 'Falha ao sincronizar as necessidades de compra — OP mantida como simulada',
         };
         toast(mensagens[result.step] || 'Erro ao abrir OP', 'error');
         console.error(result.error);
         return;
       }
-      toast(result.modelo === 'native' ? 'OP aberta — necessidades de compra sincronizadas' : 'OP aberta — ordens de compra geradas', 'success');
+      toast('OP aberta — necessidades de compra sincronizadas', 'success');
       navigate('#/ops');
     } finally { saving = false; }
   }
@@ -1293,11 +1303,57 @@
     return await supa.from('ordens_compra_fio').select(OCF_SELECT_LEGACY).eq('op_id', opId);
   }
 
+  // P2-A (§9.9.A): carga da DISPONIBILIDADE NATIVA. É a única leitura que
+  // alimenta teto/slider/ajuste/início de produção. Falha aqui NÃO é
+  // silenciosa e NÃO cai para o modelo plano: a lista fica vazia, o bloco de
+  // distribuição diz honestamente que o teto não carregou e o servidor
+  // continua sendo o dono da validação no salvamento.
+  async function carregarDisponibilidadeNativa() {
+    const api = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.opRecalculo;
+    if (!api || typeof api.carregarDisponibilidadeOP !== 'function') {
+      disponibilidade = [];
+      return { error: new Error('Módulo de disponibilidade nativa indisponível') };
+    }
+    const res = await api.carregarDisponibilidadeOP({ opId: op.id });
+    if (res.error) {
+      disponibilidade = [];
+      toast('Erro ao carregar a disponibilidade de fio', 'error');
+      console.error('op-nova: oc_disponibilidade_op', res.error);
+      return res;
+    }
+    disponibilidade = res.data || [];
+    return res;
+  }
+
+  // Recarregamento explícito depois de um conflito de revisão. Só devolve
+  // sucesso quando a recarga foi COMPLETA — a OP, seus itens e a
+  // disponibilidade — porque é isso que destrava o Salvar no bloco
+  // compartilhado. Uma recarga parcial não pode reabilitar a gravação.
+  async function recarregarAjusteOP() {
+    if (!op) return false;
+    const opRes = await supa.from('ops')
+      .select('id, status, ajuste_revisao, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id)')
+      .eq('id', op.id).single();
+    if (opRes.error || !opRes.data) {
+      toast('Erro ao recarregar a OP', 'error');
+      console.error('op-nova: recarregarAjusteOP', opRes.error);
+      return false;
+    }
+    const dispRes = await carregarDisponibilidadeNativa();
+    if (dispRes && dispRes.error) return false;
+    op.status = opRes.data.status;
+    op.ajuste_revisao = opRes.data.ajuste_revisao;
+    opItensRaw = opRes.data.op_itens || [];
+    render();
+    return true;
+  }
+
   async function reloadOrdens() {
     if (!op || op.status === 'simulada') return;
     const r = await fetchOrdensCompraFio(op.id);
     if (r.error) { toast('Erro ao recarregar ordens de fio', 'error'); console.error(r.error); return; }
     ordens = r.data || [];
+    await carregarDisponibilidadeNativa();
     render();
   }
 
@@ -1601,17 +1657,23 @@
     return window.buildDistribuicaoBlock({
       op: op,
       opItens: opItensRaw,
-      ordens: ordens,
+      // P2-A: o teto vem da projeção NATIVA, nunca de `ordens`.
+      disponibilidade: disponibilidade,
+      ajusteRevisao: op ? op.ajuste_revisao : 0,
       modelosById: modelosById,
       parametrosByLargura: parametrosByLargura,
       variant: 'full',
+      onRecarregar: recarregarAjusteOP,
       onSaved: function (savedMap) {
         // Reflete a distribuição recém-salva em memória e re-renderiza,
         // para o "Iniciar produção" do rail reavaliar sua habilitação.
+        // savedMap null = ajuste LIMPO (todos os itens voltam a null).
         for (var i = 0; i < opItensRaw.length; i++) {
           var it = opItensRaw[i];
-          if (savedMap[it.id] != null) it.metros_ajustados = savedMap[it.id];
+          if (savedMap == null) it.metros_ajustados = null;
+          else if (savedMap[it.id] != null) it.metros_ajustados = savedMap[it.id];
         }
+        if (op) op.ajuste_revisao = Number(op.ajuste_revisao || 0) + 1;
         render();
       },
     });
@@ -1678,7 +1740,7 @@
     // com distribuição salva + fio recebido cobrindo; senão desabilitado
     // com title explicativo (inclui "aguardando recebimento dos fios").
     var api = window.RAVATEX_SCREENS.opDistribuicao;
-    var st = api.iniciarProducaoState(opItensRaw, ordens, modelosById, parametrosByLargura);
+    var st = api.iniciarProducaoState(opItensRaw, op, disponibilidade, modelosById, parametrosByLargura);
     // §2.1 (D9): o estado desabilitado nao troca cores — ele e opacidade.
     // Declarado explicitamente, nunca derivado do estilo habilitado por
     // substituicao de string.
@@ -1686,12 +1748,18 @@
     var btnIniciar = api.buildIniciarProducaoButton({
       op: op,
       opItens: opItensRaw,
-      ordens: ordens,
+      disponibilidade: disponibilidade,
+      ajusteRevisao: op ? op.ajuste_revisao : 0,
       modelosById: modelosById,
       parametrosByLargura: parametrosByLargura,
       styleEnabled: RV_BTN_PRIMARY,
       styleDisabled: styleDisabled,
-      onIniciado: function () { navigate('#/ops'); },
+      // A continuação é do SERVIDOR: iniciar_producao_op devolve
+      // proxima_acao {rota, rotulo} e a tela navega para a rota devolvida.
+      // Só cai em '#/ops' quando o servidor não indicou rota alguma.
+      onIniciado: function (proximaAcao) {
+        navigate((proximaAcao && proximaAcao.rota) ? proximaAcao.rota : '#/ops');
+      },
     });
     var detail = st.habilitado
       ? 'Distribuição salva e fios recebidos — pronto para iniciar a produção.'

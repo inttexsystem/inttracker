@@ -80,6 +80,31 @@
       ['op_eventos', 'Eventos da OP'],
       ['fornecedores', 'Fornecedores vinculados'],
       ['ordens_compra_fio', 'Ordens de fio'],
+      // P2-A (§9.9.N linha 14): grafo de dependências NATIVO. O diagnóstico do
+      // servidor (diagnosticar_impacto_pedido / diagnosticar_impacto_op) já
+      // conta estas tabelas; sem os rótulos abaixo elas eram contadas e não
+      // MOSTRADAS, e o operador confirmava uma exclusão cujo impacto real
+      // ficava invisível.
+      //
+      // Isto é APENAS projeção de leitura. Nenhuma exclusão direta é
+      // adicionada: remover_pedido e remover_op continuam sendo os únicos
+      // donos da remoção, e nada aqui contorna o escritor do servidor.
+      ['necessidade_compra_fio', 'Necessidades de compra de fio'],
+      ['necessidade_compra_planejamento', 'Planejamentos de compra'],
+      ['ordem_compra', 'Pedidos de Compra'],
+      ['ordem_compra_item', 'Itens de Pedido de Compra'],
+      ['ordem_compra_item_alocacao', 'Alocações de compra'],
+      ['ordem_compra_recebimentos', 'Recebimentos de compra'],
+      ['ordem_compra_fio_lancamentos', 'Lançamentos de fio'],
+      ['ordem_compra_fio_movimentos_estoque', 'Movimentos de estoque de fio'],
+      ['ordem_compra_eventos', 'Eventos de Pedido de Compra'],
+      ['ordem_compra_aceite_comandos', 'Comandos de aceite de fornecedor'],
+      ['op_acabamento_comandos', 'Comandos de OP de Acabamento'],
+      ['op_acabamento_tentativas', 'Tentativas de OP de Acabamento'],
+      ['entrega_cima_comandos', 'Comandos de entrega da tecelagem'],
+      ['expedicao_comandos', 'Comandos de expedição'],
+      ['pedido_alteracao_solicitacoes', 'Solicitações de alteração'],
+      ['pedido_alteracao_solicitacao_itens', 'Itens de solicitação de alteração'],
       ['saldo_fios_op', 'Saldos de fio da OP'],
       ['entregas', 'Entregas'],
       ['entrega_itens', 'Itens de entrega'],

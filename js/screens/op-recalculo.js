@@ -1,232 +1,205 @@
 // =====================================================================
-// === SCREENS: OP RECALCULO PURE HELPERS + WRITE (Seam A/B) ============
-// Helpers puros de cálculo de recalculo de OP, extraídos do
-// <script> inline de index.html, de dentro de screenNovaOP.
-// Concentra:
+// === SCREENS: OP — DISPONIBILIDADE NATIVA + ESCRITORES ATÔMICOS ======
+// NATIVE-RECEIPT-COORDINATED-RELEASE-P2-A (§9.9.A, §9.9.C, §9.9.D).
 //
-//   - maxMetrosItem(item, modelosById, parametrosByLargura, ordens)
-//   - normalizarChaveSaldo(tipo, corId, corPoliester)
-//   - aplicarRecalculoOP({ opId, resultado, modo, ordens })
+// Este módulo é um CLIENTE FINO dos escritores canônicos do servidor.
+// Ele não decide teto, não decide transição de status e não faz DML.
 //
-// Carregar via <script src="js/screens/op-recalculo.js"></script>
-// no <head>, DEPOIS de js/screens/painel.js e ANTES de jspdf +
-// script inline principal.
+//   - carregarDisponibilidadeOP({ opId })  -> rpc oc_disponibilidade_op
+//   - maxMetrosItem(item, modelosById, parametrosByLargura, disponibilidade)
+//   - salvarDistribuicaoOP({ opId, baseAjusteRevisao, itens })
+//                                          -> rpc salvar_ajuste_producao_op
+//   - iniciarProducaoOP({ opId, baseAjusteRevisao })
+//                                          -> rpc iniciar_producao_op
+//
+// O QUE FOI APOSENTADO EM P2-A, E POR QUÊ
+// ---------------------------------------
+// `aplicarRecalculoOP`, `snapshotSaldoEIniciarProducao` e
+// `normalizarChaveSaldo` foram REMOVIDOS. Não eram apenas código morto: seu
+// corpo inteiro era feito exatamente dos mecanismos que o P2-A elimina —
+//   * laço de UPDATE direto item a item em `op_itens`;
+//   * semântica de sucesso PARCIAL (`partial: true` no meio do laço), que
+//     deixava metade dos itens gravados quando um write falhava;
+//   * INSERT direto em `saldo_fios_op` e leitura/escrita direta do
+//     totalizador `saldo_fios`;
+//   * `UPDATE ops SET status = 'em_producao'` pelo cliente.
+// Hoje o servidor é o dono: `salvar_ajuste_producao_op` valida o payload
+// COMPLETO contra os tetos por eixo ANTES de qualquer escrita, e
+// `iniciar_producao_op` é o ÚNICO escritor do snapshot `saldo_fios_op` e da
+// transição de status. Não há mais estado parcial para o cliente relatar.
+//
+// `clearFenceError` também saiu: existia só para traduzir o erro da guarda de
+// mutação protegida do db/75 sobre saldo_fios/saldo_fios_op, e este arquivo
+// não escreve mais nessas tabelas.
+//
+// TETO PRODUTIVO
+// --------------
+// `maxMetrosItem` lê APENAS a projeção nativa `oc_disponibilidade_op`. Não lê
+// mais `ordens_compra_fio`: uma linha de Ordem de Compra plana é um documento,
+// não um teto produtivo, e o teto nativo já é consciente de origem (algodão é
+// da OP; poliéster é um pool do Pedido, descontadas as reservas das OUTRAS
+// OPs — §9.9.A.2/A.3). O teto do servidor continua sendo o autoritativo: o que
+// se faz aqui é capar o slider, nunca autorizar.
+//
+// Carregar via <script src="js/screens/op-recalculo.js"></script> no <head>,
+// DEPOIS de js/screens/painel.js e ANTES de jspdf + script inline principal.
 //
 // Dependências resolvidas em tempo de chamada (não no load):
 //   - window.larguraKey (js/calculo-op.js) — usado por maxMetrosItem
-//   - window.supa (js/supabase-client.js) — usado por aplicarRecalculoOP
+//   - window.supa (js/supabase-client.js) — usado pelos três chamadores de RPC
 //
 // NÃO depende de: window.toast, window.modal, window.confirmDialog,
 // window.CURRENT_USER, window.navigate, window.saving.
-//
-// Compatibilidade: window.maxMetrosItem, window.normalizarChaveSaldo
-// e window.aplicarRecalculoOP seguem disponíveis para os call-sites
-// do inline (prefixados com `window.`).
 // =====================================================================
 
 (function (window) {
   'use strict';
 
-  // PHASE-C3C-B (docs/architecture/ORDEM_COMPRA_C3C_B_PHASE_CONTRACT.md §32):
-  // replaces a raw legacy_receipt_fenced Postgres error (db/75's
-  // protected-mutation guard on saldo_fios/saldo_fios_op) with a clear
-  // message, through the caller's existing non-crashing { error, ... }
-  // return shape. Not reachable while legacy_active; no canonical RPC is
-  // called here — op-recalculo.js still owns its exact current saldo_fios /
-  // saldo_fios_op writes unchanged.
-  function clearFenceError(error) {
-    var cutover = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.ordemCompraReceiptCutover;
-    if (cutover && cutover.isLegacyReceiptFenced(error)) {
-      return Object.assign(
-        new Error('Ajuste de saldo de fio bloqueado pelo fechamento do cutover legado.'),
-        { code: '55000', codigo: 'legacy_receipt_fenced', cause: error }
-      );
+  // Códigos de recusa que o servidor devolve dentro de `data` (a função
+  // retorna JSONB `{ok:false, codigo}` em vez de levantar exceção, para não
+  // abortar a transação do chamador). São contrato, não texto de tela.
+  var CODIGO_REVISAO_DESATUALIZADA = 'AJUSTE_REVISAO_DESATUALIZADA';
+
+  // Normaliza as DUAS formas de falha de uma RPC canônica numa só:
+  //   * falha de transporte/permissão  -> { error } do supabase-js
+  //   * recusa de negócio              -> data.ok === false, com data.codigo
+  // Sucesso devolve error:null e codigo:null. Nenhum caminho devolve
+  // `partial`: as RPCs do P2 são atômicas por construção.
+  function normalizarRespostaRpc(res) {
+    if (res && res.error) {
+      return {
+        error: res.error,
+        codigo: res.error.code === '42501' ? 'sem_permissao' : null,
+        data: null,
+      };
     }
-    return error;
+    var data = res ? res.data : null;
+    if (data && data.ok === false) {
+      return {
+        error: Object.assign(
+          new Error(data.detalhe || data.codigo || 'Operação recusada pelo servidor'),
+          { codigo: data.codigo }
+        ),
+        codigo: data.codigo || null,
+        data: data,
+      };
+    }
+    return { error: null, codigo: null, data: data };
   }
 
-  function maxMetrosItem(item, modelosById, parametrosByLargura, ordens) {
+  // Projeção nativa de disponibilidade da OP (§9.9.A). Uma linha por eixo
+  // (origem_tipo, material, cor_id, cor_poliester), com kg_disponivel já
+  // calculado pelo servidor. RETURNS TABLE => data é um array.
+  async function carregarDisponibilidadeOP({ opId }) {
+    var res = await window.supa.rpc('oc_disponibilidade_op', { p_op_id: opId });
+    if (res && res.error) return { data: null, error: res.error };
+    return { data: Array.isArray(res && res.data) ? res.data : [], error: null };
+  }
+
+  // Localiza a linha nativa de um eixo. Algodão casa por cor_id; poliéster por
+  // cor_poliester (cor_id é NULL). A comparação de cor_id é numérica dos dois
+  // lados: o PostgREST devolve BIGINT como número ou string conforme o caso.
+  function linhaDisponibilidade(disponibilidade, material, corId, corPoliester) {
+    var linhas = disponibilidade || [];
+    for (var i = 0; i < linhas.length; i++) {
+      var d = linhas[i];
+      if (d.material !== material) continue;
+      if (material === 'algodao') {
+        if (corId != null && Number(d.cor_id) === Number(corId)) return d;
+      } else if (d.cor_poliester === corPoliester) {
+        return d;
+      }
+    }
+    return null;
+  }
+
+  // Limite individual de metros de um item assumindo os demais em zero: para
+  // cada cor que o item consome, kg_disponivel daquela cor / kg por metro.
+  //
+  // `disponibilidade` são as linhas de oc_disponibilidade_op. Ausente ou vazia
+  // => 0, e o chamador aplica seu próprio piso (Math.max com metros_pedidos),
+  // exatamente como antes. Um teto ausente NUNCA vira teto infinito.
+  function maxMetrosItem(item, modelosById, parametrosByLargura, disponibilidade) {
     const modelo = modelosById[item.modelo_id];
     const p = parametrosByLargura[window.larguraKey(modelo.largura)];
     const rAlg = p.algodao_por_ml * p.valor_x;
     const rPol = p.poliester_por_ml * p.valor_x;
     let cap = Infinity;
     for (const cor of [modelo.cor_1, modelo.cor_2]) {
-      const ord = ordens.find(o => o.tipo === 'algodao' && o.cor_id === cor.id);
-      if (ord && rAlg > 0) cap = Math.min(cap, Number(ord.kg_recebido) / rAlg);
+      const d = linhaDisponibilidade(disponibilidade, 'algodao', cor && cor.id, null);
+      if (d && rAlg > 0) cap = Math.min(cap, Number(d.kg_disponivel) / rAlg);
     }
     for (const corP of ['PRETO', 'BRANCO']) {
-      const ord = ordens.find(o => o.tipo === 'poliester' && o.cor_poliester === corP);
-      if (ord && rPol > 0) cap = Math.min(cap, Number(ord.kg_recebido) / rPol);
+      const d = linhaDisponibilidade(disponibilidade, 'poliester', null, corP);
+      if (d && rPol > 0) cap = Math.min(cap, Number(d.kg_disponivel) / rPol);
     }
     return Number.isFinite(cap) ? Math.floor(cap) : 0;
   }
 
-  function normalizarChaveSaldo(tipo, corId, corPoliester) {
-    if (tipo === 'poliester') {
+  // "Salvar distribuição" — UMA chamada, UM payload ABSOLUTO e COMPLETO.
+  //
+  // `itens` tem de conter TODOS os op_itens da OP, cada um exatamente uma vez;
+  // o servidor recusa com AJUSTE_PAYLOAD_INCOMPLETO caso contrário. Um item
+  // com metros_ajustados null LIMPA o ajuste daquele item — a limpeza viaja
+  // pelo MESMO escritor atômico, nunca por um delete/update avulso.
+  //
+  // `baseAjusteRevisao` é o ops.ajuste_revisao lido no carregamento. O
+  // servidor recarrega a OP DENTRO do lock e só então compara; divergência
+  // devolve AJUSTE_REVISAO_DESATUALIZADA e não escreve nada.
+  //   itens: [{ op_item_id, metros_ajustados|null }]
+  async function salvarDistribuicaoOP({ opId, baseAjusteRevisao, itens }) {
+    var payload = (itens || []).map(function (it) {
       return {
-        is: { cor_id: null },
-        eq: { tipo, cor_poliester: corPoliester },
+        op_item_id: it.op_item_id,
+        metros_ajustados: it.metros_ajustados == null ? null : Number(it.metros_ajustados),
       };
-    }
+    });
+    var out = normalizarRespostaRpc(await window.supa.rpc('salvar_ajuste_producao_op', {
+      p_op_id: opId,
+      p_base_ajuste_rev: baseAjusteRevisao,
+      p_itens: payload,
+    }));
     return {
-      eq: { tipo, cor_id: corId },
+      error: out.error,
+      codigo: out.codigo,
+      revisaoDesatualizada: out.codigo === CODIGO_REVISAO_DESATUALIZADA,
+      ajusteRevisao: out.data ? out.data.ajuste_revisao : null,
+      itensAplicados: out.data ? out.data.itens_aplicados : null,
     };
   }
 
-  // Aplica o recalculo de OP executando todos os writes
-  // (op_itens.update + saldo_fios_op.insert + saldo_fios
-  // select/update/insert + ops.update status). Retorna um envelope
-  // com error/step/partial para o caller decidir sobre toast,
-  // navigate e saving.
+  // "Iniciar produção" — ÚNICO ponto de início, e ele é do servidor.
   //
-  // NÃO chama toast, navigate, saving, ou DOM. NÃO acessa estado
-  // de closure de screenNovaOP — recebe tudo por argumento e usa
-  // window.supa internamente.
-  //
-  // YARN-BUTTONS-PHASE-1: intacto — segue sendo usado por "Manter
-  // pedido" (op-nova.js) e pelas telas de aceite do Pedido
-  // (pedido-detail-events.js). O fluxo "aceitar" da tela de OP foi
-  // decomposto nos dois writes independentes abaixo
-  // (salvarDistribuicaoOP + iniciarProducaoOP), que reaproveitam o
-  // mesmo tail de snapshot-de-saldo + transição de status.
-  async function aplicarRecalculoOP({ opId, resultado, modo, ordens }) {
-    const supa = window.supa;
-    const round3 = (n) => Math.round(n * 1000) / 1000;
-
-    // 1) grava metros_ajustados em cada op_item
-    for (const it of resultado.itens) {
-      const metros = modo === 'aceitar' ? it.metros_ajustados : it.metros_pedidos;
-      const r = await supa.from('op_itens').update({ metros_ajustados: metros }).eq('id', it.op_item_id);
-      if (r.error) {
-        return { error: r.error, step: 'op_itens_update', partial: true };
-      }
-    }
-
-    // 2) calcula as sobras conforme o modo
-    const sobras = modo === 'aceitar'
-      ? resultado.sobras
-      : ordens.map((o) => {
-          const kg = round3(Number(o.kg_recebido) - Number(o.kg_pedido));
-          return kg > 0
-            ? { ordem_id: o.id, tipo: o.tipo, cor_id: o.cor_id ?? null, cor_poliester: o.cor_poliester ?? null, kg_sobra: kg }
-            : null;
-        }).filter(Boolean);
-
-    // 3+4) grava saldo (por OP + totalizador) e libera a produção
-    return await snapshotSaldoEIniciarProducao({ opId, sobras });
-  }
-
-  // Snapshot de saldo (saldo_fios_op.insert + saldo_fios
-  // select/update/insert) + transição ops.status -> 'em_producao'.
-  // Extraído de aplicarRecalculoOP para ser reaproveitado por
-  // iniciarProducaoOP (YARN-BUTTONS-PHASE-1) sem duplicar a lógica
-  // do totalizador — preserva exatamente os mesmos steps e a mesma
-  // ordem de escrita do fluxo original. Interno (não exportado).
-  async function snapshotSaldoEIniciarProducao({ opId, sobras }) {
-    const supa = window.supa;
-    const round3 = (n) => Math.round(n * 1000) / 1000;
-
-    // grava saldo por OP + atualiza o totalizador
-    for (const s of (sobras || [])) {
-      const insOp = await supa.from('saldo_fios_op').insert({
-        op_id: opId, cor_id: s.cor_id, cor_poliester: s.cor_poliester, tipo: s.tipo, kg_sobra: s.kg_sobra,
-      });
-      if (insOp.error) {
-        return { error: clearFenceError(insOp.error), step: 'saldo_fios_op_insert', partial: true };
-      }
-
-      // totalizador saldo_fios: lê (filtrando por cor/tipo), soma e grava
-      const chave = normalizarChaveSaldo(s.tipo, s.cor_id, s.cor_poliester);
-      let sel = supa.from('saldo_fios').select('kg_total').eq('tipo', chave.eq.tipo);
-      for (const [k, v] of Object.entries(chave.eq)) {
-        if (k === 'tipo') continue; // já aplicado acima
-        sel = sel.eq(k, v);
-      }
-      if (chave.is) {
-        for (const [k, v] of Object.entries(chave.is)) {
-          sel = sel.is(k, v);
-        }
-      }
-      const cur = await sel.maybeSingle();
-      if (cur.error) {
-        return { error: cur.error, step: 'saldo_fios_select', partial: true };
-      }
-      const novoTotal = round3((cur.data ? Number(cur.data.kg_total) : 0) + s.kg_sobra);
-
-      let saveTotal;
-      if (cur.data) {
-        let upd = supa.from('saldo_fios').update({ kg_total: novoTotal, atualizado_em: new Date().toISOString() }).eq('tipo', chave.eq.tipo);
-        for (const [k, v] of Object.entries(chave.eq)) {
-          if (k === 'tipo') continue;
-          upd = upd.eq(k, v);
-        }
-        if (chave.is) {
-          for (const [k, v] of Object.entries(chave.is)) {
-            upd = upd.is(k, v);
-          }
-        }
-        saveTotal = await upd;
-      } else {
-        saveTotal = await supa.from('saldo_fios').insert({
-          cor_id: s.cor_id, cor_poliester: s.cor_poliester, tipo: s.tipo, kg_total: novoTotal,
-        });
-      }
-      if (saveTotal.error) {
-        return { error: clearFenceError(saveTotal.error), step: cur.data ? 'saldo_fios_update' : 'saldo_fios_insert', partial: true };
-      }
-    }
-
-    // libera a produção
-    const st = await supa.from('ops').update({ status: 'em_producao' }).eq('id', opId);
-    if (st.error) {
-      return { error: st.error, step: 'ops_update_status', partial: true };
-    }
-
-    return { error: null, step: 'ok', partial: false };
-  }
-
-  // YARN-BUTTONS-PHASE-1 — "Salvar distribuição": grava APENAS a
-  // distribuição (op_itens.metros_ajustados) por item. Repetido =
-  // overwrite (UPDATE por id, nunca duplica). NÃO faz snapshot de
-  // saldo, NÃO gera ordem de compra e NÃO muda o status da OP.
-  //   itens: [{ op_item_id, metros_ajustados }]
-  async function salvarDistribuicaoOP({ opId, itens }) {
-    const supa = window.supa;
-    for (const it of (itens || [])) {
-      const r = await supa.from('op_itens')
-        .update({ metros_ajustados: it.metros_ajustados })
-        .eq('id', it.op_item_id);
-      if (r.error) {
-        return { error: r.error, step: 'op_itens_update', partial: true };
-      }
-    }
-    return { error: null, step: 'ok', partial: false };
-  }
-
-  // YARN-BUTTONS-PHASE-1 — "Iniciar produção": carrega o que o antigo
-  // "aceitar" fazia ALÉM da distribuição — snapshot de saldo
-  // (saldo_fios_op + saldo_fios) + transição ops.status ->
-  // 'em_producao'. NÃO grava metros_ajustados (já persistido por
-  // salvarDistribuicaoOP) e NÃO gera ordem de compra (gerada na
-  // abertura da OP, em op-persistir.js).
-  //   sobras: [{ ordem_id, tipo, cor_id, cor_poliester, kg_sobra }]
-  async function iniciarProducaoOP({ opId, sobras }) {
-    return await snapshotSaldoEIniciarProducao({ opId, sobras: sobras || [] });
+  // O servidor exige status 'aberta' (uma OP 'simulada' NUNCA é aberta em
+  // silêncio: abrir continua sendo ação explícita do operador por
+  // alterar_status_op), prova que todo item tem ajuste salvo, REVALIDA a
+  // disponibilidade, grava o snapshot saldo_fios_op, transiciona a OP e
+  // recalcula o Pedido — tudo numa transação. Devolve a rota e o rótulo da
+  // próxima ação, que a tela consome em vez de inventar destino.
+  async function iniciarProducaoOP({ opId, baseAjusteRevisao }) {
+    var out = normalizarRespostaRpc(await window.supa.rpc('iniciar_producao_op', {
+      p_op_id: opId,
+      p_base_ajuste_rev: baseAjusteRevisao,
+    }));
+    return {
+      error: out.error,
+      codigo: out.codigo,
+      revisaoDesatualizada: out.codigo === CODIGO_REVISAO_DESATUALIZADA,
+      ajusteRevisao: out.data ? out.data.ajuste_revisao : null,
+      proximaAcao: (out.data && out.data.proxima_acao) ? out.data.proxima_acao : null,
+    };
   }
 
   window.RAVATEX_SCREENS = window.RAVATEX_SCREENS || {};
   window.RAVATEX_SCREENS.opRecalculo = {
+    carregarDisponibilidadeOP,
     maxMetrosItem,
-    normalizarChaveSaldo,
-    aplicarRecalculoOP,
     salvarDistribuicaoOP,
     iniciarProducaoOP,
   };
 
+  window.carregarDisponibilidadeOP = carregarDisponibilidadeOP;
   window.maxMetrosItem = maxMetrosItem;
-  window.normalizarChaveSaldo = normalizarChaveSaldo;
-  window.aplicarRecalculoOP = aplicarRecalculoOP;
   window.salvarDistribuicaoOP = salvarDistribuicaoOP;
   window.iniciarProducaoOP = iniciarProducaoOP;
 })(window);
