@@ -451,7 +451,36 @@ COMMENT ON FUNCTION public.pode_recuperar_op_acabamento(BIGINT) IS
 -- re-raises refusals so its existing callers keep the contract they have
 -- today. It is NOT dropped in this release and no free-form manual
 -- finishing-OP creation path exists beside it.
+--
+-- PRIVILEGE PRESERVATION (P1 additivity contract).
+-- This is the ONLY PRE-EXISTING writer db/108 replaces, so its ACL is
+-- CAPTURED here, before the replacement, and ASSERTED BYTE-IDENTICAL
+-- afterwards in section 9. P1 must not revoke an existing business
+-- grant, and CREATE OR REPLACE FUNCTION preserves the existing ACL, so
+-- this migration deliberately issues NO REVOKE and NO GRANT on this
+-- function: the live privileges are reproduced exactly by leaving them
+-- untouched, in whatever environment the migration runs, rather than by
+-- restating a normalized set that could differ from the measured one.
+--
+-- Measured on the definitive production project (system_identifier
+-- 7642734024280108049) before P1:
+--   {=X/postgres, postgres=X/postgres, anon=X/postgres,
+--    authenticated=X/postgres, service_role=X/postgres}
 -- ---------------------------------------------------------------------
+DO $db108_acl_capture$
+BEGIN
+  PERFORM set_config(
+    'db108.acl_gerar_op_latex_split',
+    coalesce((SELECT p.proacl::TEXT
+                FROM pg_catalog.pg_proc p
+               WHERE p.pronamespace = 'public'::regnamespace
+                 AND p.proname = 'gerar_op_latex_split'
+                 AND pg_catalog.pg_get_function_identity_arguments(p.oid)
+                     = 'p_entrega_id bigint, p_motivo text'), '<absent-or-default>'),
+    true);
+END
+$db108_acl_capture$;
+
 CREATE OR REPLACE FUNCTION public.gerar_op_latex_split(
   p_entrega_id BIGINT,
   p_motivo     TEXT
@@ -530,10 +559,31 @@ REVOKE ALL ON FUNCTION public.pode_recuperar_op_acabamento(BIGINT)
   FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.pode_recuperar_op_acabamento(BIGINT) TO authenticated;
 
--- The wrapper keeps EXACTLY the privileges it holds today.
-REVOKE ALL ON FUNCTION public.gerar_op_latex_split(BIGINT, TEXT)
-  FROM PUBLIC, anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.gerar_op_latex_split(BIGINT, TEXT) TO authenticated;
+-- The wrapper keeps EXACTLY the privileges it held before this migration.
+-- NO REVOKE and NO GRANT is issued on it: CREATE OR REPLACE FUNCTION
+-- preserves the existing ACL, and the assertion below proves that the
+-- live ACL is byte-identical to the value captured in section 8.
+DO $db108_acl_preserved$
+DECLARE
+  v_before TEXT := current_setting('db108.acl_gerar_op_latex_split', true);
+  v_after  TEXT;
+BEGIN
+  SELECT coalesce(p.proacl::TEXT, '<absent-or-default>') INTO v_after
+    FROM pg_catalog.pg_proc p
+   WHERE p.pronamespace = 'public'::regnamespace
+     AND p.proname = 'gerar_op_latex_split'
+     AND pg_catalog.pg_get_function_identity_arguments(p.oid)
+         = 'p_entrega_id bigint, p_motivo text';
+
+  IF v_before IS NULL THEN
+    RAISE EXCEPTION 'db/108: the pre-replacement ACL capture is missing';
+  END IF;
+  IF v_after IS DISTINCT FROM v_before THEN
+    RAISE EXCEPTION 'db/108: gerar_op_latex_split privileges changed (before=%, after=%)',
+      v_before, v_after;
+  END IF;
+END
+$db108_acl_preserved$;
 
 -- ---------------------------------------------------------------------
 -- 10. Migration-time invariants

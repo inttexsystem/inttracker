@@ -73,6 +73,27 @@ SELECT string_agg(line, E'\n' ORDER BY line) FROM (
                        'cancelar_ordem_compra',
                        'excluir_ordem_compra')
   UNION ALL
+  -- gerar_op_latex_split is the ONE pre-existing writer P1 replaces
+  -- (9.9.J compatibility wrapper). Its ACL and its body are fingerprinted
+  -- SEPARATELY: the ACL must be byte-identical, while the body change is
+  -- the single authorized replacement and is expected to differ.
+  SELECT 'WRAPPER-ACL gerar_op_latex_split proacl='
+         || coalesce(p.proacl::TEXT, '<absent-or-default>')
+         || ' owner=' || pg_get_userbyid(p.proowner)
+         || ' anon=' || has_function_privilege('anon', p.oid, 'EXECUTE')
+         || ' auth=' || has_function_privilege('authenticated', p.oid, 'EXECUTE')
+         || ' svc='  || has_function_privilege('service_role', p.oid, 'EXECUTE')
+    FROM pg_proc p
+   WHERE p.pronamespace = 'public'::regnamespace
+     AND p.proname = 'gerar_op_latex_split'
+     AND pg_get_function_identity_arguments(p.oid) = 'p_entrega_id bigint, p_motivo text'
+  UNION ALL
+  SELECT 'WRAPPER-BODY gerar_op_latex_split body=' || md5(p.prosrc)
+    FROM pg_proc p
+   WHERE p.pronamespace = 'public'::regnamespace
+     AND p.proname = 'gerar_op_latex_split'
+     AND pg_get_function_identity_arguments(p.oid) = 'p_entrega_id bigint, p_motivo text'
+  UNION ALL
   SELECT 'CUTOVER status=' || c.status || ' read_authority=' || c.read_authority
          || ' generation=' || coalesce(c.cutover_generation::TEXT, 'NULL')
          || ' ponr=' || coalesce(c.productive_receipt_started_at::TEXT, 'NULL')
@@ -156,16 +177,42 @@ async function main() {
     // ---- 5. POST-P1 fingerprint: any difference is a HARD STOP -------
     const fpAfter = scalar(handle, FINGERPRINT_SQL);
     const { removed, added } = diffLines(fpBefore, fpAfter);
-    if (removed.length || added.length) {
+
+    // The ONLY authorized difference is the 9.9.J compatibility wrapper's
+    // BODY. Its ACL, and every other fingerprinted authority, must be
+    // byte-identical; anything else is a hard stop.
+    const isWrapperBody = (l) => l.startsWith('WRAPPER-BODY gerar_op_latex_split');
+    const unauthorizedRemoved = removed.filter((l) => !isWrapperBody(l));
+    const unauthorizedAdded = added.filter((l) => !isWrapperBody(l));
+
+    if (unauthorizedRemoved.length || unauthorizedAdded.length) {
       failures += 1;
-      log('FINGERPRINT_POST', { result: 'DIFFERENT', removed: removed.length, added: added.length });
-      for (const l of removed) console.log('  - ' + l);
-      for (const l of added) console.log('  + ' + l);
+      log('FINGERPRINT_POST', {
+        result: 'UNAUTHORIZED_DIFFERENCE',
+        removed: unauthorizedRemoved.length,
+        added: unauthorizedAdded.length,
+      });
+      for (const l of unauthorizedRemoved) console.log('  - ' + l);
+      for (const l of unauthorizedAdded) console.log('  + ' + l);
     } else {
       log('FINGERPRINT_POST', {
-        result: 'IDENTICAL',
+        result: 'IDENTICAL_EXCEPT_AUTHORIZED_WRAPPER_BODY',
         lines: fpAfter.split('\n').filter(Boolean).length,
+        wrapper_body_replaced: removed.some(isWrapperBody) && added.some(isWrapperBody),
       });
+    }
+
+    // Explicit, separate assertion: the wrapper's ACL did not narrow.
+    const aclBefore = fpBefore.split('\n').find((l) => l.startsWith('WRAPPER-ACL '));
+    const aclAfter = fpAfter.split('\n').find((l) => l.startsWith('WRAPPER-ACL '));
+    if (!aclBefore || !aclAfter || aclBefore !== aclAfter) {
+      failures += 1;
+      log('WRAPPER_ACL', { result: 'CHANGED' });
+      console.log('  - ' + aclBefore);
+      console.log('  + ' + aclAfter);
+    } else {
+      log('WRAPPER_ACL', { result: 'PRESERVED_BYTE_IDENTICAL' });
+      console.log('    ' + aclAfter);
     }
 
     // ---- 6. Synthetic fixture ----------------------------------------
