@@ -793,24 +793,30 @@ test('router.js: tem match dinâmico para #/pedidos/<uuid> chamando screenPedido
     'router.js deve validar formato UUID do id do pedido');
   assert.match(router, /screenPedidoDetalhe/,
     'router.js deve chamar screenPedidoDetalhe no matchRoute');
-  // O regex de UUID aparece em vários matches dinâmicos (C3A detalhe,
-  // C3C1 editar, C3C2B itens). Pega a ÚLTIMA ocorrência (que é a
-  // do match de detalhe) e mede a distância até screenPedidoDetalhe.
+  // O regex de UUID aparece em VARIOS matches dinamicos, e a cada ordem
+  // autorizada entra mais um (editar, itens, alteracoes, insumos, editor do
+  // cliente, detalhe do cliente e, em P2-C, producao). Pegar a ULTIMA
+  // ocorrencia media a distancia ate um match QUALQUER — normalmente o mais
+  // recente — e por isso o numero crescia a cada ordem sem que o match de
+  // DETALHE tivesse mudado.
+  //
+  // O sujeito do guard nunca foi "quantos matches existem": e que o regex de
+  // UUID do match de DETALHE esteja junto da chamada que ele despacha. Entao
+  // a medida passa a ser entre `screenPedidoDetalhe` e a ocorrencia do regex
+  // que o PRECEDE — isto e, a do proprio match de detalhe. Continua sendo uma
+  // heuristica de PROXIMIDADE NO FONTE, e nao uma afirmacao de runtime.
   const uuidRegex = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-  let idxRegex = -1;
-  let last = -1;
-  while (true) {
-    const next = router.indexOf(uuidRegex, last + 1);
-    if (next === -1) break;
-    idxRegex = next;
-    last = next;
-  }
   const idxRender = router.indexOf('screenPedidoDetalhe');
-  assert.ok(idxRegex > 0, 'regex de UUID deve existir em router.js (última ocorrência — detalhe)');
   assert.ok(idxRender > 0, 'chamada screenPedidoDetalhe deve existir em router.js');
-  const distancia = Math.abs(idxRender - idxRegex);
+  const idxRegex = router.lastIndexOf(uuidRegex, idxRender);
+  assert.ok(idxRegex > 0, 'regex de UUID do match de detalhe deve preceder screenPedidoDetalhe');
+  const distancia = idxRender - idxRegex;
   assert.ok(distancia <= 400,
     'regex de UUID (match de detalhe) e screenPedidoDetalhe devem estar próximos (distância ' + distancia + ' > 400)');
+  // E o match de detalhe continua ancorado, entao nenhum sufixo posterior
+  // (incluindo /producao) e capturado por ele.
+  assert.match(router, /\{12\}\)\$\/i\)/,
+    'o match de detalhe continua ancorado em $');
 });
 
 test('router.js: rota dinâmica #/pedidos/<uuid> é admin-only', () => {
@@ -911,24 +917,24 @@ test('pedido-detail.js: tem função alterarStatus (helper interno de update)', 
 // 6. Write: APENAS update em pedidos (status only), com .eq('id', ...)
 // ---------------------------------------------------------------------
 
-test('pedido-detail.js: faz .update() em pedidos com .eq("id", pedidoId)', () => {
-  // Permitido nesta fase: update apenas em pedidos, filtrado por id.
-  assert.match(detailBundle, /\.from\(\s*['"]pedidos['"][\s\S]{0,300}?\.update\s*\(\s*\{\s*status\s*:\s*novoStatus\s*\}\s*\)[\s\S]{0,200}?\.eq\s*\(\s*['"]id['"]\s*,\s*pedidoId\s*\)/,
-    'deve fazer .update({ status }).eq("id", pedidoId) na tela de detalhe');
+test('pedido-detail.js: a transicao de status passa pelo escritor canonico do servidor', () => {
+  // P2-C (db/105): o UPDATE direto em `pedidos.status` foi RETIRADO. Quem
+  // aplica a transicao pedida pelo operador e alterar_status_pedido, sob lock
+  // e com a revisao comparada pelo servidor; o cancelamento e do escritor D7.
+  assert.match(detailEvents, /rpc\('alterar_status_pedido',\s*\{[\s\S]{0,200}p_pedido_id: pedidoId/,
+    'a transicao viaja pelo escritor canonico, identificando o Pedido');
+  assert.match(detailEvents, /p_base_revisao: revisaoBase\(\)/,
+    'a revisao e submetida');
 });
 
-test('pedido-detail.js: NÃO faz .update() em outros campos de pedidos', () => {
-  // Defesa: o payload de update deve ser EXATAMENTE { status }.
-  // Não pode atualizar prazo_entrega, observacao, cliente_id, numero, etc.
-  const co = codeOnly(detailBundle);
-  // Procura o bloco `.update({ ... })` aplicado a pedidos e checa que
-  // a única chave dentro do objeto é `status`.
-  const m = co.match(/\.from\(\s*['"]pedidos['"][\s\S]{0,300}?\.update\s*\(\s*\{([^}]*)\}\s*\)/);
-  assert.ok(m, 'deve haver .update({...}) em pedidos');
-  const chaves = m[1].split(',').map(s => s.trim()).filter(Boolean);
-  assert.equal(chaves.length, 1, '.update({...}) em pedidos deve ter exatamente 1 chave');
-  assert.match(chaves[0], /^status\s*:/,
-    'a única chave em .update({...}) em pedidos deve ser "status"');
+test('pedido-detail.js: NAO faz .update() de status em pedidos', () => {
+  // A unica escrita direta que resta em `pedidos` e a de RASTREAMENTO visivel
+  // ao cliente (status_cliente_*), que nao e o status de ciclo de vida e nao
+  // tem escritor canonico nesta fase.
+  assert.doesNotMatch(detailEvents, /update\(\s*\{\s*status:/,
+    'nenhum update direto do status de ciclo de vida');
+  assert.match(detailEvents, /update\(updatePayload\)/,
+    'a escrita de rastreamento visivel ao cliente permanece');
 });
 
 test('pedido-detail.js: NÃO faz .insert() / .delete() / .upsert() em pedidos', () => {
@@ -967,24 +973,27 @@ test('pedido-detail.js: usa apenas .select() em pedidos/pedido_itens/clientes/mo
 // 7. Confirmação visual para cancelar
 // ---------------------------------------------------------------------
 
-test('pedido-detail.js: cancelar pedido usa window.confirmDialog (confirmação visual)', () => {
-  // Antes de aplicar update para "cancelado", deve abrir confirmDialog.
-  assert.match(detailBundle, /window\.confirmDialog\s*\(/,
-    'cancelar pedido deve chamar window.confirmDialog');
-  // O fluxo de cancelamento deve estar próximo do update de status.
-  // Garante que confirmDialog é chamado no caminho de cancelamento
-  // (case-insensitive para aceitar "Cancelar pedido" e "Cancelado").
-  const co = codeOnly(detailBundle);
-  assert.match(co, /confirmDialog[\s\S]{0,800}?(?:cancelar|cancelado|cancelad)/i,
-    'confirmDialog deve ser usado no caminho de cancelamento');
+test('pedido-detail.js: cancelar pedido exige motivo num modal proprio', () => {
+  // O confirmDialog binario foi substituido por um modal que COLETA o motivo,
+  // porque cancelar_pedido exige motivo e o portao D7 decide elegibilidade
+  // antes de qualquer coleta.
+  assert.match(detailEvents, /rpc\('pedido_elegivel_cancelamento'/,
+    'a elegibilidade e consultada antes de oferecer o cancelamento');
+  assert.match(detailEvents, /saveLabel: 'Cancelar pedido'/,
+    'o cancelamento tem a sua propria confirmacao visual');
+  assert.match(detailEvents, /Informe o motivo do cancelamento/,
+    'sem motivo, nenhum escritor e chamado');
 });
 
-test('pedido-detail.js: NÃO chama confirmDialog para recebido/confirmado (transições diretas)', () => {
-  // As transições para recebido/confirmado NÃO devem pedir confirmação
-  // visual (são ações simples de fluxo).
-  // Defesa: confirmDialog só é usado quando novoStatus === 'cancelado'.
-  assert.match(detailBundle, /novoStatus\s*===\s*['"]cancelado['"][\s\S]{0,300}?confirmDialog/,
-    'confirmDialog só deve ser invocado quando novoStatus === "cancelado"');
+test('pedido-detail.js: transicoes diretas nao abrem confirmacao', () => {
+  // rascunho->recebido e recebido->confirmado continuam sendo aplicadas
+  // direto; so o cancelamento abre superficie de confirmacao.
+  const bloco = (detailEvents.match(/async function alterarStatus[\s\S]*?\n    \}/) || [''])[0];
+  assert.ok(bloco, 'alterarStatus nao encontrado');
+  assert.doesNotMatch(bloco, /confirmDialog|window\.modal\(/,
+    'a transicao direta nao pede confirmacao');
+  assert.match(bloco, /if \(novoStatus === 'cancelado'\) return await cancelarPedido/,
+    'o cancelamento e desviado para o seu proprio dono');
 });
 
 // ---------------------------------------------------------------------
@@ -1394,15 +1403,16 @@ test('pedido-detail.js: botão Voltar é funcional', () => {
 // 15. Re-render após mudança de status
 // ---------------------------------------------------------------------
 
-test('pedido-detail.js: chama render() após sucesso no update de status', () => {
-  // Após o update bem-sucedido, deve chamar render() para refletir
-  // o novo status (e reabilitar/desabilitar botões).
-  assert.match(detailBundle, /state\.pedido\.status\s*=\s*novoStatus/,
-    'deve atualizar state.pedido.status após update');
-  // render() deve ser chamado no caminho de sucesso.
-  const co = codeOnly(detailBundle);
-  assert.match(co, /state\.pedido\.status\s*=\s*novoStatus[\s\S]{0,400}?render\s*\(\s*\)/,
-    'render() deve ser chamado após atualizar state.pedido.status');
+test('pedido-detail.js: recarrega e re-renderiza apos sucesso na transicao', () => {
+  // O remendo local de state.pedido.status saiu: o estado vem da recarga
+  // AUTORITATIVA, porque a transicao pode ter disparado recalculo derivado no
+  // servidor (por exemplo confirmado -> produzindo).
+  const bloco = (detailEvents.match(/async function alterarStatus[\s\S]*?\n    \}/) || [''])[0];
+  assert.ok(bloco);
+  assert.doesNotMatch(bloco, /state\.pedido\.status = novoStatus/,
+    'nenhum remendo local de status');
+  assert.match(bloco, /await reload\(\);[\s\S]{0,40}render\(\);/,
+    'recarga autoritativa seguida de render');
 });
 
 // ---------------------------------------------------------------------
@@ -2071,6 +2081,13 @@ function aptConclusaoState(ns) {
   s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 1000, defeito: false }];
   s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
   s.opLatexEntregas = [{ op_latex_id: 30, entrega_id: 'e1' }];
+  // P2-C: o dono compartilhado do ajuste passou a exigir as DUAS entradas
+  // nativas — a projecao oc_disponibilidade_op e a revisao REAL da OP.
+  // A fixture reflete o read model atual (db/102: ops.ajuste_revisao NOT
+  // NULL DEFAULT 0; pedido-detail-data.js carrega a disponibilidade por OP).
+  s.ops.forEach(function (op) { if (op.ajuste_revisao == null) op.ajuste_revisao = 0; });
+  s.disponibilidadeByOp = { 29: [], 30: [] };
+  s.disponibilidadeErroByOp = {};
   s.expedicoes = [{ id: 3, op_latex_id: 30, pedido_id: CONCLUIR_PEDIDO_ID, status: 'concluida' }];
   s.expedicaoItens = [{ id: 4, expedicao_id: 3, op_item_id: 301, modelo_id: 7, metros_liberados: 1000, metros_entregues: 1000 }];
   s.modelosById = { 7: { id: 7, nome: 'Roma' } };
@@ -2441,6 +2458,14 @@ function hubTecAcab(ns, latexStatus) {
   s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 1000, defeito: false }];
   s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
   s.opLatexEntregas = [{ op_latex_id: 30, entrega_id: 'e1' }];
+    // P2-C: o dono compartilhado do ajuste passou a exigir as DUAS entradas
+  // nativas — a projecao oc_disponibilidade_op e a revisao REAL da OP.
+  // A fixture reflete o read model atual (db/102: ops.ajuste_revisao NOT
+  // NULL DEFAULT 0; pedido-detail-data.js carrega a disponibilidade por OP).
+  s.ops.forEach(function (op) { if (op.ajuste_revisao == null) op.ajuste_revisao = 0; });
+  s.disponibilidadeByOp = {};
+  s.ops.forEach(function (op) { s.disponibilidadeByOp[op.id] = []; });
+  s.disponibilidadeErroByOp = {};
   return s;
 }
 

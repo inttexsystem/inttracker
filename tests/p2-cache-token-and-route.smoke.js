@@ -1,0 +1,107 @@
+// tests/p2-cache-token-and-route.smoke.js
+//
+// P2-C — reconciliacao completa de cache-token e registro de rota.
+//
+// Todo asset JavaScript alterado por P2-A, P2-B ou P2-C carrega o token da
+// fase; nenhum asset inalterado e arrastado; nenhum modulo e montado duas
+// vezes; a ordem de dependencia esta correta.
+
+'use strict';
+
+const test   = require('node:test');
+const assert = require('node:assert/strict');
+const fs     = require('node:fs');
+const path   = require('node:path');
+const cp     = require('node:child_process');
+
+const ROOT = path.resolve(__dirname, '..');
+const INDEX = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const ROUTER = fs.readFileSync(path.join(ROOT, 'js', 'router.js'), 'utf8');
+
+const P2_TOKEN = '20260731-native-receipt-p2';
+
+// Assets JS alterados pelas tres subfases. A lista e derivada do GIT, nao
+// digitada: os dois commits locais mais o worktree.
+function alteradosPorP2() {
+  const base = 'f6f2c19cb15acdf672c34375a035fa8590d9c28d';
+  const commitados = cp.execSync('git diff --name-only ' + base + ' HEAD', { cwd: ROOT, encoding: 'utf8' });
+  const worktree = cp.execSync('git diff --name-only HEAD', { cwd: ROOT, encoding: 'utf8' });
+  const novos = cp.execSync('git ls-files --others --exclude-standard -- js/', { cwd: ROOT, encoding: 'utf8' });
+  const todos = (commitados + '\n' + worktree + '\n' + novos).split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.startsWith('js/') && s.endsWith('.js'));
+  return Array.from(new Set(todos)).sort();
+}
+
+function tokenDe(asset) {
+  const m = INDEX.match(new RegExp('src="' + asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=([^"]+)"'));
+  return m ? m[1] : null;
+}
+
+test('1. TODO asset JS alterado por P2 carrega o token da fase', () => {
+  const alterados = alteradosPorP2();
+  assert.ok(alterados.length >= 16, 'a fase alterou pelo menos 16 modulos, achou ' + alterados.length);
+  const semToken = [];
+  for (const a of alterados) {
+    const t = tokenDe(a);
+    if (t === null) continue;               // modulo nao montado por index.html
+    if (t !== P2_TOKEN) semToken.push(a + ' => ' + t);
+  }
+  assert.deepEqual(semToken, [],
+    'nenhum asset alterado por P2 pode reter um token antigo');
+});
+
+test('2. nenhum asset INALTERADO recebeu o token da fase (sem churn)', () => {
+  const alterados = new Set(alteradosPorP2());
+  const portadores = Array.from(INDEX.matchAll(/src="([^"]+?)\?v=([^"]+)"/g))
+    .filter((m) => m[2] === P2_TOKEN)
+    .map((m) => m[1]);
+  const intrusos = portadores.filter((p) => !alterados.has(p));
+  assert.deepEqual(intrusos, [],
+    'so assets realmente alterados podem carregar o token da fase');
+});
+
+test('3. nenhum modulo e montado duas vezes', () => {
+  const refs = Array.from(INDEX.matchAll(/src="(js\/[^"?]+\.js)/g)).map((m) => m[1]);
+  const dup = refs.filter((r, i) => refs.indexOf(r) !== i);
+  assert.deepEqual(Array.from(new Set(dup)), [], 'script montado mais de uma vez');
+});
+
+test('4. o novo modulo esta montado exatamente uma vez, com o token da fase', () => {
+  const n = (INDEX.match(/src="js\/screens\/pedido-producao-panel\.js\?v=/g) || []).length;
+  assert.equal(n, 1);
+  assert.equal(tokenDe('js/screens/pedido-producao-panel.js'), P2_TOKEN);
+});
+
+test('5. ordem de dependencia: dono compartilhado antes do painel, painel antes do boot', () => {
+  const iOwner = INDEX.indexOf('js/screens/op-distribuicao-ui.js');
+  const iPanel = INDEX.indexOf('js/screens/pedido-producao-panel.js');
+  const iBoot = INDEX.indexOf('js/boot.js');
+  assert.ok(iOwner > -1 && iPanel > -1 && iBoot > -1);
+  assert.ok(iOwner < iPanel, 'o painel consome o dono compartilhado');
+  assert.ok(iPanel < iBoot, 'o painel carrega ANTES de o roteador ser invocado');
+});
+
+test('6. a rota do painel esta registrada no roteador existente', () => {
+  assert.match(ROUTER, /\/\^#\\\/pedidos\\\/\(\[0-9a-f\]\{8\}[\s\S]{0,120}\\\/producao\$\/i/,
+    'match dinamico ancorado, no mesmo padrao dos demais sufixos de Pedido');
+  assert.match(ROUTER, /render: \(\) => window\.screenPedidoProducaoPanel\(mPedProducao\[1\]\)/);
+  assert.match(ROUTER, /mPedProducao[\s\S]{0,120}roles: \['admin'\]/);
+});
+
+test('7. NAO foi criado um roteador nem um parser paralelo', () => {
+  const arquivos = fs.readdirSync(path.join(ROOT, 'js'));
+  assert.equal(arquivos.filter((f) => /router/i.test(f)).length, 1,
+    'existe exatamente um roteador');
+  const panel = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'pedido-producao-panel.js'), 'utf8');
+  assert.doesNotMatch(panel, /location\.hash|addEventListener\(\s*['"]hashchange/,
+    'o painel nao interpreta rota por conta propria');
+});
+
+test('8. a rota nao colide com o detalhe do Pedido nem com os demais sufixos', () => {
+  // O match de detalhe e ancorado em `$`, entao `/producao` nao cai nele.
+  assert.match(ROUTER, /\{12\}\)\$\/i\)/, 'o match de detalhe continua ancorado');
+  for (const sufixo of ['editar', 'itens', 'insumos', 'producao']) {
+    assert.ok(ROUTER.indexOf('\\/' + sufixo + '$') > -1, 'sufixo ancorado: ' + sufixo);
+  }
+});

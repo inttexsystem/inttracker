@@ -166,46 +166,15 @@
     return isGuardText || (isGuardCode && blob.indexOf('tecelagem') !== -1);
   }
 
-  function normalizeGerarOpLatexResult(data) {
-    if (Array.isArray(data)) data = data[0] || null;
-    if (data && typeof data === 'object') {
-      if ('op_latex_id' in data || 'created' in data || 'accumulated' in data || 'already_linked' in data) return data;
-      if ('id' in data) return { op_latex_id: data.id, numero: data.numero, ano: data.ano };
-      return data;
-    }
-    if (data == null || data === false) return null;
-    return { op_latex_id: data };
-  }
-
-  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: `gerar_op_latex` (db/78) devolve
-  // `{op_latex_id, numero, ano, created, ...}` e NAO a identidade canonica — ela
-  // e uma RPC aceita de outra fase e nao e reescrita por esta ordem.
+  // P2-C: os tres helpers de normalizacao e rotulagem do retorno das antigas
+  // RPCs de acabamento foram RETIRADOS — implementacao e nome.
   //
-  // Quando a identidade vem no payload, e ela que nomeia a OP. Quando nao vem,
-  // o toast usa o rotulo da ETAPA ("OP de acabamento"), nao o estado
-  // diagnostico: um toast e uma confirmacao de acao, e "OP (identidade
-  // pendente)" ali seria ruido sem informacao. O rotulo de etapa e honesto
-  // porque descreve o que foi criado sem inventar um segundo NOME para a OP —
-  // e a identidade real aparece ao abrir a OP.
-  //
-  // Buscar a identidade no banco so para compor o texto de um toast seria uma
-  // ida extra desproporcional ao valor.
-  function opLatexLabelFromRpc(info) {
-    return (info && window.RAVATEX_OP_DISPLAY.getCanonicalIdentity(info)) || 'OP de acabamento';
-  }
-
-  function toastMsgGerarOpLatex(data) {
-    var info = normalizeGerarOpLatexResult(data);
-    if (!info || (!info.op_latex_id && info.numero == null && info.ano == null)) return 'Entrega registrada';
-    var label = opLatexLabelFromRpc(info);
-    if (info.split === true && info.created === true) return 'OP de acabamento separada criada: ' + label;
-    if (info.already_linked === true && info.erro) return info.erro;
-    if (info.split === false && info.already_linked === true) return 'Entrega ja vinculada a ' + label + '. Nenhuma OP separada foi criada.';
-    if (info.created === true) return 'Criou ' + label;
-    if (info.accumulated === true) return 'Acumulou na ' + label;
-    if (info.already_linked === true) return 'Já vinculada à ' + label;
-    return 'Entrega registrada · vinculada à OP de acabamento';
-  }
+  // Eles existiam para interpretar o resultado das duas chamadas best-effort
+  // que a ruling TD3 aposentou em P2-B, e desde entao nao tinham chamador. O
+  // resultado do comando atomico e lido por interpretarResultadoEntregaCima e
+  // a identidade canonica da OP de acabamento vem de rotuloOpAcabamento.
+  // Conservar codigo morto — ou o seu nome num comentario — apenas para
+  // satisfazer um guard seria transformar o guard em prova de si mesmo.
 
   // -------------------------------------------------------------------
   // Excluir entrega: usa o padrao de callback do confirmDialog (que so dispara

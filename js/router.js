@@ -137,6 +137,21 @@
       };
     }
 
+    // NATIVE-RECEIPT-COORDINATED-RELEASE-P2-C (ruling R12): painel consolidado
+    // de produção do Pedido. É o destino quando um recebimento afeta MAIS DE
+    // UMA OP — uma OP só abre direto no bloco de ajuste da própria OP. Segue o
+    // mesmo padrão dos matches acima (UUID + sufixo, ancorado em `$`), então
+    // não conflita com `#/pedidos/<uuid>` nem com os demais sufixos.
+    const mPedProducao = rawHash.match(
+      /^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/producao$/i
+    );
+    if (mPedProducao) {
+      return {
+        render: () => window.screenPedidoProducaoPanel(mPedProducao[1]),
+        roles: ['admin'],
+      };
+    }
+
   // Match dinâmico para detalhe de Pedido (read-only, UUID).
   // Aceita UUIDs case-insensitive. Não conflita com `#/pedidos`,
   // `#/pedidos/novo` (resolvidos pelo match exato acima),

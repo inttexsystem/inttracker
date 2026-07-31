@@ -50,16 +50,53 @@
   function round2(n) { return Math.round(n * 100) / 100; }
   function round3(n) { return Math.round(n * 1000) / 1000; }
 
-  // Revisão-base do ajuste. db/102 declara ops.ajuste_revisao NOT NULL
-  // DEFAULT 0 e afirma que toda OP pré-existente começa em 0, então a
-  // ausência do campo numa projeção que ainda não o seleciona significa 0 —
-  // não "desconhecido". Se a OP tiver avançado, o servidor recusa com
-  // AJUSTE_REVISAO_DESATUALIZADA e a tela mostra o estado de conflito, que é
-  // exatamente o comportamento honesto.
+  // Revisão-base do ajuste — FAIL-CLOSED (P2-C, fecha P2A-OBS-6).
+  //
+  // Antes, a ausência do campo virava 0. Isso era um palpite disfarçado de
+  // default: uma OP já ajustada tem revisão > 0, e mandar 0 produziria uma
+  // recusa por revisão desatualizada apresentada ao operador como conflito de
+  // concorrência — quando a verdade é que a tela nunca soube a revisão.
+  //
+  // Agora a ausência devolve NaN e o dono compartilhado se recusa a operar: a
+  // revisão REAL é entrada obrigatória, e quem não a carrega não salva.
   function baseAjusteRevisaoDe(ctx) {
     if (ctx && ctx.ajusteRevisao != null) return Number(ctx.ajusteRevisao);
     if (ctx && ctx.op && ctx.op.ajuste_revisao != null) return Number(ctx.op.ajuste_revisao);
-    return 0;
+    return NaN;
+  }
+
+  // O dono compartilhado só opera com as DUAS entradas nativas presentes:
+  // a projeção de disponibilidade (oc_disponibilidade_op) e a revisão real.
+  // `metros_pedidos` nunca é disponibilidade produtiva, e um teto ausente
+  // nunca vira teto livre.
+  function contextoNativoCompleto(ctx) {
+    return Array.isArray(ctx && ctx.disponibilidade)
+      && Number.isFinite(baseAjusteRevisaoDe(ctx));
+  }
+
+  function motivoContextoIncompleto(ctx) {
+    if (!Array.isArray(ctx && ctx.disponibilidade)) {
+      return 'Disponibilidade nativa de fio não carregada para esta OP.';
+    }
+    return 'Revisão de ajuste da OP não carregada.';
+  }
+
+  // Estado explícito de recusa: a tela diz o que falta, e não oferece nenhum
+  // controle que pudesse gravar sobre uma base desconhecida.
+  function buildContextoIncompleto(ctx, compact) {
+    var el = window.el;
+    return el('div', {
+      role: 'alert',
+      'aria-live': 'polite',
+      'data-rv-contexto-incompleto': '',
+      style: 'width:100%;box-sizing:border-box;color:var(--rv-signal-caution);'
+        + 'background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);'
+        + 'border-radius:var(--rv-radius);padding:11px 14px;font-size:var(--rv-fs-sm);'
+        + 'font-weight:700;line-height:1.45;margin-top:' + (compact ? '10px' : '12px') + ';',
+    },
+      motivoContextoIncompleto(ctx)
+      + ' O ajuste de produção fica indisponível até que ela seja carregada — '
+      + 'nada é salvo sobre uma base desconhecida.');
   }
 
   // Distribuição salva = op_itens.metros_ajustados de TODOS os itens.
@@ -159,6 +196,18 @@
     var status = (op && op.status) || null;
     var aberta = status === 'aberta';
     var saved = distribuicaoSalva(opItens);
+    // FAIL-CLOSED: sem a projeção nativa não se afirma que a produção pode
+    // começar. O servidor revalida de qualquer forma, mas a tela não oferece
+    // uma ação que ela não consegue sustentar.
+    if (!Array.isArray(disponibilidade)) {
+      return {
+        habilitado: false,
+        motivo: 'Disponibilidade nativa de fio não carregada para esta OP.',
+        aberta: aberta,
+        temDistribuicaoSalva: saved != null,
+        contextoIncompleto: true,
+      };
+    }
     var info = saved
       ? avaliarDistribuicao(saved, opItens, modelosById, parametrosByLargura, disponibilidade)
       : { algumExcede: false };
@@ -173,6 +222,7 @@
       motivo: motivo,
       aberta: aberta,
       temDistribuicaoSalva: saved != null,
+      contextoIncompleto: false,
     };
   }
 
@@ -213,6 +263,10 @@
   function buildIniciarProducaoButton(ctx) {
     var el = window.el;
     var st = iniciarProducaoState(ctx.opItens, ctx.op, ctx.disponibilidade, ctx.modelosById, ctx.parametrosByLargura);
+    // A revisão real também é entrada obrigatória do início de produção.
+    if (!contextoNativoCompleto(ctx)) {
+      st = { habilitado: false, motivo: motivoContextoIncompleto(ctx), contextoIncompleto: true };
+    }
     var habilitado = st.habilitado;
     var btn = el('button', {
       type: 'button',
@@ -264,6 +318,11 @@
   // modelosById, parametrosByLargura, variant('full'|'compact'), onSaved,
   // onRecarregar }.
   function buildDistribuicaoBlock(ctx) {
+    // FAIL-CLOSED (P2-C): sem disponibilidade nativa e sem a revisão real,
+    // nenhum slider é construído e nenhum salvamento é oferecido.
+    if (!contextoNativoCompleto(ctx)) {
+      return buildContextoIncompleto(ctx, (ctx && ctx.variant) === 'compact');
+    }
     var el = window.el;
     var svgEl = window.svgEl;
     var fmtMetros = fn('fmtMetros', function (n) { return String(n); });

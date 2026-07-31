@@ -1041,5 +1041,5 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
   assert.match(INDEX, new RegExp(`css/tokens\\.css\\?v=${B1}`));
   // Unchanged assets keep their prior token.
   assert.match(INDEX, /js\/badges\.js\?v=20260726-ui-p5-pass2-a4/);
-  assert.match(INDEX, /js\/calculo-op\.js\?v=20260623-asset1/);
+  assert.match(INDEX, /js\/calculo-op\.js\?v=20260731-native-receipt-p2/);
 });

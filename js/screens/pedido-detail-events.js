@@ -147,76 +147,176 @@
       });
     }
 
-    async function alterarStatus(novoStatus, btn) {
-      if (!state.pedido) {
-        window.toast('Pedido nao carregado.', 'error');
-        return;
+    // -----------------------------------------------------------------
+    // TRANSICOES DE STATUS DO PEDIDO — P2-C (db/105, secao 9.9.L)
+    //
+    // ANTES esta funcao gravava `pedidos.status` DIRETO, com um UPDATE do
+    // cliente. Isso ignorava a revisao, nao registrava evento canonico e
+    // permitia ao front-end propor qualquer transicao que o mapa local
+    // aceitasse.
+    //
+    // Agora ha exatamente DOIS donos, ambos do servidor:
+    //   alterar_status_pedido  — transicoes PEDIDAS pelo operador;
+    //   cancelar_pedido        — cancelamento, atras do portao D7.
+    //
+    // Transicoes DERIVADAS (confirmado->produzindo, produzindo->entregue,
+    // entregue->produzindo) pertencem ao helper interno
+    // _pedido_status_recalcular e NUNCA sao enviadas por esta tela.
+    //
+    // Nenhuma das duas RPCs aceita chave de idempotencia na sua assinatura, e
+    // esta tela nao inventa um parametro que o contrato nao tem: a protecao
+    // contra reenvio e a REVISAO, comparada pelo servidor sob lock.
+    // -----------------------------------------------------------------
+
+    // As UNICAS transicoes que alterar_status_pedido aceita (db/105). O mapa
+    // local de UI pode ser mais largo; o que a tela OFERECE e este.
+    var TRANSICOES_CANONICAS = { rascunho: ['recebido'], recebido: ['confirmado'] };
+
+    function transicoesOferecidas(statusAtual) {
+      var permitidas = TRANSICOES_CANONICAS[statusAtual] || [];
+      var acoes = permitidas.map(function (destino) {
+        return { status: destino, label: (ns.ACTION_LABEL && ns.ACTION_LABEL[destino]) || destino };
+      });
+      // Cancelamento e oferecido por ELEGIBILIDADE, nunca pelo mapa de
+      // transicao — e `entregue -> cancelado` nao existe como acao direta.
+      if (statusAtual !== 'cancelado' && statusAtual !== 'entregue') {
+        acoes.push({ status: 'cancelado', label: (ns.ACTION_LABEL && ns.ACTION_LABEL.cancelado) || 'Cancelar pedido' });
       }
+      return acoes;
+    }
+
+    function revisaoBase() {
+      var r = state.pedido ? state.pedido.revisao : null;
+      return r == null ? null : Number(r);
+    }
+
+    async function alterarStatus(novoStatus, btn, mostrarErro) {
+      var erro = typeof mostrarErro === 'function'
+        ? mostrarErro
+        : function (m) { window.toast(m, 'error'); };
+      if (!state.pedido) { erro('Pedido nao carregado.'); return false; }
+
+      if (novoStatus === 'cancelado') return await cancelarPedido(btn, erro);
+
       var statusAtual = state.pedido.status;
-      if (!ns.canTransition(statusAtual, novoStatus)) {
-        window.toast('Transicao nao permitida: ' + statusAtual + ' -> ' + novoStatus + '.', 'error');
-        return;
+      var permitidas = TRANSICOES_CANONICAS[statusAtual] || [];
+      if (permitidas.indexOf(novoStatus) === -1) {
+        erro('Transicao nao permitida pelo contrato do servidor: ' + statusAtual + ' -> ' + novoStatus + '.');
+        return false;
       }
 
       var oldLabel = btn ? btn.textContent : null;
       var oldDisabled = btn ? btn.disabled : false;
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Salvando...';
+      if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+      function restaurar() { if (btn) { btn.disabled = oldDisabled; btn.textContent = oldLabel; } }
+
+      var res = await window.supa.rpc('alterar_status_pedido', {
+        p_pedido_id: pedidoId,
+        p_novo_status: novoStatus,
+        p_base_revisao: revisaoBase(),
+        p_motivo: null,
+      });
+
+      if (res.error) {
+        erro('Nao foi possivel confirmar a mudanca de status. Tente novamente.');
+        console.error('pedido-detail: alterar_status_pedido', res.error);
+        restaurar();
+        return false;
+      }
+      var data = res.data || {};
+      if (data.ok !== true) {
+        if (data.codigo === 'PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA') {
+          // Recarga EXPLICITA do operador: sem retry automatico, sem merge.
+          erro('O Pedido foi alterado em outra sessao. Nada foi gravado. Recarregue os dados e refaca a acao.');
+        } else if (data.codigo === 'ADMIN_REVIEW_REQUIRED') {
+          // db/91: prioridade solicitada bloqueia a confirmacao. A tela abre o
+          // fluxo de revisao em vez de adivinhar ou contornar.
+          erro('Existe uma prioridade solicitada pelo cliente aguardando analise. Revise a sequencia antes de confirmar o pedido.');
+          console.error('pedido-detail: status recusado', data);
+          restaurar();
+          definirPrioridade();
+          return false;
+        } else {
+          erro('Mudanca de status recusada: ' + (data.codigo || 'motivo nao informado pelo servidor'));
+        }
+        console.error('pedido-detail: status recusado', data);
+        restaurar();
+        return false;
       }
 
-      var apply = async function () {
-        var res = await window.supa
-          .from('pedidos')
-          .update({ status: novoStatus })
-          .eq('id', pedidoId);
+      window.toast('Pedido marcado como ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(novoStatus) : novoStatus) + '.', 'success');
+      await reload();
+      render();
+      return true;
+    }
 
-        if (res.error) {
-          // db/91: uma solicitacao de prioridade pendente BLOQUEIA a aceitacao
-          // no banco. A tela nao tenta adivinhar nem contornar: ela reconhece
-          // o erro estavel e abre o fluxo de revisao, onde o Admin escolhe
-          // explicitamente entre confirmar, ajustar ou remover.
-          var prioApi = window.RAVATEX_PEDIDO_PRIORITY;
-          if (prioApi && prioApi.erroContem(res.error, prioApi.ERROS.ADMIN_REVIEW_REQUIRED)) {
-            window.toast('Existe uma prioridade solicitada pelo cliente aguardando análise. Revise a sequência antes de confirmar o pedido.', 'error');
-            if (btn) {
-              btn.disabled = oldDisabled;
-              btn.textContent = oldLabel;
+    // Cancelamento: portao de elegibilidade + escritor D7. Um ERRO ao
+    // consultar a elegibilidade NAO e a mesma coisa que ser inelegivel, e as
+    // duas situacoes sao ditas de formas diferentes.
+    async function cancelarPedido(btn, erro) {
+      var gate = await window.supa.rpc('pedido_elegivel_cancelamento', { p_pedido_id: pedidoId });
+      if (gate.error) {
+        erro('Nao foi possivel verificar se este Pedido pode ser cancelado. Tente novamente.');
+        console.error('pedido-detail: pedido_elegivel_cancelamento', gate.error);
+        return false;
+      }
+      var g = gate.data || {};
+      if (g.elegivel !== true) {
+        erro('Este Pedido nao pode ser cancelado: ' + (g.codigo || 'motivo nao informado pelo servidor'));
+        return false;
+      }
+
+      var motivoInput = window.textInput({ type: 'text', placeholder: 'motivo do cancelamento (obrigatorio)' });
+      motivoInput.setAttribute('aria-label', 'Motivo do cancelamento');
+      var alerta = window.el('div', {
+        role: 'alert',
+        'aria-live': 'assertive',
+        style: 'display:none;margin-top:10px;font-size:13px;font-weight:700;color:var(--rv-signal-negative);',
+      });
+      function erroLocal(m) { alerta.textContent = m; alerta.style.display = 'block'; }
+
+      window.modal({
+        title: 'Cancelar pedido',
+        body: window.el('div', {},
+          window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' },
+            'O cancelamento libera o planejamento de compra e cancela as OPs relacionadas. Informe o motivo.'),
+          motivoInput,
+          alerta),
+        saveLabel: 'Cancelar pedido',
+        onSave: async function () {
+          var motivo = motivoInput.value ? String(motivoInput.value).trim() : '';
+          if (!motivo) {
+            erroLocal('Informe o motivo do cancelamento.');
+            motivoInput.focus();
+            return false;
+          }
+          var res = await window.supa.rpc('cancelar_pedido', {
+            p_pedido_id: pedidoId,
+            p_base_revisao: revisaoBase(),
+            p_motivo: motivo,
+          });
+          if (res.error) {
+            erroLocal('Nao foi possivel confirmar o cancelamento. Tente novamente.');
+            console.error('pedido-detail: cancelar_pedido', res.error);
+            return false;
+          }
+          var data = res.data || {};
+          if (data.ok !== true) {
+            if (data.codigo === 'PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA') {
+              erroLocal('O Pedido foi alterado em outra sessao. Nada foi gravado. Recarregue os dados e refaca a acao.');
+            } else {
+              erroLocal('Cancelamento recusado: ' + (data.codigo || 'motivo nao informado pelo servidor'));
             }
-            definirPrioridade();
-            return;
+            console.error('pedido-detail: cancelamento recusado', data);
+            return false;
           }
-          window.toast('Erro ao atualizar status: ' + (res.error.message || 'desconhecido'), 'error');
-          console.error('pedido-detail: erro ao atualizar status', res.error);
-          if (btn) {
-            btn.disabled = oldDisabled;
-            btn.textContent = oldLabel;
-          }
-          return;
-        }
-
-        state.pedido.status = novoStatus;
-        window.toast('Pedido marcado como ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(novoStatus) : novoStatus) + '.', 'success');
-        await reload();
-        render();
-      };
-
-      if (novoStatus === 'cancelado') {
-        window.confirmDialog({
-          title: 'Cancelar pedido',
-          message: 'Tem certeza que deseja cancelar este pedido? Esta acao nao pode ser desfeita nesta fase.',
-          confirmLabel: 'Sim, cancelar',
-          danger: true,
-          onConfirm: apply,
-        });
-        if (btn) {
-          btn.disabled = oldDisabled;
-          btn.textContent = oldLabel;
-        }
-        return;
-      }
-
-      await apply();
+          window.toast('Pedido cancelado.', 'success');
+          await reload();
+          render();
+          return true;
+        },
+      });
+      return true;
     }
 
     async function concluirPedido(btn) {
@@ -892,10 +992,19 @@
         parametrosByLargura[Number(p.largura)] = p;
         if (typeof window.larguraKey === 'function') parametrosByLargura[window.larguraKey(p.largura)] = p;
       });
+      // P2-C: as DUAS entradas nativas exigidas pelo dono compartilhado.
+      // `disponibilidade` é a projeção oc_disponibilidade_op carregada por
+      // pedido-detail-data.js; `ajusteRevisao` é a revisão REAL da OP. Quando
+      // a leitura falhou, `disponibilidade` fica undefined de propósito — o
+      // dono compartilhado então mostra o estado de recusa em vez de operar
+      // sobre um teto inventado. `ordens` (modelo plano) deixou de ser passado:
+      // ele nunca foi teto produtivo e não pertence a este contexto.
+      var disp = state.disponibilidadeByOp ? state.disponibilidadeByOp[op.id] : undefined;
       return {
         op: op,
         opItens: op.op_itens || [],
-        ordens: (state.ordensFio || []).filter(function (o) { return o.op_id === op.id; }),
+        disponibilidade: disp,
+        ajusteRevisao: op.ajuste_revisao,
         modelosById: buildModelosForEntregaForm(),
         parametrosByLargura: parametrosByLargura,
       };
@@ -931,9 +1040,11 @@
       }
       var c = tecOpContext(op);
       return api.buildDistribuicaoBlock({
-        op: c.op, opItens: c.opItens, ordens: c.ordens,
+        op: c.op, opItens: c.opItens,
+        disponibilidade: c.disponibilidade, ajusteRevisao: c.ajusteRevisao,
         modelosById: c.modelosById, parametrosByLargura: c.parametrosByLargura,
         variant: 'compact',
+        onRecarregar: async function () { await reload(); render(); return true; },
         onSaved: afterTecSuccess(op, options),
       });
     }
@@ -948,7 +1059,8 @@
       var styleEnabled = 'display:inline-flex;align-items:center;justify-content:center;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;';
       var styleDisabled = 'display:inline-flex;align-items:center;justify-content:center;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;opacity:.45;cursor:default;white-space:nowrap;';
       return api.buildIniciarProducaoButton({
-        op: c.op, opItens: c.opItens, ordens: c.ordens,
+        op: c.op, opItens: c.opItens,
+        disponibilidade: c.disponibilidade, ajusteRevisao: c.ajusteRevisao,
         modelosById: c.modelosById, parametrosByLargura: c.parametrosByLargura,
         styleEnabled: styleEnabled, styleDisabled: styleDisabled,
         onIniciado: afterTecSuccess(op, options),
@@ -2466,7 +2578,7 @@
     function openStatusActions() {
       if (!state.pedido) return;
 
-      var actions = ns.nextActionsForStatus(state.pedido.status);
+      var actions = transicoesOferecidas(state.pedido.status);
       var body = window.el('div', {});
 
       if (actions.length === 0) {

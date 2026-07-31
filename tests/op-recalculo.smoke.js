@@ -180,7 +180,7 @@ test('3. op-recalculo.js é script clássico, sem import/export', () => {
 
 test('4. index.html carrega op-recalculo.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  const reWithQs = /<script\s+src="js\/screens\/op-recalculo\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reWithQs = /<script\s+src="js\/screens\/op-recalculo\.js\?v=20260731-native-receipt-p2"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-recalculo\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,

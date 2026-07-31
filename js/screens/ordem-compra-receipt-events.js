@@ -87,6 +87,66 @@
     var registrationTracker = ns.createReceiptAttemptTracker();
     var reversalTracker = ns.createReceiptAttemptTracker();
 
+    // ---- R12: continuação pós-recebimento ------------------------------
+    //
+    // A lista de OPs afetadas é AUTORITATIVA e vem do resultado do comando:
+    // `lancamentos[].op_id` é o vínculo que o SERVIDOR resolveu ao gravar cada
+    // linha do razão (db/74 F1: origem-OP recebe a OP real da alocação;
+    // origem-Pedido, compartilhada, permanece com op_id NULL; excedente fica
+    // sem alocação e sem OP). Não se conta linha do formulário, não se conta
+    // alocação da tela e não se adivinha nada no cliente.
+    function opsAfetadasDoResultado(result) {
+      var ids = [];
+      var linhas = (result && result.lancamentos) || [];
+      linhas.forEach(function (l) {
+        if (!l || l.op_id == null) return;              // pool do Pedido ou excedente
+        if (ids.indexOf(l.op_id) === -1) ids.push(l.op_id);
+      });
+      return ids;
+    }
+
+    // Rota de continuação, conforme a ruling R12:
+    //   1 OP    -> a própria OP, no seu bloco de ajuste/produção;
+    //   N OPs   -> o painel consolidado de produção do Pedido;
+    //   0 OP    -> nenhuma: excedente/pool não têm destino produtivo.
+    function rotaContinuacao(opIds) {
+      if (opIds.length === 1) return '#/ops/' + opIds[0];
+      if (opIds.length > 1) {
+        var pedidoId = state.ordem && state.ordem.pedido_id;
+        return pedidoId ? '#/pedidos/' + pedidoId + '/producao' : null;
+      }
+      return null;
+    }
+
+    // O slider COMPLETO nunca é renderizado aqui: este modal carrega apenas a
+    // AÇÃO de continuação (§R.16). O ajuste acontece na superfície da OP ou no
+    // painel do Pedido, sempre pelo dono compartilhado.
+    function abrirContinuacaoProducao(result) {
+      var opIds = opsAfetadasDoResultado(result);
+      if (!opIds.length) {
+        // Estado de conclusão HONESTO: sem OP afetada não se inventa destino.
+        window.toast('Recebimento registrado. Nenhuma OP foi afetada — o material entrou como excedente ou no pool do Pedido.', 'success');
+        return null;
+      }
+      var rota = rotaContinuacao(opIds);
+      if (!rota) {
+        window.toast('Recebimento registrado. Não foi possível resolver a rota de continuação.', 'success');
+        return null;
+      }
+      var descricao = opIds.length === 1
+        ? 'O recebimento afetou ' + opLabel(opIds[0]) + '. Revise a distribuição de produção dessa OP.'
+        : 'O recebimento afetou ' + opIds.length + ' OPs. Revise a produção no painel consolidado do Pedido.';
+      return window.modal({
+        title: 'Recebimento registrado',
+        body: window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' }, descricao),
+        saveLabel: 'Revisar produção',
+        onSave: function () {
+          window.navigate(rota);
+          return true;
+        },
+      });
+    }
+
     // ---- Registration modal ------------------------------------------
     function abrirRegistroRecebimento() {
       var hist = state.receiptHistory;
@@ -177,8 +237,10 @@
           var res = await ns.registrarRecebimento(params, attempt);
           if (res.outcome === 'success') {
             registrationTracker.complete();
-            window.toast('Recebimento registrado.', 'success');
             await reload();
+            // R12: a recarga autoritativa vem ANTES da continuação, para que a
+            // OP (ou o painel) seja aberta sobre o estado já atualizado.
+            abrirContinuacaoProducao(res.result);
             return; // closes the modal
           }
           if (res.outcome === 'ambiguous') {
@@ -278,6 +340,11 @@
     return {
       abrirRegistroRecebimento: abrirRegistroRecebimento,
       estornarLancamento: estornarLancamento,
+      // R12 exposto para prova direta do roteamento, sem renderizar o modal
+      // de registro inteiro.
+      opsAfetadasDoResultado: opsAfetadasDoResultado,
+      rotaContinuacao: rotaContinuacao,
+      abrirContinuacaoProducao: abrirContinuacaoProducao,
     };
   };
 })(window);

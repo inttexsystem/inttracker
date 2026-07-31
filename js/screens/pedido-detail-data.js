@@ -54,7 +54,7 @@
       // db/91: o estado de prioridade entra explicitamente no read model. A
       // sequencia em si NAO e uma coluna: ela e `pedido_itens.ordem`, ja lido
       // abaixo com `.order('ordem')`.
-      .select('id, numero, data_pedido, status, cliente_id, referencia_cliente, prazo_entrega, prazo_desejado, tipo_recebimento, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, parcial_habilitado, parcial_atualizado_em, metros_total, prioridade_status, prioridade_observacao, prioridade_confirmada_em, prioridade_confirmada_por, prioridade_atualizada_em, cliente:cliente_id(id, nome)')
+      .select('id, numero, data_pedido, status, revisao, cliente_id, referencia_cliente, prazo_entrega, prazo_desejado, tipo_recebimento, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, parcial_habilitado, parcial_atualizado_em, metros_total, prioridade_status, prioridade_observacao, prioridade_confirmada_em, prioridade_confirmada_por, prioridade_atualizada_em, cliente:cliente_id(id, nome)')
       .eq('id', pedidoId)
       .maybeSingle();
 
@@ -303,7 +303,7 @@
     // (coluna adicionada por db/25): selecioná-la faria o PostgREST devolver
     // erro em ambientes sem a migration aplicada, derrubando toda a lista
     // base. Campos da consolidação Látex entram na camada de enriquecimento.
-    var opsSelect = 'id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, observacao, origem_op_id, origem_entrega_id, lote_id, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(id, nome))';
+    var opsSelect = 'id, numero, ano, identidade_operacional, identidade_pedido_id, status, ajuste_revisao, tipo, criado_em, observacao, origem_op_id, origem_entrega_id, lote_id, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(id, nome))';
     var opsRes = await window.supa
       .from('ops')
       .select(opsSelect)
@@ -322,6 +322,37 @@
     if (state.ops.length === 0) return null;
 
     var opIds = state.ops.map(function (op) { return op.id; });
+
+    // P2-C (fecha P2A-OBS-6): DISPONIBILIDADE NATIVA por OP ajustável.
+    //
+    // O dono compartilhado do ajuste passou a exigir a projeção nativa e a
+    // revisão real; sem elas ele se recusa a operar. Esta carga é o que torna
+    // o bloco de distribuição do Pedido utilizável — e ela é FAIL-CLOSED: uma
+    // OP cuja leitura falhe simplesmente não recebe entrada de disponibilidade
+    // e o dono compartilhado mostra o estado de recusa, em vez de operar sobre
+    // um teto inventado.
+    //
+    // Só as OPs que podem receber ajuste (simulada|aberta) são consultadas: as
+    // demais não têm slider e a chamada seria trabalho sem consumidor.
+    state.disponibilidadeByOp = {};
+    state.disponibilidadeErroByOp = {};
+    var opsAjustaveis = state.ops.filter(function (op) {
+      return op && (op.status === 'simulada' || op.status === 'aberta');
+    });
+    if (opsAjustaveis.length) {
+      var leituras = await Promise.all(opsAjustaveis.map(function (op) {
+        return window.supa.rpc('oc_disponibilidade_op', { p_op_id: op.id });
+      }));
+      opsAjustaveis.forEach(function (op, i) {
+        var res = leituras[i];
+        if (res && res.error) {
+          state.disponibilidadeErroByOp[op.id] = true;
+          console.error('pedido-detail: oc_disponibilidade_op da OP ' + op.id, res.error);
+          return;
+        }
+        state.disponibilidadeByOp[op.id] = Array.isArray(res && res.data) ? res.data : [];
+      });
+    }
 
     // CAMADA DE ENRIQUECIMENTO (isolada da base): consolidação Látex,
     // vínculo N entregas (cima) -> 1 OP Látex. Usado para resolver a OP

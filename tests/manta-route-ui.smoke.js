@@ -1217,8 +1217,16 @@ test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () 
   // SEMANTICA de prioridade nao mora aqui: ela e do dono compartilhado
   // js/pedido-priority.js. O gate segue sendo um ratchet, apenas reancorado no
   // bloco autorizado que o moveu.
-  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2870,
-    'pedido-detail-events.js deve permanecer <= 2870 linhas');
+  // 2870 -> 2975: +105 linhas de NATIVE-RECEIPT-COORDINATED-RELEASE-P2-C — o
+  // bloco de TRANSICOES DE STATUS DO PEDIDO. Ele SUBSTITUIU o UPDATE direto em
+  // `pedidos.status` pelos dois escritores canonicos do servidor
+  // (alterar_status_pedido e cancelar_pedido, atras do portao de elegibilidade
+  // D7), com submissao da revisao, estado de conflito explicito, motivo
+  // obrigatorio no cancelamento e codigos de recusa visiveis. A SEMANTICA de
+  // status nao mora aqui: ela e do servidor (db/105). O gate segue sendo um
+  // ratchet, apenas reancorado no bloco autorizado que o moveu.
+  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2975,
+    'pedido-detail-events.js deve permanecer <= 2975 linhas');
   assert.ok(lines('js/screens/pedido-detail-progress.js') <= 918,
     'pedido-detail-progress.js deve permanecer <= 918 linhas');
 });
@@ -1775,6 +1783,41 @@ const ALIAS_ASSETS = ['js/config.js'];
 // tres telas quebradas, entao a retokenizacao e obrigatoria.
 const READ_RPC_GUARD_TOKEN = '20260730-read-rpc-guard-correction-r1';
 const READ_RPC_GUARD_ASSETS = ['js/supabase-client.js'];
+// NATIVE-RECEIPT-COORDINATED-RELEASE-P2 (A+B+C). A fase conectou o frontend
+// aos escritores canonicos ja aplicados em producao: disponibilidade nativa,
+// ajuste atomico, inicio de producao, fila de aceite do fornecedor, entrega
+// Tapete atomica (TD3), recuperacao de acabamento, estorno e correcao de
+// expedicao, status e cancelamento do Pedido, e o painel consolidado de
+// producao. Dezesseis modulos mudaram de comportamento e um e novo; um cliente
+// com qualquer um deles em cache operaria contra um contrato que nao existe
+// mais, entao a retokenizacao e obrigatoria.
+//
+// Como toda ordem anterior, o tier declara o seu token e a sua lista, e as
+// derivacoes _AINDA_EM_, os conjuntos `declarados` e a lista posicional de
+// R3/20c2 subtraem esta lista.
+const P2_TOKEN = '20260731-native-receipt-p2';
+const P2_ASSETS = [
+  'js/calculo-op.js',
+  'js/delete-helpers.js',
+  'js/supabase-client.js',
+  'js/router.js',
+  'js/screens/op-distribuicao-ui.js',
+  'js/screens/op-nova.js',
+  'js/screens/op-persistir.js',
+  'js/screens/op-recalculo.js',
+  'js/screens/op-writes.js',
+  'js/screens/pedido-detail-data.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/entrega-form.js',
+  'js/screens/entrega-writes.js',
+  'js/screens/expedicao-admin.js',
+  'js/screens/fornecedor.js',
+  'js/screens/ordem-compra-receipt-events.js',
+];
+// Modulo NOVO da fase: entra em ADDED_SINCE_4532F76 pelo mesmo motivo que os
+// anteriores — um asset acrescentado nao e um asset retokenizado.
+const P2_ADDED_ASSETS = ['js/screens/pedido-producao-panel.js'];
+
 
 // A uniao continua sendo o conjunto que as derivacoes _AINDA_EM_, os conjuntos
 // `declarados` e a lista posicional de R3/20c2 subtraem: os tres assets seguem
@@ -1791,7 +1834,8 @@ const PASS7_A4_ASSETS_AINDA_EM_A4 = PASS7_A4_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS7_ASSETS_AINDA_EM_PASS7 = PASS7_ASSETS
   .filter((a) => !PASS7_A4_ASSETS.includes(a))
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
@@ -1800,7 +1844,8 @@ const PASS7_ASSETS_AINDA_EM_PASS7 = PASS7_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 
 const PASS6_A1_ASSETS_AINDA_EM_A1 = PASS6_A1_ASSETS
   .filter((a) => !PASS7_ASSETS.includes(a))
@@ -1811,7 +1856,8 @@ const PASS6_A1_ASSETS_AINDA_EM_A1 = PASS6_A1_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
   .filter((a) => !PASS6_A1_ASSETS.includes(a))
   .filter((a) => !PASS7_ASSETS.includes(a))
@@ -1823,7 +1869,8 @@ const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
   .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
-  .filter((a) => !REPAINT_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !REPAINT_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !PASS6_ASSETS.includes(a))
   .filter((a) => !PASS6_A1_ASSETS.includes(a))
@@ -1835,7 +1882,8 @@ const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
@@ -1848,7 +1896,8 @@ const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 
 const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1863,7 +1912,8 @@ const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1878,7 +1928,8 @@ const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !PASS2_A4_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
@@ -1894,7 +1945,8 @@ const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
@@ -1910,7 +1962,8 @@ const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1925,7 +1978,8 @@ const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
@@ -1943,7 +1997,8 @@ const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
@@ -1958,7 +2013,8 @@ const R3_ASSETS_AINDA_EM_R3 = R3_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !P2_ASSETS.includes(a));
 
 
 // KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-01-R1: o lote de defeitos
@@ -2024,7 +2080,7 @@ const ADDED_SINCE_4532F76 = PRIORITY_ADDED_ASSETS.concat(BATCH2_ADDED_ASSETS)
   .concat(PASS7_ADDED_ASSETS)
   .concat(BRAND_ADDED_ASSETS)
   .concat(CLIENT_EDITOR_ADDED_ASSETS)
-  .concat(ALTERACAO_REVIEW_ADDED_ASSETS);
+  .concat(ALTERACAO_REVIEW_ADDED_ASSETS).concat(P2_ADDED_ASSETS);
 
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
@@ -2176,8 +2232,15 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // solicitacao de alteracao pendente entrou no read model do detalhe. O sujeito
   // do guard nao muda: o lote 3 continua proibido de arrastar asset algum, e
   // cada asset segue verificado contra a ordem que o alterou POR ULTIMO.
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P2 passou a ser a ULTIMA ordem a
+  // alterar pedido-detail-data.js: `ajuste_revisao` e `revisao` entraram no
+  // read model e a disponibilidade nativa por OP passou a ser carregada, ao
+  // mesmo tempo em que o fallback plano de ordens de fio foi retirado. O
+  // sujeito do guard nao muda: o lote 3 continua proibido de arrastar asset
+  // algum, e cada asset segue verificado contra a ordem que o alterou POR
+  // ULTIMO.
   const intocados = [
-    ['js/screens/pedido-detail-data.js', ALTERACAO_REVIEW_TOKEN],
+    ['js/screens/pedido-detail-data.js', P2_TOKEN],
     ['js/screens/pedido-itens-edit.js', SCREEN_GROUP_1_TOKEN],
     // PEDIDO-SCREEN-GROUP-2 passou a ser a ULTIMA ordem a alterar
     // cliente-pedido-form (moldura, divisor de cabecalho, empilhamento
@@ -2218,6 +2281,7 @@ test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76'
     if (PASS4_ASSETS.includes(before[i].path)) continue;
     if (PASS5_ASSETS.includes(before[i].path)) continue;
     if (B1_ASSETS.includes(before[i].path)) continue;
+    if (P2_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
@@ -2377,7 +2441,7 @@ test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2114191');
   }
   // E nenhum asset NAO declarado pela A2 pode ter mudado.
-  const declarados = new Set(PASS2_A2_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
+  const declarados = new Set(PASS2_A2_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS).concat(P2_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (!ref.path.startsWith('js/screens/') || declarados.has(ref.path)) continue;
     const committed = execFileSync('git', ['rev-parse', '2114191:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -2412,7 +2476,7 @@ test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, 
   }
   // E nenhum outro script local pode ter mudado: a A3 nao arrasta asset algum,
   // nem tela (fechada pela A2) nem modulo compartilhado que ela nao declarou.
-  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS).concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
+  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS).concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS).concat(P2_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     // Runtime de terceiros (CDN) nao esta versionado aqui e nao e alvo da A3.
     if (/^https?:/.test(ref.path)) continue;
@@ -2446,7 +2510,7 @@ test('A4/20c11. os assets da correcao A4 carregam exatamente o token declarado, 
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2fa29d9');
   }
   // E nenhum outro script local pode ter mudado: a A4 nao arrasta asset algum.
-  const declarados = new Set(PASS2_A4_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
+  const declarados = new Set(PASS2_A4_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS).concat(P2_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2482,7 +2546,7 @@ test('PASS3/20c12. os assets da passada 3 de altura carregam exatamente o token 
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 7577f93');
   }
   // E nenhum outro script local pode ter mudado: a passada 3 nao arrasta asset algum.
-  const declarados = new Set(PASS3_ASSETS.concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
+  const declarados = new Set(PASS3_ASSETS.concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS).concat(P2_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2518,7 +2582,7 @@ test('PASS4/20c13. os assets da passada 4 de elevacao carregam exatamente o toke
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 42ce915');
   }
   // E nenhum outro script local pode ter mudado: a passada 4 nao arrasta asset algum.
-  const declarados = new Set(PASS4_ASSETS.concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
+  const declarados = new Set(PASS4_ASSETS.concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS).concat(P2_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2553,7 +2617,7 @@ test('PASS5/20c14. os assets da passada 5 de alinhamento carregam exatamente o t
   // E nenhum outro script local pode ter mudado NA PASSADA 5: os assets que a
   // passada 6 declarou sao verificados literalmente por PASS6/20c15, contra o
   // checkpoint publicado da passada 5.
-  const declarados = new Set([...PASS5_ASSETS, ...PASS6_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS, ...CLIENT_EDITOR_ADDED_ASSETS]);
+  const declarados = new Set([...PASS5_ASSETS, ...PASS6_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS, ...CLIENT_EDITOR_ADDED_ASSETS, ...P2_ASSETS]);
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2587,7 +2651,7 @@ test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o to
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 212972d');
   }
   // E nenhum outro script local pode ter mudado: a passada 6 nao arrasta asset algum.
-  const declarados = new Set([...PASS6_ASSETS, ...PASS6_A1_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS, ...CLIENT_EDITOR_ADDED_ASSETS]);
+  const declarados = new Set([...PASS6_ASSETS, ...PASS6_A1_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS, ...CLIENT_EDITOR_ADDED_ASSETS, ...P2_ASSETS]);
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2788,15 +2852,22 @@ test('R3/20c12. o asset da correcao de alias carrega exatamente o token da corre
 // browser com o modulo anterior em cache continuaria rejeitando as RPCs de
 // leitura e as tres telas afetadas seguiriam quebradas fora de producao.
 test('R3/20c13. o asset da correcao do guard de RPC de leitura carrega exatamente o token da correcao', () => {
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P2 ABSORVEU este tier: a mesma
+  // js/supabase-client.js voltou a mudar (as quatro leituras nativas provadas
+  // entraram na allowlist e o inventario declarativo das catorze RPCs do P2
+  // foi acrescentado como METADADO, sem autoridade de execucao). Pelo mesmo
+  // mecanismo que toda ordem posterior usou, o asset passa a carregar o token
+  // da ordem que o alterou POR ULTIMO, e o token superseded nao pode sobrar
+  // em asset nenhum.
   assert.deepEqual(READ_RPC_GUARD_ASSETS, ['js/supabase-client.js'],
     'a correcao do guard de leitura altera exatamente um asset');
-  assert.equal(tokenFor('js/supabase-client.js'), READ_RPC_GUARD_TOKEN,
-    'js/supabase-client.js deve carregar o token da correcao do guard de leitura');
+  assert.equal(tokenFor('js/supabase-client.js'), P2_TOKEN,
+    'js/supabase-client.js deve carregar o token da ordem que o alterou por ultimo');
   const carriers = assetRefs(indexHtml)
     .filter((r) => r.token === READ_RPC_GUARD_TOKEN)
     .map((r) => r.path);
-  assert.deepEqual(carriers.slice().sort(), READ_RPC_GUARD_ASSETS.slice().sort(),
-    'somente js/supabase-client.js pode carregar o token da correcao do guard de leitura');
+  assert.deepEqual(carriers, [],
+    'o token da correcao do guard de leitura foi superseded e nao pode sobrar em asset algum');
   for (const anterior of [
     R2_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN,
     PASS1_TOKEN, PASS2_TOKEN, PASS2_A2_TOKEN, PASS2_A3_TOKEN, PASS2_A4_TOKEN,
@@ -2805,8 +2876,8 @@ test('R3/20c13. o asset da correcao do guard de RPC de leitura carrega exatament
     B1_TOKEN, SCREEN_GROUP_2_TOKEN, SCREEN_GROUP_3_TOKEN, BRAND_TOKEN,
     CUTOVER_TOKEN, ALIAS_TOKEN,
   ]) {
-    assert.notEqual(READ_RPC_GUARD_TOKEN, anterior,
-      'o token da correcao do guard de leitura tem de diferir de todo token anterior');
+    assert.notEqual(P2_TOKEN, anterior,
+      'o token do P2 tem de diferir de todo token anterior');
     assert.notEqual(tokenFor('js/supabase-client.js'), anterior,
       'js/supabase-client.js nao pode reter o token superseded ' + anterior);
   }

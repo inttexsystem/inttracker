@@ -184,7 +184,7 @@ test('2. op-writes.js: sintaxe JS válida (node --check)', () => {
 
 test('3. index.html carrega op-writes.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  const reWithQs = /<script\s+src="js\/screens\/op-writes\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reWithQs = /<script\s+src="js\/screens\/op-writes\.js\?v=20260731-native-receipt-p2"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-writes\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,

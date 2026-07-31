@@ -123,9 +123,9 @@ function makeSandbox(rpcHandler) {
 }
 
 const ORDEM = {
-  ordem_compra_id: 4242, codigo: 'OC-001-3-26', identidade_operacional: 'OC-001-3-26',
+  ordem_compra_id: 4242, codigo: 'OC-SINT-9-99', identidade_operacional: 'OC-SINT-9-99',
   fornecedor_id: 1, emitida_em: '2026-07-30T00:00:00Z', status_aceite: 'pendente',
-  kg_total: 3769.8, itens: 4,
+  kg_total: 1234.5, itens: 4,
 };
 
 // Constroi uma linha da fila via a API interna exposta no sandbox.

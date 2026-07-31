@@ -294,7 +294,7 @@ test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () 
   // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 passou a ordenar os itens da
   // OP pelo rank do Pedido pai e acrescentou o bloco derivado "Ordem de
   // prioridade do Pedido", entao op-nova.js carrega o token dessa ordem.
-  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260728-pedido-item-production-priority-r1"\s*><\/script>/g;
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260731-native-receipt-p2"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,
@@ -379,7 +379,11 @@ function makeOpNovaBootSandbox() {
       single() { return Promise.resolve({ data: null, error: null }); },
       then(r) { return Promise.resolve({ data: null, error: null }).then(r); },
     }),
-    rpc: () => Promise.resolve({ data: null, error: null }),
+    // P2-C: oc_disponibilidade_op devolve uma TABELA; o dono compartilhado
+    // do ajuste exige um array (fail-closed) e a revisao real da OP.
+    rpc: (fn) => Promise.resolve(fn === 'oc_disponibilidade_op'
+      ? { data: [], error: null }
+      : { data: null, error: null }),
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       signInWithPassword: () => Promise.resolve({ data: { user: null }, error: null }),
@@ -657,6 +661,15 @@ test('30. window.screenNovaOP continua resolvível após o boot completo', () =>
 // 7. Fluxos visuais da fase NOVA OP TECELAGEM STANDALONE B
 // -------------------------------------------------------------------------
 
+// P2-C: db/102 declara ops.ajuste_revisao NOT NULL DEFAULT 0. A fixture
+// passa a refletir isso, porque o dono compartilhado do ajuste exige a
+// revisao REAL — a ausencia dela e fail-closed, nao um zero implicito.
+function comAjusteRevisao(ops) {
+  return (ops || []).map((op) => (op && op.ajuste_revisao == null
+    ? Object.assign({}, op, { ajuste_revisao: 0 })
+    : op));
+}
+
 function buildOpNovaFixture(overrides = {}) {
   const base = {
     modelos: [
@@ -697,7 +710,9 @@ function buildOpNovaFixture(overrides = {}) {
     entregas: [],
   };
 
-  return Object.assign(base, overrides);
+  const merged = Object.assign(base, overrides);
+  merged.ops = comAjusteRevisao(merged.ops);
+  return merged;
 }
 
 function buildFakeSupa(db, rpcImpl) {

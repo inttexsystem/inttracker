@@ -125,11 +125,39 @@ test('politica anti-delete fisico de OP numerada esta documentada e estruturada'
   assert.match(rawSql, /Reconciliacoes futuras devem cancelar\/arquivar\/consolidar com rastro/i);
 });
 
-test('entrega-writes.js trata created/accumulated/already_linked da RPC', () => {
-  assert.match(entregaWrites, /created\s*===\s*true[\s\S]*Criou\s+/);
-  assert.match(entregaWrites, /accumulated\s*===\s*true[\s\S]*Acumulou na\s+/);
-  assert.match(entregaWrites, /already_linked\s*===\s*true[\s\S]*J[aá]\s+vinculada\s+[àa]\s+/i);
-  assert.match(entregaWrites, /normalizeGerarOpLatexResult/);
+test('entrega-writes.js trata o resultado canonico do comando atomico TD3', () => {
+  // Este caso provava a interpretacao do retorno de gerar_op_latex —
+  // created / accumulated / already_linked — porque a entrega de tecelagem
+  // chamava aquela RPC find-or-accumulate em modo best-effort DEPOIS de
+  // inserir a entrega por conta propria.
+  //
+  // A ruling TD3 (db/111) substituiu essa sequencia por UM comando atomico do
+  // servidor, que cria entrega, itens e OP de acabamento na mesma transacao.
+  // Com ela, as tres flags e o normalizador deixaram de existir: nao ha mais
+  // "acumulou" a interpretar no cliente, porque a identidade de replay e do
+  // servidor. O que este caso guarda agora e a leitura do resultado ATUAL.
+  assert.match(entregaWrites, /rpc\('registrar_entrega_cima_com_acabamento'/,
+    'a rota Tapete submete o comando atomico');
+  assert.match(entregaWrites, /function\s+interpretarResultadoEntregaCima/,
+    'o resultado autoritativo tem um interpretador explicito');
+  // Os tres estados do contrato, distinguidos sem inferir um do outro.
+  assert.match(entregaWrites, /entrega_registrada\s*!==\s*true/,
+    'falha de validacao: nada registrado');
+  assert.match(entregaWrites, /acab\.ok\s*===\s*true/,
+    'entrega e acabamento bem-sucedidos');
+  assert.match(entregaWrites, /entrega_sem_acabamento/,
+    'entrega salva com acabamento falho e um estado proprio');
+  // A identidade canonica da OP de acabamento nomeia a OP quando o servidor a
+  // devolve; o rotulo neutro de vinculo permanece quando ela nao vem.
+  assert.match(entregaWrites, /function\s+rotuloOpAcabamento/,
+    'a identidade canonica tem um dono explicito');
+  assert.match(entregaWrites, /getCanonicalIdentity/,
+    'a identidade vem do dono central de identidade de OP');
+  // E os mecanismos aposentados nao voltam.
+  assert.doesNotMatch(entregaWrites, /normalizeGerarOpLatexResult/,
+    'o normalizador de gerar_op_latex foi retirado com a RPC que ele servia');
+  assert.doesNotMatch(entregaWrites, /rpc\('gerar_op_latex'/);
+  assert.doesNotMatch(entregaWrites, /rpc\('gerar_op_latex_split'/);
 });
 
 test('db/28 registra que db/29 deve ajustar ON CONFLICT de gerar_op_latex', () => {
