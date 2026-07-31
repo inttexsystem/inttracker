@@ -1031,7 +1031,7 @@ Classification: **já implementada** · **parcial** · **ausente** · **conflita
 | 14 | Slider shared OP + Pedido | one builder, two mounts, one writer | **já implementada** | `js/screens/op-distribuicao-ui.js`; `op-nova.js:1601`; `pedido-detail-events.js:933,950` | none |
 | 15 | Atomic all-or-nothing save | per-row `UPDATE` loop returning `{partial:true}` | **ausente** | `js/screens/op-recalculo.js:194-206` | one atomic RPC |
 | 16 | Post-receipt "Revisar produção" (R12) | no continuation after receipt | **ausente** | receipt screens | continuation + 1-OP / N-OPs routing |
-| 17 | Pedido → Produzindo derived (D1/R2) | no writer at all | **ausente** | `db/13:50`; `db/91:621-622` | canonical server-owned status writer |
+| 17 | Pedido → Produzindo derived (§7.1/D1) | no writer at all | **ausente** | `db/13:50`; `db/91:621-622` | canonical server-owned status writer |
 | 18 | Weaving movements + correction | exist; `atualizarEntregaCima` is a non-transactional delete+insert | **parcial** | `js/screens/entrega-writes.js` | transactional writer |
 | 19 | Automatic idempotent finishing OP (D4) | `gerar_op_latex` is best-effort; idempotency identity not the delivery | **conflitante** | `entrega-writes.js:241-278`; `db/25:177` | idempotent by `origem_entrega_id` |
 | 20 | Proved-failure recovery surface (D5) | toast says "gere manualmente"; **no such surface exists**; no failure record | **ausente** | `entrega-writes.js:241-243` | failure record + gated retry surface |
@@ -1064,7 +1064,7 @@ Classification: **já implementada** · **parcial** · **ausente** · **conflita
 
 ### 9.7 Remaining assumptions
 
-Every product choice ruled by R1–R13 and D1–D6 has been removed from this list.
+Every product choice ruled by R1–R13 and D1–D7 has been removed from this list.
 What remains are **technical design details**, not product decisions:
 
 1. Physical shape of the D2 projection — materialized view, table with triggers,
@@ -1083,12 +1083,36 @@ What remains are **technical design details**, not product decisions:
    needs its own, given the different production source.
 7. Route and layout of the R12 consolidated Pedido production panel.
 
-### 9.8 Authorization status of this section
+### 9.8 Acceptance and authorization status of this section
 
-**Documenting this target authorizes no implementation.** Section 9 is a
-specification awaiting supervisor review. No migration, RPC, screen or
-configuration change is authorized by its existence. Implementation authorization
-lives only in `docs/governance/current-state.json` and §14.
+**The TARGET FUNCTIONAL PRODUCT DESIGN of this section is
+`CLOSED / ACCEPTED AS THE TARGET FUNCTIONAL PRODUCT SPECIFICATION`**, accepted by
+the supervisor at commit `a41a3db98372a3976635d8ffbd27a7832bb168a4` under
+`PEDIDO-DERIVED-LIFECYCLE-TARGET-FUNCTIONAL-DESIGN-ACCEPTANCE-R1`.
+
+Accepted scope: rulings **R1–R13** and **D1–D7**; the 15-lane target lifecycle;
+the separation between commercial and operational state; explicit creation and
+opening of the weaving OP before receipt; two-stage purchase planning and
+Purchase Order generation; the three orthogonal Purchase Order axes; native
+receipt, reversal and allocation semantics; native availability feeding the
+shared slider; atomic production adjustment; post-receipt continuation; Tapete
+and Manta route separation; finishing recovery; expedition and delivery
+reversals; and Pedido and OP cancellation eligibility.
+
+**What this acceptance means:** the diagram and this section correctly state how
+the product must function after correction.
+
+**What it explicitly does NOT mean:**
+
+- it does **not** accept an implementation-ready technical design;
+- it does **not** authorize implementation;
+- it does **not** authorize the native receipt cutover;
+- it does **not** accept the db/100 supervisor review, which remains outstanding.
+
+The residual technical details of §9.7 remain open and are the subject of
+`NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1`, which is **DESIGN ONLY**.
+Implementation authorization lives only in `docs/governance/current-state.json`
+and §14.
 
 ---
 
@@ -1309,23 +1333,35 @@ and `tests/ordem-compra-c3d-deploy.smoke.js` declares `EXPECTED_TERMINAL = 100`.
 DIAGNOSIS:
 ACCEPTED
 
-DESIGN:
+TARGET FUNCTIONAL PRODUCT DESIGN:
+CLOSED / ACCEPTED
+
+COORDINATED IMPLEMENTATION-READY TECHNICAL DESIGN:
 NOT YET ACCEPTED
 
 IMPLEMENTATION:
 NOT AUTHORIZED
 
+NATIVE RECEIPT CUTOVER:
+NOT AUTHORIZED
+
+db/100 SUPERVISOR REVIEW:
+STILL OUTSTANDING
+
 CURRENT BLOCKING WORK:
-NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1
+NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1 (DESIGN ONLY)
 
 NEXT ACCEPTANCE GATE:
 One implementation-ready coordinated design with exact manifests, invariants,
 cutover state machine, PONR, recovery matrix, authenticated acceptance plan,
 and resolution of the remaining Tapete/expedition/delivery edges.
 
-TARGET DESIGN:
-DOCUMENTED / AWAITING SUPERVISOR REVIEW (section 9, rulings R1-R13 and D1-D7).
-NOT ACCEPTED. IMPLEMENTATION REMAINS UNAUTHORIZED.
+ACCEPTED FUNCTIONAL-DESIGN CHECKPOINT:
+a41a3db98372a3976635d8ffbd27a7832bb168a4 — the corrected target-design content of
+section 9 and the two target graph artifacts, accepted under
+PEDIDO-DERIVED-LIFECYCLE-TARGET-FUNCTIONAL-DESIGN-ACCEPTANCE-R1.
+Rulings R1-R13 and D1-D7 are accepted and are NOT rewritten or compacted.
+The acceptance covers the FUNCTIONAL specification only.
 
 PRODUCTION POSITION (verified read-only 2026-07-31):
 db/100 APPLIED (20260731033711) AND TERMINAL; PUBLISHED THROUGH staging/dev.
@@ -1369,6 +1405,7 @@ correction.
 | 2026-07-31 | `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-STATE-CORRECTION-R1` | 2, 10 (new 10.1), 13 (new 13.6.1), 14, 16 | Reconciled the operational facts with independently re-verified read-only production state. Section 2 now records db/100 (`20260731033711`) as the terminal applied migration and the inactive cutover instead of db/99. New 10.1 records the **current** administrative status of both protected Purchase Orders (`OC-001-3-26` and `OC-001-4-26` are now `emitida`, not `rascunho`), explicitly distinguished from the historical db/100 preflight evidence in 13.6, which is preserved unchanged. New 13.6.1 records the current production measurement. Section 14 now states the verified production position and that PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 remains unaccepted. No lifecycle redesign; no defect, ruling, classification or decision changed. Documentation-only. |
 | 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-FINALIZATION-R1` | 0, 9 (replaced), 14, 16 | Section 9 replaced: was a list of DESIGN_PENDING placeholders, now the complete TARGET PRODUCT DESIGN — artifacts, lifecycle explanation, binding rulings R1-R13 and D1-D6, coordinated implementation blocks, the 30-row target-versus-current gap matrix, the residual technical-design assumptions, and the four-register distinction (target spec / current facts / gaps / authorization). Section 0 gained the clause forbidding the target and the current-state description from being merged. Section 14 records TARGET DESIGN DOCUMENTED / AWAITING SUPERVISOR REVIEW. Target graph added as SVG + Mermaid. Documentation-only; design is NOT accepted and implementation remains unauthorized. |
 | 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-REVIEW-CORRECTION-R1` | 9.4 (new D7), 9.5 (Block 2), 9.6 (gap matrix), 14, 16 | Corrects four defects found on direct supervisor review of the published target design. (1) The section-16 row for TARGET-DESIGN-FINALIZATION-R1 had been inserted BEFORE the earlier CANONICAL-STATE-CORRECTION-R1 row, breaking commit chronology and the append-only presentation; the rows are reordered with no change to either entry content. (2) Gap-matrix row 8 cited D4 for the rejected-Purchase-Order recovery; D4 owns finishing-OP idempotency, so the citation is now R5 alone. (3) Block 2 cited R2 for the canonical pedidos.status writer; that writer is owned by section 7.1 and D1, production-start routing is owned by R1, and R2 owns exclusively the Pedido-confirmed to create-weaving-OP sequence. (4) New binding ruling D7 adds the server-owned cancellation-eligibility gates: Pedido cancellation reachable from rascunho/recebido/confirmado/produzindo with entregue barred until a D1 correction, OP cancellation reachable from simulada/aberta/em_producao/pausada with concluida barred until an authorized reversal, finalizada left as legacy without action or writer, cancellation defined as preserving every historical fact and never physical deletion, and the produzindo label widened to "iniciado pela producao OU restaurado pela recomputacao D1". Documentation-only; the design is NOT accepted and implementation remains unauthorized. |
+| 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-FUNCTIONAL-DESIGN-ACCEPTANCE-R1` | 9.6, 9.7, 9.8, 14, 16 | SUPERVISOR ACCEPTANCE CLOSEOUT. The TARGET FUNCTIONAL PRODUCT DESIGN of section 9 and the two target graph artifacts are CLOSED / ACCEPTED AS THE TARGET FUNCTIONAL PRODUCT SPECIFICATION at commit a41a3db98372a3976635d8ffbd27a7832bb168a4. Accepted scope: rulings R1-R13 and D1-D7, the 15-lane target lifecycle, the commercial/operational state separation, explicit creation and opening of the weaving OP before receipt, two-stage purchase planning and Purchase Order generation, the three orthogonal Purchase Order axes, native receipt/reversal/allocation semantics, native availability feeding the shared slider, atomic production adjustment, post-receipt continuation, Tapete and Manta route separation, finishing recovery, expedition and delivery reversals, and Pedido and OP cancellation eligibility. The acceptance states that the diagram and section 9 correctly describe how the product must function after correction; it does NOT accept an implementation-ready technical design, does NOT authorize implementation, does NOT authorize the native receipt cutover, and does NOT accept the still-outstanding db/100 supervisor review of PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1. Two editorial corrections applied and no other target-design semantic change: gap-matrix row 17 now cites (§7.1/D1) instead of (D1/R2), because R2 owns only the explicit Pedido-confirmed to create-weaving-OP sequence; and the section 9.7 introduction now reads D1-D7 instead of D1-D6. R1-R13 and D1-D7 are neither rewritten nor compacted. Documentation-only. |
 
 **Every future executor report must identify the exact sections changed here.**
 </content>
