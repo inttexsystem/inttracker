@@ -164,16 +164,91 @@ BEGIN
   RAISE NOTICE 'ok - D: conflicting key reuse was refused with comando_conflitante and wrote nothing';
 
   -- =================================================================
-  -- E. THE COMMAND STORE IS APPEND-ONLY
+  -- E. THE COMMAND STORE IS APPEND-ONLY — PROVED BY THE TRIGGER
+  --
+  -- This block runs as the TABLE OWNER, which bypasses every grant and
+  -- every RLS policy. A refusal here is therefore the trigger itself and
+  -- not a revoked client privilege: revoking DELETE from `authenticated`
+  -- proves nothing about the owner or about any SECURITY DEFINER writer.
   -- =================================================================
+  DECLARE
+    v_before  JSONB;
+    v_after   JSONB;
+    v_rows0   INTEGER;
+    v_rows1   INTEGER;
+    v_denied  BOOLEAN;
+    v_tgtype  SMALLINT;
+    v_tgstate "char";
   BEGIN
-    UPDATE public.entrega_cima_comandos SET resultado = '{}'::jsonb
+    SELECT resultado INTO v_before FROM public.entrega_cima_comandos
      WHERE idempotency_key = 'db111-replay-1';
-    RAISE EXCEPTION 'not ok - E1: the command evidence is mutable';
-  EXCEPTION WHEN OTHERS THEN
-    IF SQLERRM LIKE 'not ok%' THEN RAISE; END IF;
+    SELECT count(*) INTO v_rows0 FROM public.entrega_cima_comandos;
+    IF v_before IS NULL THEN
+      RAISE EXCEPTION 'not ok - E0: the command row under test is missing';
+    END IF;
+
+    -- E1: direct UPDATE is refused, by the trigger.
+    v_denied := FALSE;
+    BEGIN
+      UPDATE public.entrega_cima_comandos SET resultado = '{}'::jsonb
+       WHERE idempotency_key = 'db111-replay-1';
+    EXCEPTION WHEN OTHERS THEN
+      IF SQLERRM NOT LIKE '%entrega_cima_comando_imutavel%' THEN
+        RAISE EXCEPTION 'not ok - E1: UPDATE failed for the wrong reason (%)', SQLERRM;
+      END IF;
+      v_denied := TRUE;
+    END;
+    IF NOT v_denied THEN
+      RAISE EXCEPTION 'not ok - E1: the owner UPDATED a command row';
+    END IF;
+
+    SELECT resultado INTO v_after FROM public.entrega_cima_comandos
+     WHERE idempotency_key = 'db111-replay-1';
+    IF v_after IS DISTINCT FROM v_before THEN
+      RAISE EXCEPTION 'not ok - E2: the command row changed despite the refusal';
+    END IF;
+
+    -- E3: direct DELETE is refused, by the trigger.
+    v_denied := FALSE;
+    BEGIN
+      DELETE FROM public.entrega_cima_comandos WHERE idempotency_key = 'db111-replay-1';
+    EXCEPTION WHEN OTHERS THEN
+      IF SQLERRM NOT LIKE '%entrega_cima_comando_imutavel%' THEN
+        RAISE EXCEPTION 'not ok - E3: DELETE failed for the wrong reason (%)', SQLERRM;
+      END IF;
+      v_denied := TRUE;
+    END;
+    IF NOT v_denied THEN
+      RAISE EXCEPTION 'not ok - E3: the owner DELETED a command row';
+    END IF;
+
+    SELECT count(*) INTO v_rows1 FROM public.entrega_cima_comandos;
+    SELECT resultado INTO v_after FROM public.entrega_cima_comandos
+     WHERE idempotency_key = 'db111-replay-1';
+    IF v_rows1 <> v_rows0 OR v_after IS DISTINCT FROM v_before THEN
+      RAISE EXCEPTION 'not ok - E4: the store changed despite the DELETE refusal (%->% rows)', v_rows0, v_rows1;
+    END IF;
+
+    -- E5: the catalog itself says the guard covers BOTH operations.
+    SELECT t.tgtype, t.tgenabled INTO v_tgtype, v_tgstate
+      FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
+     WHERE c.relnamespace = 'public'::regnamespace
+       AND c.relname = 'entrega_cima_comandos'
+       AND t.tgname = 'entrega_cima_comandos_append_only'
+       AND NOT t.tgisinternal;
+    IF v_tgtype IS NULL THEN
+      RAISE EXCEPTION 'not ok - E5: the append-only trigger is absent';
+    END IF;
+    IF v_tgstate = 'D' THEN
+      RAISE EXCEPTION 'not ok - E5: the append-only trigger is disabled';
+    END IF;
+    IF (v_tgtype & 1) <> 1 OR (v_tgtype & 2) <> 2 OR (v_tgtype & 64) <> 0
+       OR (v_tgtype & 16) <> 16 OR (v_tgtype & 8) <> 8 THEN
+      RAISE EXCEPTION 'not ok - E5: the guard is not a row-level BEFORE trigger covering UPDATE and DELETE (tgtype=%)', v_tgtype;
+    END IF;
+
+    RAISE NOTICE 'ok - E: entrega_cima_comandos refuses owner UPDATE and owner DELETE, is unchanged after both, and the catalog proves the guard covers UPDATE+DELETE (tgtype=%)', v_tgtype;
   END;
-  RAISE NOTICE 'ok - E: entrega_cima_comandos is append-only';
 END
 $t$;
 

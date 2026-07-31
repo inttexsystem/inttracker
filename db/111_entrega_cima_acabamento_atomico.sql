@@ -96,7 +96,7 @@ $$;
 
 DROP TRIGGER IF EXISTS entrega_cima_comandos_append_only ON public.entrega_cima_comandos;
 CREATE TRIGGER entrega_cima_comandos_append_only
-  BEFORE UPDATE ON public.entrega_cima_comandos
+  BEFORE UPDATE OR DELETE ON public.entrega_cima_comandos
   FOR EACH ROW EXECUTE FUNCTION public.trg_entrega_cima_comando_append_only_guard();
 
 -- ---------------------------------------------------------------------
@@ -184,7 +184,21 @@ BEGIN
     'linhas',                v_canon);
   v_hash := md5(v_payload::TEXT);
 
-  -- 5. REPLAY, before any state change.
+  -- 5. SERIALIZE THIS COMMAND IDENTITY, BEFORE the replay lookup.
+  --
+  -- Without this, two concurrent calls carrying the same actor and key
+  -- both miss the lookup below, both build a delivery, and the loser dies
+  -- on the (namespace, ator_id, idempotency_key) unique constraint with a
+  -- raw 23505 instead of the stored result. The lock is TRANSACTION
+  -- scoped and its identity is derived exactly from the namespace, the
+  -- actor and the normalized key — the same idiom the db/99/db/100
+  -- planning writers already use. It precedes the relational lock domain
+  -- of step 8, so the global order pedidos -> ops -> op_itens is
+  -- unchanged.
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    'entrega_cima_v1|command|' || v_ator::TEXT || '|' || v_key, 0));
+
+  -- 6. REPLAY, resolved under that lock and before any state change.
   SELECT * INTO v_existente
     FROM public.entrega_cima_comandos
    WHERE idempotency_namespace = 'entrega_cima_v1'
@@ -197,7 +211,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'codigo', 'comando_conflitante');
   END IF;
 
-  -- 6. RESOLVE THE PEDIDO FROM THE ORIGIN OP. An OP with no Pedido
+  -- 7. RESOLVE THE PEDIDO FROM THE ORIGIN OP. An OP with no Pedido
   --    lineage cannot produce a weaving delivery.
   SELECT lt.pedido_id INTO v_pedido_id
     FROM public.ops o
@@ -207,7 +221,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'codigo', 'ENTREGA_OP_SEM_PEDIDO');
   END IF;
 
-  -- 7. LOCKS, in the accepted global order (9.9.B):
+  -- 8. LOCKS, in the accepted global order (9.9.B):
   --    pedidos -> ops (ASC id) -> op_itens (ASC id).
   BEGIN
     SET LOCAL lock_timeout = '5s';
@@ -226,7 +240,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'codigo', 'concorrencia_ocupada');
   END;
 
-  -- 8. THE ORIGIN OP, RE-READ UNDER THE LOCK.
+  -- 9. THE ORIGIN OP, RE-READ UNDER THE LOCK.
   SELECT * INTO v_op FROM public.ops WHERE id = p_op_id;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('ok', false, 'codigo', 'ENTREGA_OP_INEXISTENTE');
@@ -252,7 +266,7 @@ BEGIN
                               'itens_nao_tapete', v_nao_tapete);
   END IF;
 
-  -- 9. THE SUBMITTED LINES. Every op_item_id must exist, belong to
+  -- 10. THE SUBMITTED LINES. Every op_item_id must exist, belong to
   --    p_op_id and appear EXACTLY ONCE.
   SELECT count(*), count(DISTINCT x.op_item_id)
     INTO v_linhas_ct, v_distintos
@@ -285,7 +299,7 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- 10. HEADER PRECONDITIONS. The Tapete route REQUIRES a finishing
+  -- 11. HEADER PRECONDITIONS. The Tapete route REQUIRES a finishing
   --     destination; the db/85 item guard enforces the same rule and
   --     would otherwise raise inside the item INSERT.
   IF p_fornecedor_id IS NULL
@@ -301,13 +315,13 @@ BEGIN
 
   -- ===== EVERY REFUSAL PATH IS NOW BEHIND US. NOTHING ABOVE WROTE. =====
 
-  -- 11. THE DELIVERY HEADER.
+  -- 12. THE DELIVERY HEADER.
   INSERT INTO public.entregas (fornecedor_id, etapa, data, observacao, destino_fornecedor_id)
   VALUES (p_fornecedor_id, 'cima', COALESCE(p_data, CURRENT_DATE),
           NULLIF(btrim(COALESCE(p_observacao, '')), ''), p_destino_fornecedor_id)
   RETURNING id INTO v_entrega_id;
 
-  -- 12. THE COMPLETE ITEM SET. The current valid line fields and their
+  -- 13. THE COMPLETE ITEM SET. The current valid line fields and their
   --     NUMERIC(10,2) precision are preserved exactly; modelo_id stays
   --     NULL as the shipped Tapete path leaves it, and the CHECK
   --     (op_item_id IS NOT NULL OR modelo_id IS NOT NULL) is satisfied
@@ -326,7 +340,7 @@ BEGIN
             NULLIF(btrim(COALESCE(v_req.observacao, '')), ''));
   END LOOP;
 
-  -- 13. THE FINISHING OP, IN THIS SAME TRANSACTION.
+  -- 14. THE FINISHING OP, IN THIS SAME TRANSACTION.
   --     gerar_op_acabamento (db/108) owns creation, replay identity and
   --     its own inner subtransaction: on failure it rolls back ONLY the
   --     creation and commits a falha attempt row with our delivery.
@@ -335,7 +349,7 @@ BEGIN
   v_sub_key := 'entrega_cima_v1|' || v_key || '|acabamento';
   v_acab := public.gerar_op_acabamento(v_entrega_id, v_sub_key, v_motivo);
 
-  -- 14. THE RESULT. A finishing failure NEVER converts a valid committed
+  -- 15. THE RESULT. A finishing failure NEVER converts a valid committed
   --     delivery into a failed delivery result.
   IF COALESCE((v_acab ->> 'ok')::BOOLEAN, FALSE) THEN
     v_res := jsonb_build_object(
@@ -358,7 +372,7 @@ BEGIN
       'proxima_acao', 'RECUPERAR_OP_ACABAMENTO');
   END IF;
 
-  -- 15. THE TOP-LEVEL COMMAND EVIDENCE, committed with everything else.
+  -- 16. THE TOP-LEVEL COMMAND EVIDENCE, committed with everything else.
   INSERT INTO public.entrega_cima_comandos
     (idempotency_namespace, ator_id, idempotency_key, entrega_id,
      comando_payload, comando_hash, resultado)
@@ -410,6 +424,32 @@ BEGIN
      OR has_function_privilege('service_role',
         'public.registrar_entrega_cima_com_acabamento(bigint,bigint,date,text,bigint,jsonb,text,text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'db/111: the public writer must not be reachable by anon or service_role';
+  END IF;
+
+  -- 4.2b THE APPEND-ONLY GUARD, PROVED FROM THE CATALOG rather than from
+  --      the trigger text or from a denied client privilege. A revoked
+  --      grant is not immutability: the owner and every SECURITY DEFINER
+  --      writer bypass grants entirely, so the trigger itself must cover
+  --      BOTH UPDATE and DELETE. pg_trigger.tgtype bits:
+  --        1 = ROW, 2 = BEFORE, 8 = DELETE, 16 = UPDATE, 64 = INSTEAD.
+  PERFORM 1 FROM pg_trigger t
+    JOIN pg_class c ON c.oid = t.tgrelid
+   WHERE c.relnamespace = 'public'::regnamespace
+     AND c.relname = 'entrega_cima_comandos'
+     AND t.tgname = 'entrega_cima_comandos_append_only'
+     AND NOT t.tgisinternal
+     AND t.tgenabled <> 'D'          -- enabled
+     AND (t.tgtype & 1) = 1          -- FOR EACH ROW
+     AND (t.tgtype & 2) = 2          -- BEFORE
+     AND (t.tgtype & 64) = 0         -- not INSTEAD OF
+     AND (t.tgtype & 16) = 16        -- covers UPDATE
+     AND (t.tgtype & 8) = 8;         -- covers DELETE
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'db/111: entrega_cima_comandos_append_only must be an ENABLED row-level BEFORE trigger covering BOTH UPDATE and DELETE (tgtype=%)',
+      COALESCE((SELECT t.tgtype::TEXT FROM pg_trigger t
+                  JOIN pg_class c ON c.oid = t.tgrelid
+                 WHERE c.relname = 'entrega_cima_comandos'
+                   AND t.tgname = 'entrega_cima_comandos_append_only'), '<absent>');
   END IF;
 
   -- 4.3 The command store carries no client mutation privilege.
