@@ -636,13 +636,37 @@ P3 failure and a hard stop, not a withheld artifact.
 **This grants no production access and no production mutation** and relaxes no
 boundary of section 2. It classifies evidence; it authorizes nothing.
 
-### 11.2 Teardown
+### 11.2 Teardown and the acceptance sequence
 
 **Teardown is an acceptance criterion, not housekeeping.** If any teardown step
 fails, the run is reported FAILED even if all 47 scenarios passed. Teardown
 covers the P3 clone and the superseded rehearsal cluster of section 12. Whether
 either still exists is remeasured at run time, not assumed from this file; both
-must be proved ABSENT when the run reports.
+must be proved ABSENT when teardown reports.
+
+**Teardown runs AFTER supervisor evidence approval, never before.** The
+sequence is binding and ordered:
+
+1. execute the proof and preserve every load-bearing evidence artifact;
+2. **preserve the disposable proof environment AND its production-derived
+   restore source**;
+3. submit the completed evidence bundle to supervisor review;
+4. only after supervisor evidence approval may teardown be **separately
+   authorized**;
+5. final P3 acceptance occurs only after that teardown is proved complete.
+
+**Why the order is binding.** Teardown destroys the clone and its restore
+source together. If any evidence gap is found after teardown, no scenario can
+be re-run: rebuilding the clone requires the production-derived capture, and
+re-capturing requires production access that a P3 order does not grant. An
+execution order that mandates both teardown and pending acceptance is
+CONTRADICTORY; the executor reports the conflict and preserves the environment
+rather than resolving it by destroying the only recovery path.
+
+A rebuilt-from-migrations cluster is **not** a substitute proof environment for
+authorization evidence: deployed privileges are not always what the migrations
+declare, so such a cluster measures the declared posture rather than the
+deployed one.
 
 ## 12. Preserved execution state
 
@@ -724,11 +748,24 @@ from a P3 result.
 **Acceptance requires** every `EVIDENCE_LOAD_BEARING` artifact of section 11
 present and directly proved; the 47 scenarios executed in order with derived
 oracles recorded; the section 10 invariants held on the clone at every asserted
-point; the isolation report in its three separated classes; teardown complete
-and both clusters proved absent; and the production-untouched intent of
-section 11.1 satisfied **at its declared evidence classes** — the structural
-load-bearing proof present, with `08` collected when reachable and declared
-`WITHHELD` when not. A withheld `08` alone does not block acceptance.
+point; the isolation report in its three separated classes; and the
+production-untouched intent of section 11.1 satisfied **at its declared
+evidence classes** — the structural load-bearing proof present, with `08`
+collected when reachable and declared `WITHHELD` when not. A withheld `08`
+alone does not block acceptance.
+
+Teardown is required for acceptance but is sequenced by section 11.2: it
+follows supervisor evidence approval under its own authorization, and final
+acceptance follows the proved teardown. Evidence approval and teardown are
+therefore two distinct supervisor acts, and neither may be inferred from the
+other.
+
+**A sweep scenario is satisfied only by the coverage its intent states**, not by
+the probes a harness happens to define. An oracle of the form "every probe was
+denied" is vacuous over an incomplete probe set: the executor must enumerate the
+full required matrix, record it, and prove each element. A PASS that rests on an
+absent probe, or on an error raised for an unrelated mechanical reason, is not a
+PASS.
 
 **Hard stop, report and do not continue, when:**
 

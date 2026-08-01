@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "328d5e3e00cd3a132e95d56391d077974b7be9a7",
-      "sha256": "713b37a196b267a277de99238293009c8db14d61b7b25cef9e3e78fee938cb4d",
+      "git_object_id": "d4506d9a117bec5081632a24e41b348c6611fc85",
+      "sha256": "86a64378822a3a136d27528e391800ab9aa31833ff7e7b7bc2a48e79735fdaf1",
       "line_count": 45,
-      "byte_count": 13331,
+      "byte_count": 14003,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -23713,10 +23713,10 @@
     },
     {
       "path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-      "git_object_id": "7519275dd17dbb89c97c74995e3af7720c46c1d0",
-      "sha256": "0bc1c106068d89c0307d720abff7ec42cb2decab251c9533c2beca14281d7823",
-      "line_count": 785,
-      "byte_count": 45301,
+      "git_object_id": "e88dad459a4f95b249b2449a1afa19a04ee880f2",
+      "sha256": "67cf87f98930f96fb8e027ca144e495fc881542d159f0e419dbee81c26f29e52",
+      "line_count": 822,
+      "byte_count": 47262,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -23749,7 +23749,7 @@
           "target_path": "docs/ledgers/G28_LEDGER.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 770
+          "source_line": 807
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -23757,7 +23757,7 @@
           "target_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 783
+          "source_line": 820
         }
       ],
       "inbound_references": [
@@ -23979,33 +23979,33 @@
         },
         {
           "level": 3,
-          "text": "11.2 Teardown",
-          "anchor": "112-teardown",
+          "text": "11.2 Teardown and the acceptance sequence",
+          "anchor": "112-teardown-and-the-acceptance-sequence",
           "line": 639
         },
         {
           "level": 2,
           "text": "12. Preserved execution state",
           "anchor": "12-preserved-execution-state",
-          "line": 647
+          "line": 671
         },
         {
           "level": 2,
           "text": "13. Acceptance and hard stops",
           "anchor": "13-acceptance-and-hard-stops",
-          "line": 717
+          "line": 741
         },
         {
           "level": 2,
           "text": "14. Historical record — non-normative",
           "anchor": "14-historical-record-non-normative",
-          "line": 757
+          "line": 794
         },
         {
           "level": 2,
           "text": "15. Provenance",
           "anchor": "15-provenance",
-          "line": 777
+          "line": 814
         }
       ]
     },
@@ -34237,7 +34237,7 @@
         },
         {
           "source_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-          "source_line": 783,
+          "source_line": 820,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -86287,7 +86287,7 @@
         },
         {
           "source_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-          "source_line": 770,
+          "source_line": 807,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
