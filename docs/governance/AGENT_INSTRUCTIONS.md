@@ -16,6 +16,8 @@ that point here and own no rules or state.
 - Applicable plans and backlogs own sequence and dependencies.
 - Applicable specifications and contracts own product and technical semantics.
 - Git, code, migrations, and tests are primary technical evidence.
+- Executable owners define mechanics; governance documents define intent,
+  boundaries, and acceptance. See section 13.
 - Append-only ledgers own accepted historical and audit evidence.
 - Catalogs, schemas, manifests, cutover evidence, generated indexes, and
   historical governance contracts are references outside the fixed bootstrap;
@@ -324,3 +326,84 @@ when accumulated debt requires reconciliation.
 
 A system health gate may run the full suite once, compare failure identities,
 classify new debt, and issue separate correction orders.
+
+## 13. Executable ownership, mechanical drift, and evidence
+
+This section mirrors the permanent supervisor authority model into executor
+behavior. It changes no supervisor authority: product intent, acceptance,
+architecture, security, scope, and irreversible decisions remain the architect's
+alone, and nothing here permits self-acceptance or a claim that was not directly
+proved.
+
+### 13.1 Executable owners define mechanics
+
+Executable owners — migrations, function bodies, the live catalogue, product
+code, tests, generators, and validators — define HOW the system behaves.
+Governance and contract documents define intent, boundaries, authorization,
+risk, and acceptance.
+
+Where a mechanic has an executable owner, the document points to that owner and
+requires runtime derivation or direct measurement. It must not restate the
+mechanic as an independent implementation oracle. An executor derives
+signatures, argument names, column names, refusal codes and SQLSTATEs,
+transition graphs, cardinalities, hashes, sequence values, and identifiers from
+the executable owner at execution time. Prose is never an implementation oracle
+where an executable owner exists.
+
+A document that duplicates a mechanic is a defect in that document, not a second
+authority. Where the duplicate and the owner disagree, the owner is right.
+
+### 13.2 Current direct measurement wins an obsolete dynamic literal
+
+A dynamic literal describes a measurable state rather than a decision: a count,
+a hash or fingerprint, a byte size, a sequence high-water, a terminal migration,
+a signature, a generated identifier. When a current direct measurement disagrees
+with a dynamic literal recorded in a document, the measurement wins. Record the
+measured value as evidence and correct the document under section 13.3.
+
+This never applies to a decided value: a boundary, a prohibition, an acceptance
+criterion, a named environment or project identity, a risk class, or a product
+rule. A disagreement there is a contradiction and a hard stop under section 8.
+
+### 13.3 MECHANICAL_DOCUMENT_DRIFT
+
+`MECHANICAL_DOCUMENT_DRIFT` is a DIRECTLY PROVED disagreement between a document
+and its executable owner in which the document is stale and the correction
+changes NONE of: human intent, acceptance, architecture, security, risk class,
+phase boundary, environment boundary, or product semantics.
+
+Proved mechanical drift may be corrected by the executor without a supervisor
+round-trip. The correction is reported with the evidence that proved it, the
+affected owner, and an explicit statement that those eight dimensions are
+unchanged. Do not stop merely because executable mechanics differ from stale
+prose.
+
+If the correction would require a NEW human decision on any of those eight
+dimensions, it is not mechanical drift: stop and report under section 8. Doubt
+resolves to stopping, not to correcting.
+
+### 13.4 Evidence reachability
+
+Before required evidence becomes an acceptance gate, its reachability is
+checked: whether it can be produced at all in the authorized environment, by an
+authorized identity, with available credentials and tooling, inside the
+authorized scope. An unreachable requirement is a contract defect and is
+reported as one; it is not silently satisfied, approximated, fabricated, or
+converted into a failure of the execution that discovered it.
+
+### 13.5 Evidence classification
+
+Every required evidence artifact carries exactly one classification:
+
+- `EVIDENCE_LOAD_BEARING` — the acceptance conclusion does not hold without it.
+  It may not be waived, substituted, or withheld by the executor, and its
+  absence blocks acceptance.
+- `EVIDENCE_CORROBORATIVE` — it strengthens or re-confirms a conclusion that
+  independent evidence already establishes on its own.
+
+`WITHHELD` corroborative evidence does not automatically block acceptance, when
+the independent evidence carrying the conclusion is present and directly proved.
+Any withholding is declared explicitly, with its reason and the independent
+evidence relied on instead. Classification is a supervisor decision; an executor
+proposes and measures, and never promotes or demotes an artifact on its own
+authority.

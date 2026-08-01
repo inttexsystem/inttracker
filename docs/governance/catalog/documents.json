@@ -3310,7 +3310,7 @@
       "generated_status": "MANUAL",
       "inbound_references": 4,
       "line_count": 692,
-      "outbound_references": 2,
+      "outbound_references": 5,
       "owner": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
       "path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
       "review_basis": "Explicit R1 review against DOCUMENTATION_INDEX classification, DOCUMENTATION_MODEL ownership, source heading, and governed path category.",

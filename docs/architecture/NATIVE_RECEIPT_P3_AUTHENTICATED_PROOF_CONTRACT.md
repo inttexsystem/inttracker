@@ -1,120 +1,47 @@
 # Native receipt — P3 authenticated proof contract
 
-Canonical execution contract for `NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF`.
-
-This file is the single canonical anchor for P3 execution. It owns the P3
-environment boundary, the caller inventory, the identity model, the synthetic
-fixture namespace, the productive-availability seed, the complete `S01`–`S47`
-scenario matrix, the P3/P4 classification boundary, the failure-injection rule,
-the required invariants and the evidence schema.
-
-It owns no product semantics. The accepted functional specification remains
-section 9 (rulings `R1`–`R13`, `D1`–`D7`) and the accepted technical design
-remains section 9.9 of `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md`.
-Section 9.9.Q of that plan owns the authenticated acceptance intent; this file
-canonicalises the reviewed enumeration of it and never contradicts it.
+Canonical execution authority for `NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF`.
 
 ```
 P2 CLOSED / ACCEPTED
-P3 AUTHORIZED / AWAITING RESUMPTION EXECUTION
+P3 AUTHORIZED / PAUSED — AWAITING A RESUMPTION EXECUTION ORDER
 P4 NOT AUTHORIZED
 P5 NOT AUTHORIZED
 NATIVE RECEIPT INACTIVE
 ```
 
+**Refoundation R5 (2026-08-01).** This contract was refounded, not amended
+again. R1–R4 had layered mechanical overrides on mechanical prose until the
+active authority carried a second, stale implementation oracle competing with
+the executable owners — which is what produced the R4 scenario-oracle defects.
+R1–R4 and their evidence remain reachable as historical, non-normative context
+(section 14); they are no longer normative.
+
+**This file owns** purpose, scope, environment and mutation boundaries,
+identity and authorization intent, scenario intent, the P3/P4 boundary,
+isolation intent, the failure-injection constraint, teardown intent,
+production-untouched intent, evidence requirements and classification, and the
+acceptance and hard-stop boundaries.
+
+**This file does not own mechanics.** Signatures, argument names and order,
+return columns, refusal codes and SQLSTATEs, guard bodies, trigger conditions,
+transition graphs, constraint names, cardinalities, hashes, counters and
+terminal migration values belong to their executable owners — `db/*.sql`, the
+live catalogue of the target cluster, `js/`, `tests/` and `scripts/`. The
+executor DERIVES them by direct measurement at execution time and records the
+derived value as evidence. Per `docs/governance/AGENT_INSTRUCTIONS.md`
+section 13, current direct measurement wins an obsolete dynamic literal, and
+prose is never an implementation oracle where an executable owner exists.
+
+It owns no product semantics. The accepted functional specification remains
+section 9 (`R1`–`R13`, `D1`–`D7`) and the accepted technical design section 9.9
+of `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md`, whose
+section 9.9.Q owns the authenticated acceptance intent; this file enumerates it
+and never contradicts it.
+
 **Authorising this contract does not authorise scenario mutation.** Executing
 any part of section 6 or section 7 requires a separate explicit P3 RESUMPTION
-order.
-
-**Amendment R1 (2026-08-01).** A first execution attempt completed the `P3F`
-fixture namespace and then correctly hard-stopped: the productive receipt seed
-of §6 was unreachable under a continuous `legacy_active` reading, because the
-`db/75`/`db/76` fence refuses every receipt-header insert — for the owner role
-too — outside a canonical or maintenance state. No product defect was found and
-restore fidelity is intact. `NATIVE-RECEIPT-P3-PROOF-CONTRACT-AMENDMENT-R1`
-repairs four contract-level contradictions and nothing else: §6 gains the
-bounded pre-PONR maintenance excursion and its seed provenance, §7 records the
-observed `S24` refusal shape, §10.1 fixes the invariant timing, §10.2 names each
-TD1 fingerprint's algorithm, and §10.3 bounds the `op_numeros` exception. No
-product, database or test file changed.
-
-**Amendment R2 (2026-08-01).** The R1 excursion was itself unreachable. The
-resumption cleared the whole pre-mutation gate and then hard-stopped at §6.3
-step 2: `ordem_compra_c3c_fence_and_snapshot` — the ONLY canonical transition
-into `maintenance_fenced` — ends with `IF v_source_count <> 51 THEN RAISE
-'snapshot_mapping_count_mismatch'` (`db/75` line 566), while production and its
-clone hold zero `ordens_compra_fio` and zero `ordem_compra_item_compat_fio`
-rows, so the assertion can never be satisfied. `db/75` froze a second dataset
-cardinality the same way, in `ordem_compra_c3c_assert_import_reconciled`
-(`39` headers / `44` lines / `20221.280` kg / `405.980` kg excess), which would
-have blocked the very next step. Both are the measured shape of the db/67
-REFUND-A seed, not business invariants, and the legacy corpus they describe has
-since been retired in production.
-
-`NATIVE-RECEIPT-CUTOVER-SNAPSHOT-CARDINALITY-ROOT-CAUSE-CORRECTION-R1` replaces
-both with derived completeness invariants in forward migration
-**`db/112_cutover_snapshot_completeness_invariant.sql`**. This is a real cutover
-defect corrected in the repository and proved on a disposable database; it is
-**not applied to production**. Consequences for P3, which override the
-corresponding statements in §2, §6.3 and §10.1 below:
-
-- the P3 disposable clone must have **`db/112` applied** before §6.3 step 2
-  (its migration-ledger terminal nevertheless stays `20260731204800` — see
-  Amendment R3.2 and §10.5);
-- production remains at terminal `db/111` (`20260731204800`) and the §15
-  production-untouched remeasurement is still asserted against `db/111`;
-- §6.3 gains **step 0**: apply `db/112` to the preserved clone and record it;
-- the §10.1 preserved invariant "terminal migration `db/111`" reads `db/112`
-  **on the clone** and `db/111` **on production**.
-
-Nothing else in this contract changes. P3 remains unaccepted, no scenario has
-run, and P4/P5 remain unauthorized.
-
-**Amendment R3 (2026-08-01).** Supervisor review of R2 found two internal
-contradictions and one unproved assumption. R3 resolves all three. It changes
-no product semantics and required no change to `db/112`.
-
-**R3.1 — the §10.1 catalogue invariant vs. applying `db/112`.** R2 requires
-`db/112` on the clone, while §10.1 requires the catalogue unchanged "P3 applies
-**no** DDL after restore". `db/112` is two `CREATE OR REPLACE FUNCTION`
-statements, so read naively the two rules contradict. They are reconciled by
-**measuring, not weakening**: §10.1 now carries a closed, enumerated
-`EXPECTED DB112 DELTA ON THE DISPOSABLE CLONE`, and everything outside it stays
-`UNAUTHORIZED CATALOGUE DRIFT`. See §10.4.
-
-**R3.2 — what "terminal migration = `db/112`" actually means.** R2's prose was
-wrong. Measured facts: `db/112` contains **no** reference to
-`supabase_migrations`; the ledger's `version` values (e.g. `20260731204800` ↔
-`111_entrega_cima_acabamento_atomico`) are assigned by the Supabase apply
-tooling, not by the `db/*.sql` files; `db/112` has never been applied through
-that tooling anywhere, so **no Supabase version exists for it and none may be
-invented**. §10.5 therefore canonicalises three DISTINCT facts that must never
-be conflated, and the clone's migration-ledger terminal stays `20260731204800`.
-
-**R3.3 — one flat row / one mapping.** The import lineage is keyed by
-`'c3c_snapshot:<cutover>:<generation>:<flat_row_id>'`, so it assumes one
-lineage per flat row. This is **schema-enforced, not incidental**: `db/67`
-declares `ordens_compra_fio_id BIGINT NOT NULL UNIQUE` on
-`ordem_compra_item_compat_fio`, live as
-`ordem_compra_item_compat_fio_ordens_compra_fio_id_key :: UNIQUE (ordens_compra_fio_id)`,
-and a second mapping for the same flat row is refused at runtime with
-`duplicar valor da chave viola a restrição de unicidade`. `db/112` therefore
-needs no additional guard for that ambiguity; the remaining multiplication
-vector is multiple allocations per mapped item, which `snapshot_ambiguous_mapping`
-already closes. Proved by
-`tests/db112-cutover-snapshot-completeness.integration.mjs` (55/55, exit 0),
-which cites the constraint and exercises the refusal rather than inferring
-uniqueness from the historical 51/51 shape.
-
-**Amendment R4 (2026-08-01) — SCENARIO ORACLE RECONCILIATION.** The first
-execution of the §7 matrix produced 21 PASS / 13 FAIL and proved **no product
-defect**. Diagnosis showed that some failures were executor errors but others
-were **defects in this contract's own scenario oracles**: §7 asserted outcomes
-the canonical product does not and should not produce. The product is not
-changed to match the tests; the oracles are corrected to match the product.
-The reconciled oracles are §7.7 below, which **overrides** the corresponding
-rows of §7.1–§7.6. Scenario intent, identity model, evidence schema and the
-S24/S34/`op_numeros`/TD1/P3-P4 rulings are unchanged.
+order naming the environment and the permitted operation.
 
 ---
 
@@ -123,436 +50,331 @@ S24/S34/`op_numeros`/TD1/P3-P4 rulings are unchanged.
 P3 is the authenticated mutation proof of the coordinated native-receipt
 release. Every new frontend caller introduced by P2 is exercised through the
 canonical P1 server RPCs, under real authenticated identities, against a
-**disposable database restored from a production backup/dump** — never against
+**disposable database restored from a production dump** — never against
 production rows and never against production itself.
 
-P3 proves that the new callers work, that wrong identities are refused, and that
-the isolation between synthetic proof data and copied production data is total.
-Production authority is unchanged throughout, and the native receipt remains
-inactive.
+P3 proves that the new callers work, that wrong identities are refused, and
+that the isolation between synthetic proof data and copied production data is
+total. Production authority is unchanged throughout and the native receipt
+remains inactive.
 
-## 2. Environment boundary
+## 2. Scope, environment and mutation boundary
 
+- All P3 mutation occurs **only** against the named disposable clone of
+  section 12, verified by `systemIdentifier`, never by port.
 - Production `ucrjtfswnfdlxwtmxnoo` may be contacted **only** by separately
-  authorized read-only dump/verification work. No P3 scenario writes to it.
-- All P3 mutation occurs **only** against the named disposable clone recorded in
-  section 12.
-- P3 does **not** activate the receipt.
-- P3 does **not** alter production authority.
-- P3 does **not** apply `db/103b`, `db/104`, `db/106` or `db/110`. Those numbers
-  remain RESERVED and uncreated. Per Amendments R2/R3 the disposable clone
-  carries the `db/112` forward patch on top of the restored `db/111` catalogue;
-  both sides keep migration-ledger terminal `20260731204800` (§10.5).
+  authorized read-only work. No P3 scenario writes to it, and no P3 step
+  changes production authority.
 - The retired project `gqmpsxkxynrjvidfmojk` is not a target. The forbidden
   project `bhgifjrfagkzubpyqpew` is not accessed at all.
+- P3 does **not** activate the receipt and does **not** perform the cutover.
+- `db/103b`, `db/104`, `db/106` and `db/110` are RESERVED, uncreated numbers.
+  P3 applies none of them.
+- The only migration P3 applies is the forward patch
+  `db/112_cutover_snapshot_completeness_invariant.sql`, to the disposable clone
+  **only**, under section 6. Applying it to production is a separate future
+  cutover/P5 authorization and is explicitly not part of P3.
+- No repository product, test or `db/*.sql` file is modified by a P3 execution.
 
-## 3. Exact 14-RPC inventory
+## 3. RPC inventory under proof
 
-All 14 exist in production as exactly one overload each, all `SECURITY DEFINER`,
-all `SET search_path = ''`, all owned by `postgres`, all with ACL exactly
-`postgres=X/postgres | authenticated=X/postgres`. **`anon`, `service_role` and
-`PUBLIC` hold no EXECUTE on any of the 14.** Source-versus-production signature
-drift is ZERO across argument names, types, order, defaults, return type,
-language, volatility, `prosecdef`, `proconfig`, owner and ACL.
+P3 proves exactly the **14 canonical RPCs** introduced or consumed by the
+coordinated release: **4 read** and **10 mutation**.
 
-### 3.1 Read RPCs (4)
-
-| RPC | Owner | Production signature | Identity required | Guard |
-|---|---|---|---|---|
-| `oc_disponibilidade_op` | `db/101` | `(p_op_id bigint)` → `TABLE(16 cols)`, STABLE | admin | `auth.uid() IS NOT NULL AND public.is_admin()` |
-| `pedido_elegivel_cancelamento` | `db/105` | `(p_pedido_id uuid)` → `jsonb`, STABLE | admin | `auth.uid() IS NOT NULL AND is_admin()` |
-| `listar_fila_aceite_fornecedor` | `db/103` | `()` → `TABLE(8 cols)`, STABLE | **supplier only** | `auth.uid()` bound to `usuarios.tipo='fornecedor' AND ativo` with non-null `fornecedor_id`; otherwise `sem_permissao` (`42501`). **An admin is refused.** |
-| `pode_recuperar_op_acabamento` | `db/108` | `(p_entrega_id bigint)` → `boolean`, STABLE, `LANGUAGE sql` | admin | `is_admin()` |
-
-### 3.2 Mutation RPCs (10)
-
-| RPC | Owner | Production signature | Identity | Idempotency | Deterministic refusals |
-|---|---|---|---|---|---|
-| `salvar_ajuste_producao_op` | `db/102` | `(p_op_id bigint, p_base_ajuste_rev integer, p_itens jsonb)` → `jsonb` | admin | optimistic — `ops.ajuste_revisao` | `AJUSTE_REVISAO_DESATUALIZADA`, `AJUSTE_EXCEDE_DISPONIVEL`, `AJUSTE_OP_ESTADO_INVALIDO`, `AJUSTE_OP_SEM_PEDIDO`, `AJUSTE_PAYLOAD_INCOMPLETO`, `OP_NAO_ENCONTRADA`, `PEDIDO_CANCELADO`, `SEM_MUDANCA`, `concorrencia_ocupada` |
-| `iniciar_producao_op` | `db/102` | `(p_op_id bigint, p_base_ajuste_rev integer)` → `jsonb` | admin | optimistic — `ajuste_revisao` | `INICIO_AJUSTE_INCOMPLETO`, `INICIO_OP_ESTADO_INVALIDO`, `INICIO_OP_SEM_PEDIDO`, `OP_TRANSICAO_INVALIDA`, `AJUSTE_REVISAO_DESATUALIZADA`, `concorrencia_ocupada` |
-| `aceitar_ordem_compra` | `db/103` | `(p_ordem_id bigint, p_idempotency_key text, p_motivo text DEFAULT NULL)` → `jsonb` | **bound supplier only** | key-based, `ordem_compra_aceite_comandos` | `ACEITE_CHAVE_OBRIGATORIA`, `ACEITE_JA_DECIDIDO`, `ACEITE_ORDEM_NAO_EMITIDA`, `ORDEM_NAO_ENCONTRADA`, `comando_conflitante`, `concorrencia_ocupada` |
-| `rejeitar_ordem_compra` | `db/103` | `(p_ordem_id bigint, p_idempotency_key text, p_motivo text)` — **no default** | bound supplier only | key-based | as above plus `ACEITE_MOTIVO_OBRIGATORIO` |
-| `alterar_status_pedido` | `db/105` | `(p_pedido_id uuid, p_novo_status text, p_base_revisao bigint, p_motivo text DEFAULT NULL)` → `jsonb` | admin | optimistic — `pedidos.revisao` | `PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA`, `PEDIDO_TRANSICAO_NAO_PERMITIDA`, `ADMIN_REVIEW_REQUIRED`, `PEDIDO_CANCELADO`, `PEDIDO_NAO_ENCONTRADO`, `PEDIDO_COM_SOLICITACAO_PENDENTE` |
-| `cancelar_pedido` | `db/105` | `(p_pedido_id uuid, p_base_revisao bigint, p_motivo text)` → `jsonb` | admin | optimistic — `pedidos.revisao` | `CANCELAMENTO_MOTIVO_OBRIGATORIO`, `PEDIDO_JA_CANCELADO`, `PEDIDO_CANCELAMENTO_APOS_ENTREGA`, `PEDIDO_COM_ENTREGA_REGISTRADA`, `CANCELAMENTO_OP_FALHOU`, `CANCELAMENTO_ORDEM_COMPRA_FALHOU`, `PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA` |
-| `registrar_entrega_cima_com_acabamento` | `db/111` | `(p_fornecedor_id bigint, p_op_id bigint, p_data date, p_observacao text, p_destino_fornecedor_id bigint, p_linhas jsonb, p_idempotency_key text, p_motivo_split text DEFAULT NULL)` → `jsonb` | admin | key-based, `entrega_cima_comandos` | `ENTREGA_CHAVE_OBRIGATORIA`, `ENTREGA_PAYLOAD_VAZIO`, `ENTREGA_ROTA_NAO_TAPETE`, `ENTREGA_OP_INEXISTENTE` / `_SEM_PEDIDO` / `_TIPO_INVALIDO` / `_VAZIA`, `ENTREGA_ITEM_FORA_DA_OP` / `_DUPLICADO` / `_INVALIDO`, `ENTREGA_METROS_INVALIDOS`, `ENTREGA_DESTINO_OBRIGATORIO`, `ENTREGA_FORNECEDOR_INVALIDO`, `ACABAMENTO_CRIACAO_FALHOU` (server-recorded; delivery persists), `comando_conflitante`, `concorrencia_ocupada` |
-| `gerar_op_acabamento` | `db/108` | `(p_entrega_id bigint, p_idempotency_key text, p_motivo text DEFAULT NULL)` → `jsonb` | admin | key-based, `op_acabamento_comandos` / `op_acabamento_tentativas` | `ACABAMENTO_CHAVE_OBRIGATORIA`, `ACABAMENTO_CRIACAO_FALHOU`, `comando_conflitante`, `concorrencia_ocupada` |
-| `estornar_expedicao_tapete_parcial` | `db/109` | `(p_expedicao_id bigint, p_itens jsonb, p_motivo text, p_idempotency_key text DEFAULT NULL)` → `jsonb` | admin | key-based (optional key) | `ESTORNO_ACIMA_DO_LIBERADO`, `ESTORNO_ABAIXO_DO_ENTREGUE`, `ESTORNO_ITEM_NAO_ENCONTRADO`, `ESTORNO_PAYLOAD_INVALIDO`, `EXPEDICAO_NAO_ENCONTRADA`, `EXPEDICAO_ROTA_INVALIDA`, `comando_conflitante` |
-| `corrigir_entrega_expedicao` | `db/109` | `(p_expedicao_id bigint, p_itens jsonb, p_motivo text, p_idempotency_key text DEFAULT NULL)` → `jsonb` | admin | key-based | `CORRECAO_QUANTIDADE_INVALIDA`, `CORRECAO_ITEM_NAO_ENCONTRADO`, `CORRECAO_PAYLOAD_INVALIDO`, `EXPEDICAO_NAO_ENCONTRADA`, `EXPEDICAO_ROTA_INVALIDA`, `comando_conflitante` |
-
-**Client-side allowlist posture (P2, `js/supabase-client.js`).** `_READ_ONLY_RPCS`
-contains the 4 read RPCs and **none of the 10 writers**. `_P2_RPC_INVENTORY` is
-declarative metadata only and the write-guard proxy never reads it. No writer is
-reachable through the read-only path.
-
-## 4. Identity model
-
-| ID | Identity | Representation in P3 |
+| Class | RPCs | Owner migrations |
 |---|---|---|
-| `A` | synthetic active administrator | `SET LOCAL ROLE authenticated` + `request.jwt.claims = {"sub":<A>,"role":"authenticated"}`; `usuarios` row `tipo='admin', ativo=true` |
-| `B` | synthetic supplier bound to supplier 1 | as `A`, with `tipo='fornecedor', ativo=true, fornecedor_id=<supplier 1>` |
-| `B′` | synthetic supplier bound to supplier 2 | as `B`, bound to a different supplier |
-| `C` | synthetic active authenticated non-admin | as `A`, with `tipo='cliente', ativo=true` |
-| `D` | anon | `SET LOCAL ROLE anon`, no claims |
-| `E` | service_role | `SET LOCAL ROLE service_role` |
-| `F` | postgres owner/setup only | superuser; **fixture preparation and teardown only**, never used to satisfy a caller-proof scenario |
+| read | `oc_disponibilidade_op`, `pedido_elegivel_cancelamento`, `listar_fila_aceite_fornecedor`, `pode_recuperar_op_acabamento` | `db/101`, `db/103`, `db/105`, `db/108` |
+| mutation | `salvar_ajuste_producao_op`, `iniciar_producao_op`, `aceitar_ordem_compra`, `rejeitar_ordem_compra`, `alterar_status_pedido`, `cancelar_pedido`, `registrar_entrega_cima_com_acabamento`, `gerar_op_acabamento`, `estornar_expedicao_tapete_parcial`, `corrigir_entrega_expedicao` | `db/102`, `db/103`, `db/105`, `db/108`, `db/109`, `db/111` |
+
+The executor derives from the live catalogue, and records in evidence, for each
+of the 14: signature, return shape, volatility, `prosecdef`, `proconfig`,
+owner, ACL, and the deterministic refusal identifiers the body actually raises.
+**Required intent, not literals:** each is exactly one overload, `SECURITY
+DEFINER`, `SET search_path = ''`, owned by `postgres`, executable by
+`authenticated` only — `anon`, `service_role` and `PUBLIC` hold no EXECUTE on
+any of the 14 — and source-versus-target signature drift is ZERO.
+`listar_fila_aceite_fornecedor`, `aceitar_ordem_compra` and
+`rejeitar_ordem_compra` are supplier-bound; the other eleven are
+administrator-bound.
+
+**Client-side allowlist posture (P2, `js/supabase-client.js`).**
+`_READ_ONLY_RPCS` must contain the 4 read RPCs and **none of the 10 writers**,
+and must be proved disjoint from `_P2_RPC_INVENTORY.escrita` as a static source
+assertion. A future union there would open a production write path from
+localhost/preview, so this is load-bearing.
+
+## 4. Identity and authorization intent
+
+Six identities are represented. `A` synthetic active administrator; `B`
+synthetic supplier bound to one supplier; `B′` synthetic supplier bound to a
+different supplier; `C` synthetic active authenticated non-admin; `D` `anon`;
+`E` `service_role`; `F` `postgres` owner/setup.
+
+**Identity `F` is fixture preparation and teardown only and may never satisfy a
+caller-proof scenario.**
 
 **Expected authority.**
 
 | Identity | Must SUCCEED | Must be REFUSED |
 |---|---|---|
-| `A` | the 3 admin reads and the 8 admin writers | `listar_fila_aceite_fornecedor`, `aceitar_ordem_compra`, `rejeitar_ordem_compra` (`sem_permissao`) |
-| `B` | `listar_fila_aceite_fornecedor` (own orders only), `aceitar_`/`rejeitar_ordem_compra` on its own orders | the 8 admin writers and the 3 admin reads |
-| `B′` | nothing | `aceitar_`/`rejeitar_ordem_compra` on `B`'s order; `B`'s rows absent from `B′`'s queue |
+| `A` | the 3 admin reads and the 8 admin writers | the 3 supplier-bound RPCs |
+| `B` | the supplier queue (own orders only) and accept/reject on its own orders | the 8 admin writers and the 3 admin reads |
+| `B′` | nothing | accept/reject on `B`'s order; `B`'s rows absent from `B′`'s queue |
 | `C` | nothing | all 14 |
 | `D` | nothing | all 14, at the **grant** layer |
 | `E` | nothing | all 14, at the **grant** layer |
 
 **Application-equivalent proof.** PostgREST executes RPCs as role
 `authenticated` with `request.jwt.claims` set from the verified JWT. A P3
-scenario reproduces that interface by (i) `SET LOCAL ROLE authenticated` and
-(ii) setting the claims GUC. Every application-equivalent scenario must assert,
-**inside the same transaction as the call and before it**:
+scenario must reproduce that interface, not approximate it, and must assert the
+effective identity (`current_user`, `auth.uid()`, `auth.role()`, `auth.jwt()`)
+**inside the same transaction as the call and before it**, so that a scenario
+which silently ran as `postgres` cannot pass. The exact GUC and role mechanics
+are derived from the target cluster's own `auth` schema.
 
-```sql
-SELECT current_user;
-SELECT auth.uid();
-SELECT auth.role();
-SELECT auth.jwt();
-```
+**Preamble fidelity is load-bearing.** The `auth.uid()` / `auth.role()` /
+`auth.jwt()` bodies in the target cluster must be the production ones, proved
+by direct comparison against the captured production definitions. A partial
+reimplementation makes every guard refuse for the wrong reason and turns a
+false negative into an apparent pass. Recorded as `OSO-2`.
 
-so that a scenario which silently ran as `postgres` cannot pass.
+**Owner-only helper unreachability.** Every owner-only helper reachable from the
+14 must be proved unreachable from `authenticated`, `anon` and `service_role`,
+both by `has_function_privilege` and by a **runtime** `SET LOCAL ROLE` call that
+raises at the grant layer. The helper set is derived from the owner migrations
+at execution time and recorded in evidence.
 
-**Mandatory preamble fidelity.** The P3 preamble must install the production
-`auth.uid()` / `auth.role()` / `auth.jwt()` bodies verbatim. Production
-`auth.uid()` coalesces `request.jwt.claim.sub` with
-`request.jwt.claims::jsonb ->> 'sub'`; the older disposable-harness preamble
-implements only the legacy singular branch, under which a scenario setting the
-real PostgREST GUC observes `auth.uid() = NULL` and every guard refuses for the
-wrong reason. Recorded as `OSO-2`. The restored clone in section 12 carries the
-real production `auth` schema (`auth_compat_applied: false`), which satisfies
-this requirement for that clone.
-
-**Owner-only helper unreachability.** `_oc_aceite_ator_autorizado`,
-`_oc_disponibilidade_linhas`, `_oc_material_recebido_liquido`,
-`_oc_reserva_ativa`, `_op_status_aplicar`, `_pedido_status_recalcular`,
-`_expedicao_estorno_aplicar`, `_oc_aceite_decidir`,
-`ordem_compra_c3c_purge_generation` and `ordem_compra_c3c_pre_ponr_rollback`
-must each be proved `has_function_privilege(<role>, …, 'EXECUTE') = false` for
-`authenticated`, `anon` and `service_role`, **and** proved to raise `42501` at
-runtime under `SET LOCAL ROLE`.
-
-## 5. Synthetic namespace
+## 5. Synthetic namespace and protected data
 
 One namespace, **`P3F`**, entirely synthetic.
 
 - Human-readable labels are prefixed `P3F-`.
 - BIGINT surrogate keys occupy the reserved band **`950000000`–`950999999`**,
-  disjoint from the C3D `930…` band, the P1 `940…` band and every production id.
-- UUIDs must be syntactically valid; the reserved band is
+  disjoint from the C3D `930…` band, the P1 `940…` band and every production
+  id.
+- UUIDs are syntactically valid inside the reserved band
   `9d1f0000-0000-4000-8000-0000000P3F##`.
-- Deterministic idempotency keys: `p3f:<scenario-id>:<attempt>`, literal, never
-  `Date.now()` or a random source, so replay and conflict scenarios reproduce.
+- Idempotency keys are deterministic and literal — `p3f:<scenario-id>:<attempt>`
+  — never `Date.now()` and never a random source, so replay and conflict
+  scenarios reproduce.
 
-**Contents.** Synthetic `clientes`; `fornecedores` (tecelagem, latex, fio, plus a
-second supplier for the wrong-supplier negative); `auth.users` + `usuarios` for
-`A`/`B`/`B′`/`C`; `pedidos` + `pedido_itens`; `lotes`; `ops` (Tapete tecelagem,
-Manta, latex/acabamento) + `op_itens`; `necessidade_compra_fio` +
-`necessidade_compra_planejamento`; `ordem_compra` + `ordem_compra_item` +
-`ordem_compra_item_alocacao`; `entregas` + items; `expedicoes` +
-`expedicao_itens`; and at least one `saldo_fios` row carrying a non-zero TD1
-balance.
+The namespace **already exists on the preserved clone** and must NOT be
+rebuilt; its exact composition is owned by the `04-fixtures.json` artifact of
+section 11. A fixture a scenario needs and the namespace does not already hold
+is created inside the same namespace and band, in foreign-key order derived
+from the live schema, and appended to that artifact. Sequence high-water marks
+are reconciled with the existing canonical high-water idiom **after** fixture
+insert.
 
-**Creation order (FK-driven).** `auth.users` → `clientes`/`fornecedores` →
-`usuarios` → `modelos`/`cores` (existing production reference rows are read
-read-only and never mutated) → `pedidos` → `pedido_itens` → `lotes` → `ops` →
-`op_itens` → `necessidade_compra_fio` → `necessidade_compra_planejamento` →
-`ordem_compra` → `ordem_compra_item` → `ordem_compra_item_alocacao` →
-`saldo_fios` → `entregas` → `expedicoes` → `expedicao_itens`. Sequence
-high-water marks (`op_numeros`, `pedido_identidade_numeros`) are reconciled with
-the `db/27` / `db/95` high-water idiom **after** fixture insert.
+Existing production reference rows (models, colours) are read **read-only** and
+never mutated.
 
 **Protected Purchase Orders.** `OC-001-3-26` and `OC-001-4-26` are protected and
-must never be scenario fixtures or command targets. A preflight assertion must
-fail the run if either code, or any `ordem_compra.id` outside the `950…` band,
-appears in a scenario parameter.
+must never be a scenario fixture or a command target. A preflight assertion
+must fail the run if either code, or any `ordem_compra.id` outside the `950…`
+band, appears in a scenario parameter.
 
-**Cleanup.** Reverse of creation, inside the disposable clone only. The explicit
-cleanup exists so the only-synthetic-rows-changed assertion can run against the
-restored baseline in the same cluster.
+**Cleanup** is the reverse of creation, inside the disposable clone only, so
+that the only-synthetic-rows-changed assertion of section 10 can run against
+the restored baseline in the same cluster.
 
 ## 6. Productive availability seed
 
 `P3F_FIXTURE_PRODUCTIVE_RECEIPT_SEED` anchors the fixture-only productive
-receipt lineage required before any positive adjustment test. The minimum
-productive ledger predicate, taken from `db/101`, is:
-
-```sql
-recebimento_id IS NOT NULL
-AND ordem_compra_item_alocacao_id IS NOT NULL
-AND kg_excesso = 0
-```
+receipt lineage required before any positive adjustment test. The productive
+ledger predicate is owned by `db/101` and is derived from it, not restated
+here.
 
 The seed:
 
 - is **owner/setup fixture data only** (identity `F`);
-- uses synthetic `P3F` rows only;
-- exists only in the disposable clone;
+- uses synthetic `P3F` rows only and exists only in the disposable clone;
 - must **never** invoke the public native receipt writer;
 - must **not** set `productive_receipt_started_at`;
-- must **not** touch the five real TD1 `saldo_fios` rows;
+- must **not** touch the protected TD1 `saldo_fios` rows;
 - must **not** touch `OC-001-3-26` or `OC-001-4-26`;
 - must **not** touch any copied non-`P3F` production row.
 
-### 6.1 Why a bounded maintenance excursion is required
+### 6.1 Why a bounded maintenance excursion is authorized
 
-A first execution attempt proved the lineage unreachable under a *continuous*
-no-cutover-mutation reading, and the proof is structural, not a product defect:
+A productive ledger line requires a receipt header, and the `db/75`/`db/76`
+writer fence refuses every receipt-header insert — **including for the table
+owner** — outside the states its own trigger admits. This is structural, and
+proving it was a correct P3 hard stop, not a product defect. The authorized
+harness mechanism is therefore a **bounded pre-PONR maintenance excursion on
+the disposable clone only**, performed through the existing canonical `db/107`
+cutover functions. It is fixture preparation, never a caller-proof scenario.
 
-1. `db/101._oc_material_recebido_liquido` counts a ledger line only when
-   `recebimento_id IS NOT NULL`.
-2. `ordem_compra_fio_lancamentos.recebimento_id` is a FOREIGN KEY to
-   `ordem_compra_recebimentos`, so a productive line needs a receipt header.
-3. `ordem_compra_recebimentos` carries `BEFORE INSERT`
-   `trg_c3c_command_state_guard` — the `db/75`/`db/76` writer fence. For
-   `comando_tipo <> 'import_saldo_inicial'` it raises `recebimento_canonico_inativo`
-   (`55000`) unless the cutover is `canonical_active`/`canonical`; the
-   `import_saldo_inicial` branch requires `maintenance_fenced`/`flat` with the
-   PONR marker NULL.
-4. The trigger is `tgenabled = 'O'`, so it fires for **every** role including the
-   table owner. The clone holds zero reusable headers.
+Reaching the maintenance state additionally requires the forward patch
+`db/112` on the clone, because the canonical door into it, as shipped in
+`db/75`, asserted a frozen legacy dataset cardinality that production no longer
+has. The exact states, trigger conditions, function names and assertions are
+owned by `db/75`, `db/76`, `db/107` and `db/112` and are derived from them.
 
-The approved harness mechanism is therefore a **bounded pre-PONR maintenance
-excursion on the disposable clone only**, through the canonical `db/107` cutover
-functions. It is fixture preparation, never a caller-proof scenario.
-
-**Amendment R2 correction.** That excursion additionally requires `db/112`.
-`ordem_compra_c3c_fence_and_snapshot` is the only canonical door into
-`maintenance_fenced` and, as shipped in `db/75`, it refuses every source
-cardinality except exactly `51` — a cardinality production no longer has. See
-Amendment R2 and §6.3 step 0.
-
-### 6.2 Boundary of the excursion
+### 6.2 Boundary of the excursion — binding
 
 - Production is **never** involved.
-- Only clone `system_identifier 7668905723812930636` may be mutated.
+- Only the clone named in section 12 may be mutated.
 - `canonical_active` and `read_authority = 'canonical'` remain **forbidden**.
 - `productive_receipt_started_at` must remain **NULL at every instant**,
-  including throughout the maintenance preparation.
-- The only temporary state permitted is `maintenance_fenced` with
-  `read_authority = 'flat'`.
-- Only owner/setup identity `F` (`postgres`) may perform it. Identity `F` still
-  may never satisfy a caller-proof scenario.
-- Every step runs under the canonical owner/session lock the existing `db/107`
-  functions require (`ordem_compra_c3c_acquire_session_lock` /
-  `ordem_compra_c3c_release_session_lock`); those functions refuse when
-  `current_user <> 'postgres'` or the lock is not held.
+  including throughout maintenance preparation. It is the enforced PONR marker;
+  `ponr` is not a stored column anywhere. Recorded as `OSO-1`.
+- The only temporary state permitted is the maintenance-fenced state with
+  `read_authority` still `flat`.
+- Only owner/setup identity `F` may perform it, holding the canonical
+  owner/session lock the existing `db/107` functions require.
 
-### 6.3 Mandatory ordering
+### 6.3 Required ordering intent
 
-0. apply `db/112_cutover_snapshot_completeness_invariant.sql` to the preserved
-   disposable clone and record the resulting terminal migration (Amendment R2).
-   Without it, step 2 cannot succeed at any source cardinality that production
-   actually has;
-1. prove the starting state is `legacy_active` / `flat` /
-   `productive_receipt_started_at IS NULL`;
-2. acquire the canonical owner/session lock and enter the bounded pre-PONR
-   maintenance path (`ordem_compra_c3c_fence_and_snapshot`);
-3. run the canonical generation cleanup
-   (`ordem_compra_c3c_purge_generation`) **BEFORE the persistent P3 seed
-   exists**, so the temporary cutover snapshot and inventory-baseline state is
-   removed while it is still safe to remove;
-4. create the P3F synthetic productive lineage as an `import_saldo_inicial`
-   receipt header plus its allocation-bearing ledger lines (see §6.4);
-5. prove the seed touched only `P3F` business rows;
-6. call `ordem_compra_c3c_resume_legacy(...)`;
-7. prove exact restoration to `legacy_active` / `flat` /
-   `productive_receipt_started_at IS NULL`;
-8. only then generate a successful `04b-productive-receipt-seed.json`;
-9. only then begin `S01`.
+1. apply `db/112` to the preserved clone and record the application by
+   repository identity (section 10.4);
+2. prove the starting cutover state before entering the excursion;
+3. enter the bounded maintenance path through the canonical function;
+4. **run the canonical generation cleanup BEFORE the persistent P3 seed
+   exists.** That cleanup deletes the temporary snapshot and inventory-baseline
+   state and every receipt header and ledger line in the namespace it owns;
+   running it after the seed would destroy the seed. The executor derives which
+   namespace the cleanup owns and proves the seed is outside it;
+5. create the P3F synthetic productive lineage under a fixture provenance that
+   the cleanup does not own and that the live constraints admit, derived and
+   recorded at execution time. **This is fixture provenance only**: it does not
+   redefine production semantics and authorizes that combination nowhere
+   outside the disposable P3 proof clone;
+6. prove the seed touched only `P3F` business rows;
+7. resume the legacy state through the canonical function;
+8. prove exact restoration of the starting cutover state;
+9. only then write `04b-productive-receipt-seed.json`;
+10. only then begin `S01`.
 
-Step 3 must precede step 4. `purge_generation` deletes every
-`ordem_compra_cutover_source_snapshot` and
-`ordem_compra_cutover_inventory_baseline` row, and it deletes the receipt
-headers and ledger lines whose `idempotency_namespace` is
-`legacy_initial_balance_v1`. Running it after the seed in that namespace would
-destroy the seed; running it before is safe and leaves both staging tables at
-their copied baseline of zero rows.
-
-### 6.4 Seed provenance namespace
-
-The persistent P3 seed must **not** be placed in the namespace owned by
-`purge_generation`. For this disposable proof harness only, the authorized
-fixture provenance is:
-
-```
-idempotency_namespace = legacy_compat_receipt_v1
-comando_tipo          = import_saldo_inicial
-```
-
-`ordem_compra_recebimentos_c3a_namespace_check` admits that namespace and no
-constraint couples `comando_tipo` to `idempotency_namespace`;
-`ordem_compra_recebimentos_c3c_hash_check` requires a 32-hex `comando_hash` for
-it. The header must carry `ator_tipo = 'sistema'` with `ator_id` NULL, and each
-ledger line `tipo = 'import_saldo_inicial'`, `criado_por` NULL,
-`data_recebimento` NULL, `kg_recebido > 0`, `kg_excesso = 0` and a non-null
-`ordem_compra_item_alocacao_id` whose provenance satisfies
-`trg_native_lancamento_shape_guard`.
-
-**This is fixture provenance only.** It does not redefine production semantics
-and does not authorize that combination anywhere outside the disposable P3 proof
-clone.
-
-### 6.5 Prohibited in every case
+### 6.4 Prohibited in every case
 
 - the public native receipt writer;
 - disabling a trigger outside an already-owned canonical cleanup function;
 - `session_replication_role` bypass;
-- direct ad-hoc manipulation of the `ordem_compra_cutover` row;
+- direct ad-hoc manipulation of the cutover row;
 - `canonical_active`;
 - `read_authority = 'canonical'`;
 - setting `productive_receipt_started_at`.
 
-### 6.6 Availability proof
+### 6.5 Availability proof
 
-After step 7 the executor must prove that `oc_disponibilidade_op` returns the
-exact expected **positive** native availability derived from this synthetic
-lineage, and record that proof as `04b-productive-receipt-seed.json`. A seed
+After restoration the executor must prove that `oc_disponibilidade_op` returns
+the expected **positive** native availability derived from this synthetic
+lineage, and record that proof in `04b-productive-receipt-seed.json`. A seed
 that cannot reach a positive ceiling is a failed seed, not a passed one.
 
-## 7. Scenario matrix S01-S47
+## 7. Scenario intent — S01–S47
 
-47 scenarios. Each carries setup, caller identity, command, expected result,
-expected persisted delta, expected non-delta, authoritative postcondition query,
-cleanup and evidence artifact. **Ordering is dependency-driven and must be
-executed in the order given.**
+47 scenarios in 6 groups. Each carries setup, caller identity, command,
+expected result, expected persisted delta, expected non-delta, an authoritative
+postcondition query, cleanup and an evidence artifact.
 
+**The oracle of each scenario is derived, not quoted.** The executor derives the
+exact expected refusal identifier, SQLSTATE, return shape, projected columns,
+transition graph, fixture type and gate mechanism from the executable owner
+before asserting it, and records the derived oracle inside the scenario
+artifact. Amendment R4 exists because this contract previously asserted oracles
+the canonical product does not and should not produce; **the product is never
+changed to match a test.** A scenario whose derived oracle contradicts the
+intent below is a finding to report, not a value to adjust silently.
+
+Execute in ascending order within the groups. Where a scenario's fixtures
+depend on a prior scenario's outcome, that dependency is derived and recorded.
 Console output must use TAP-style stable identifiers (`P3_S17_PASS` /
 `not ok - S17: …`) so a failure is greppable and a run cannot report success by
 silence.
 
-### 7.1 Group 1 — availability and production (S01–S12)
+### 7.1 Group 1 — availability and production (S01–S12), identity `A`
 
-| ID | Identity | Scenario | Expected |
-|---|---|---|---|
-| S01 | A | Native availability on a `P3F` OP with no productive receipt | `oc_disponibilidade_op` returns rows; `kg_disponivel = 0` for every line; no delta anywhere |
-| S02 | A | **TD1**: a non-zero synthetic `saldo_fios` row exists | ceiling unchanged from S01; the row appears in no productive total. Direct proof of TD1. |
-| S03 | A | Valid atomic adjustment within ceiling | `ok`; `ajuste_revisao` +1; `op_itens.metros_ajustados` set; `ops.status` unchanged |
-| S04 | A | Over-ceiling adjustment | `AJUSTE_EXCEDE_DISPONIVEL`; **zero** rows written; `ajuste_revisao` unchanged |
-| S05 | A | Stale `p_base_ajuste_rev` | `AJUSTE_REVISAO_DESATUALIZADA`; zero delta |
-| S06 | A | Clear an adjustment (`metros_ajustados: null`) | `ok`; revision +1; value NULL |
-| S07 | A | Incomplete payload (item missing) | `AJUSTE_PAYLOAD_INCOMPLETO`; zero delta |
-| S08 | A | `iniciar_producao_op` from `aberta`, all items adjusted | `ok`; `ops.status → em_producao`; `saldo_fios_op` snapshot written; Pedido recomputed; `proxima_acao` returned |
-| S09 | A | `iniciar_producao_op` from `simulada` | `INICIO_OP_ESTADO_INVALIDO`; zero delta; no snapshot |
-| S10 | A | `iniciar_producao_op` with one item unadjusted | `INICIO_AJUSTE_INCOMPLETO`; zero delta |
-| S11 | A | Replayed `iniciar_producao_op` after success | `OP_TRANSICAO_INVALIDA` or `SEM_MUDANCA`; **no second snapshot row** |
-| S12 | A | Adjustment on an OP whose Pedido is cancelled | `PEDIDO_CANCELADO`; zero delta |
+| ID | Must prove |
+|---|---|
+| S01 | native availability on a `P3F` OP with no productive receipt on its own axis yields a zero OP-origin ceiling; availability scoping (per-OP versus pooled per-Pedido) is derived, not assumed |
+| S02 | **TD1**: a non-zero synthetic `saldo_fios` balance contributes to no productive total, proved by attributable component on an axis whose ceiling stays zero |
+| S03 | a valid atomic adjustment within the ceiling succeeds and moves exactly the adjustment revision and the adjusted metres, with OP status unchanged |
+| S04 | an over-ceiling adjustment is refused with **zero** rows written and the revision unchanged |
+| S05 | a stale base revision is refused with zero delta |
+| S06 | clearing an adjustment succeeds, revision advances, value becomes NULL |
+| S07 | an incomplete payload is refused with zero delta |
+| S08 | starting production from the permitted state with all items adjusted succeeds, moves OP status, writes the balance snapshot, recomputes the Pedido and returns the next action |
+| S09 | starting production from a non-permitted state is refused, zero delta, no snapshot |
+| S10 | starting production with an unadjusted item is refused, zero delta |
+| S11 | a replayed start after success is refused and writes **no second snapshot row** |
+| S12 | an adjustment on an OP whose Pedido is cancelled is refused, zero delta |
 
 ### 7.2 Group 2 — supplier acceptance (S13–S20)
 
-| ID | Identity | Scenario | Expected |
-|---|---|---|---|
-| S13 | B | Queue isolation | only `B`'s own `emitida`/`pendente` orders; `B′`'s order absent |
-| S14 | B′ | Queue isolation, other side | `B`'s order absent from `B′`'s queue |
-| S15 | A | Admin calls the supplier queue | `sem_permissao` (`42501`) — an admin is **not** a supplier |
-| S16 | B | Accept own order | `ok`; `status_aceite → aceita`; exactly one immutable command row |
-| S17 | B | Reject own order with reason | `ok`; `status_aceite → rejeitada`; reason persisted |
-| S18 | B | Reject with blank/whitespace reason | `ACEITE_MOTIVO_OBRIGATORIO`; zero delta |
-| S19 | B′ | Accept `B`'s order | `sem_permissao`; zero delta; no command row |
-| S20 | B | Replay S16 with the **same** key | same canonical result, **no second command row**; then replay with the same key and a **different** payload → `comando_conflitante`, zero delta |
+| ID | Identity | Must prove |
+|---|---|---|
+| S13 | `B` | queue isolation: only `B`'s own pending orders, `B′`'s absent |
+| S14 | `B′` | queue isolation from the other side |
+| S15 | `A` | an administrator is **not** a supplier and is refused at the guard layer |
+| S16 | `B` | accepting its own order succeeds and writes exactly one immutable command row |
+| S17 | `B` | rejecting its own order with a reason succeeds and persists the reason |
+| S18 | `B` | a blank or whitespace-only reason is refused, zero delta |
+| S19 | `B′` | accepting `B`'s order is refused, zero delta, no command row |
+| S20 | `B` | replay with the **same** key returns the same canonical result and no second command row; the same key with a **different** payload is refused as a command conflict, zero delta |
 
 ### 7.3 Group 3 — Pedido lifecycle (S21–S29)
 
-| ID | Identity | Scenario | Expected |
-|---|---|---|---|
-| S21 | A | Permitted operator transition (`rascunho → confirmado`) | `ok`; `revisao` +1; event row written |
-| S22 | A | Forbidden derived transition (e.g. → `produzindo` by hand) | `PEDIDO_TRANSICAO_NAO_PERMITIDA`; zero delta |
-| S23 | A | Stale `p_base_revisao` | `PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA`; zero delta |
-| S24 | A | Confirm with a pending client priority request | refusal carrying `ADMIN_REVIEW_REQUIRED`; **zero business delta**. Observed canonical shape, proved by direct evidence: the gate lives in table trigger `pedidos_prioridade_acceptance_gate_fn`, which RAISEs `PEDIDO_PRIORITY_ADMIN_REVIEW_REQUIRED` with **SQLSTATE `23514`** — it is an exception, not the `{ok:false, codigo}` return shape the other refusals use. Assert the raised form. The RPC must NOT be changed to normalize it. |
-| S25 | A | `pedido_elegivel_cancelamento` on an eligible Pedido | `elegivel: true` |
-| S26 | A | Cancel eligible Pedido | `ok`; Pedido `cancelado`; related OPs cancelled; purchase planning **released, not deleted**; history preserved |
-| S27 | A | `pedido_elegivel_cancelamento` on a Pedido with a registered delivery | `elegivel: false`, `PEDIDO_COM_ENTREGA_REGISTRADA` |
-| S28 | A | Cancel that ineligible Pedido anyway | refusal code; zero delta |
-| S29 | C | Direct `UPDATE public.pedidos SET status=…` as authenticated non-admin | denied by RLS/grant; and `alterar_status_pedido` → refusal. Proves no direct client status authority. |
-
-### 7.4 Group 4 — delivery and finishing (S30–S38)
-
-| ID | Identity | Scenario | Expected |
-|---|---|---|---|
-| S30 | A | Successful Tapete delivery + finishing creation | `ok`; delivery persisted; finishing OP created; canonical identity returned; **one** command row |
-| S31 | A | Replay S30, same key, same payload | byte-identical canonical result; no second delivery, no second finishing OP |
-| S32 | A | Same key, **different** payload | `comando_conflitante`; zero delta |
-| S33 | A | Validation refusal (`ENTREGA_ITEM_FORA_DA_OP`) | refusal; **no partial persistence** — assert `entregas` count unchanged |
-| S34 | A | Server-recorded finishing failure (injected — see section 9) | `ACABAMENTO_CRIACAO_FALHOU`; delivery **persists**; `op_acabamento_tentativas` carries a `falha` row; no finishing OP |
-| S35 | A | `pode_recuperar_op_acabamento` after S34 | `true` |
-| S36 | A | `gerar_op_acabamento` after S34 | `ok`; finishing OP created; recovery no longer eligible |
-| S37 | A | `pode_recuperar_op_acabamento` on a healthy delivery | `false`; `gerar_op_acabamento` refuses |
-| S38 | A | Manta route delivery | remains on its own distinct route; `ENTREGA_ROTA_NAO_TAPETE` for the Tapete-only writer |
-
-### 7.5 Group 5 — expedition (S39–S44)
-
-| ID | Identity | Scenario | Expected |
-|---|---|---|---|
-| S39 | A | Valid partial Tapete reversal | `ok`; `liberado` reduced; availability of finished product increased |
-| S40 | A | Reversal above `liberado` | `ESTORNO_ACIMA_DO_LIBERADO`; zero delta |
-| S41 | A | Reversal that would drop `liberado` below `entregue` | `ESTORNO_ABAIXO_DO_ENTREGUE`; zero delta |
-| S42 | A | Valid delivery correction | `ok`; `entregue` corrected; nothing returned to production |
-| S43 | A | Correction above `liberado` / negative | `CORRECAO_QUANTIDADE_INVALIDA`; zero delta |
-| S44 | A | Correction that makes the Pedido incomplete | Pedido recomputed `entregue → produzindo`; history rows preserved; output availability reconciles |
-
-### 7.6 Group 6 — permission and security (S45–S47, each a sweep over all 14)
-
-| ID | Scenario | Expected |
+| ID | Identity | Must prove |
 |---|---|---|
-| S45 | **Grant sweep.** For each of the 14 and each owner-only helper, `has_function_privilege` for `anon`, `service_role`, `authenticated`, plus **runtime** `SET LOCAL ROLE` calls | `authenticated` reaches exactly the 14; `anon` and `service_role` reach none; every owner-only helper reaches none from any client role; every refusal is `42501` at the **grant** layer, not a body-level message |
-| S46 | **Wrong-role sweep.** Identity `C` against all 14; identity `B` against the 8 admin writers; identity `A` against the 3 supplier-bound RPCs | every one refused with its documented code |
-| S47 | **Bypass sweep.** (a) direct table DML on `pedidos`, `ops`, `op_itens`, `expedicoes`, `entregas`, all 4 command stores and `saldo_fios_op` as `authenticated`/`anon`; (b) claim spoofing — set `request.jwt.claims` to an admin `sub` while `usuarios` says `cliente`; (c) `set_config('role','postgres')` attempts; (d) assert `_READ_ONLY_RPCS` contains no writer and `_P2_RPC_INVENTORY` is never unioned into it | every bypass denied; the claims-spoof case must fail because `is_admin()` reads `usuarios`, not the claim; old authorities (the `db/75`/`db/76` fence, `ordem_compra_cutover`) unchanged at the end of the run |
+| S21 | `A` | a permitted operator transition succeeds, revision advances, an event row is written. The permitted transitions are derived from the writer's own transition graph |
+| S22 | `A` | a transition forbidden **by that same graph** is refused, zero delta |
+| S23 | `A` | a stale base revision is refused, zero delta |
+| S24 | `A` | confirming with a pending client priority request is refused with **zero business delta**. The gate is a table trigger and raises rather than returning the `{ok:false, codigo}` shape the other refusals use; assert the raised form. **The RPC must NOT be changed to normalize it.** The scenario must reach the gate: a transition refused earlier in the graph never exercises it |
+| S25 | `A` | cancellation eligibility is true for an eligible Pedido |
+| S26 | `A` | cancelling an eligible Pedido succeeds, cancels related OPs, **releases and does not delete** purchase planning, and preserves history |
+| S27 | `A` | cancellation eligibility is false for a Pedido with a registered delivery, with the blocking reason |
+| S28 | `A` | cancelling that ineligible Pedido anyway is refused, zero delta |
+| S29 | `C` | an authenticated non-admin holds no Pedido status authority through the RPC. The direct-table authority is **measured exactly** and classified under section 8; requiring its denial in P3 would contradict section 8 |
+
+### 7.4 Group 4 — delivery and finishing (S30–S38), identity `A`
+
+| ID | Must prove |
+|---|---|
+| S30 | a successful Tapete delivery persists, creates the finishing OP with its canonical identity and writes **one** command row. The lineage must be a genuine Tapete lineage; the product type is derived from the model, not assumed |
+| S31 | replay with the same key and payload returns a byte-identical canonical result, with no second delivery and no second finishing OP |
+| S32 | the same key with a different payload is refused as a command conflict, zero delta |
+| S33 | a validation refusal produces **no partial persistence** |
+| S34 | an injected server-recorded finishing failure leaves the delivery **persisted**, writes a failure attempt row, and creates no finishing OP (see section 9) |
+| S35 | recovery is eligible after S34 |
+| S36 | recovery creates the finishing OP and is no longer eligible afterwards |
+| S37 | recovery is not eligible on a healthy delivery and is refused |
+| S38 | the Manta route stays on its own distinct route and the Tapete-only writer refuses it |
+
+### 7.5 Group 5 — expedition (S39–S44), identity `A`
+
+| ID | Must prove |
+|---|---|
+| S39 | a valid partial Tapete reversal succeeds, reduces the released quantity and increases finished-product availability. The expedition source and item membership are constrained by the live guards and are immutable after creation, so the fixture is **created** to satisfy them, never re-pointed |
+| S40 | a reversal above the released quantity is refused, zero delta |
+| S41 | a reversal that would drop released below delivered is refused, zero delta |
+| S42 | a valid delivery correction succeeds and returns nothing to production |
+| S43 | a correction above the released quantity, or negative, is refused, zero delta |
+| S44 | a correction that makes the Pedido incomplete recomputes the Pedido backwards, preserves history rows and reconciles output availability |
+
+### 7.6 Group 6 — permission and security (S45–S47), each a sweep over all 14
+
+| ID | Must prove |
+|---|---|
+| S45 | **Grant sweep.** `authenticated` reaches exactly the 14; `anon` and `service_role` reach none; every owner-only helper reaches none from any client role; every refusal is at the **grant** layer, not a body-level message. Proved both by catalogue privilege and by runtime `SET LOCAL ROLE` |
+| S46 | **Wrong-role sweep.** `C` against all 14; `B` against the admin writers; `A` against the supplier-bound RPCs — every one refused with its derived documented code |
+| S47 | **Bypass sweep.** Direct table DML as `authenticated`/`anon` on the business tables, the command stores and the balance snapshot; claim spoofing (an admin `sub` while the user record says otherwise, and a forged role claim); role-escalation attempts; and the static `_READ_ONLY_RPCS` assertion. Each DML surface is classified per section 8 from the live grants and RLS and must be **unchanged**, never absent |
 
 **Load-bearing security points.** (1) Denial must occur at the **grant** layer
-for `anon`/`service_role` — a body-level message proves the grant is wrong even
-if the outcome looks correct. (2) Owner-only helpers must be unreachable at
-**runtime**, not merely absent from `proacl`. (3) The claims-spoofing negative is
-the sharpest test: `is_admin()` derives authority from `public.usuarios`, so a
-forged `sub` for a non-admin must not confer admin and a forged `"role":"admin"`
-claim must be inert. (4) `_READ_ONLY_RPCS` must be asserted disjoint from
-`_P2_RPC_INVENTORY.escrita` as a static source assertion, since a future union
-there would open a production write path from localhost/preview.
+for `anon`/`service_role`; a body-level message proves the grant is wrong even
+when the outcome looks correct. (2) Owner-only helpers must be unreachable at
+**runtime**, not merely absent from `proacl`. (3) The claims-spoofing negative
+is the sharpest test: admin authority derives from the user table, not from the
+claim, so a forged `sub` for a non-admin must not confer admin and a forged
+role claim must be inert. (4) Role escalation must be proved structurally
+impossible — no client role holds membership on `postgres` — because a
+postgres-owned harness session cannot test `SET ROLE postgres` meaningfully.
+(5) `_READ_ONLY_RPCS` must be asserted disjoint from `_P2_RPC_INVENTORY.escrita`.
 
-### 7.7 Reconciled scenario oracles (Amendment R4)
-
-Each entry below **overrides** the same scenario in §7.1–§7.6. Every correction
-is justified by measured canonical behaviour, cited inline.
-
-| ID | Corrected oracle | Why the old oracle was wrong |
-|---|---|---|
-| S01 | On an OP with no productive receipt **on its own axis**, every **OP-origin** line reads `kg_recebido_liquido = 0` and `kg_disponivel = 0`. Pedido-origin lines are a **shared pool** and are reported, not required to be zero. | `_oc_disponibilidade_linhas` scopes `origem_tipo='op'` to the OP but `origem_tipo='pedido'` to the whole Pedido, so the §6 seed legitimately shows on a sibling OP. "every line zero" was never a valid implication. |
-| S02 | TD1 by **attributable component**: the synthetic `saldo_fios` row sits on the *same* axis as an OP-origin need whose ceiling stays `0`, and the five real TD1 rows re-hash exactly. | An absolute-zero assertion over all lines is invalid for the same pooling reason. |
-| S13/S14/S15 | Project the real return column **`ordem_compra_id`**. | `listar_fila_aceite_fornecedor` returns `TABLE(ordem_compra_id, codigo, identidade_operacional, fornecedor_id, emitida_em, status_aceite, kg_total, itens)`. `ordem_id` never existed — harness-only defect. |
-| S21 | Permitted operator transition is **`rascunho → recebido`**; `ok`, `revisao` +1, `pedido_eventos` row written. | `alterar_status_pedido` accepts exactly `rascunho→recebido` and `recebido→confirmado`. `rascunho→confirmado` is not an operator transition. |
-| S22 | Forbidden derived transition is **`recebido → produzindo`**, verified against that same graph. | Must be forbidden *by the transition graph*, not by a stale revision. |
-| S24 | Put the Pedido in **`recebido`**, add the pending priority request, then invoke **`recebido → confirmado`**. Expect `PEDIDO_PRIORITY_ADMIN_REVIEW_REQUIRED`, **SQLSTATE 23514**, zero business delta. | The gate is `BEFORE UPDATE ON pedidos WHEN new.status='confirmado' AND old.status IS DISTINCT FROM 'confirmado'`. The old oracle used a transition that is refused *before* the gate, so the gate was never reached. |
-| S29 | Prove **both**: (a) `alterar_status_pedido` under `C` is refused; (b) the direct-table authority on `public.pedidos` is **measured exactly** and classified `EXPECTED PRE-P4 LEGACY AUTHORITY — UNCHANGED BY P3`, with the live grant/RLS posture as the proof. | §8 defers direct-DML revocation to P4. Requiring denial in P3 contradicted §8. |
-| S30–S33 | Use a **Tapete** lineage: `modelos.tipo_produto = 'tapete'` (modelo 4), on an OP in a deliverable state. | Modelo 27 is `manta`; the Tapete-only writer correctly refuses it. That refusal is S38's expectation, not S30's. |
-| S34 | Data-only injection: a **pending priority request on the OP's Pedido**, which makes the finishing-OP INSERT raise via `ops_prioridade_op_gate → assert_pedido_prioridade_revisada`. Delivery persists, `falha` attempt row written, no finishing OP. | The contract left the mechanism to discovery (§9). Recorded here as the discovered one. A non-finishing destination is **not** valid: `ops_latex_origem_destino_uidx` would be the real cause. |
-| S35/S37 | `pode_recuperar_op_acabamento` returns SQL `boolean` rendered `true`/`false`. | Harness-only literal defect. |
-| S39–S41 | The Tapete reversal requires an expedition whose **source is a finishing (latex) OP**, and `expedicoes_source_validation_guard_fn` makes that source **immutable after creation**, while `expedicao_itens_membership_guard_fn` requires each item's `op_item` to belong to that source OP and its `pedido_item_id` to match the source item's. A dedicated P3F expedition is therefore **created** with a latex source. | The original fixture is tecelagem-sourced and cannot be re-pointed. |
-| S47 | Classify **each** DML surface as `MUST BE DENIED IN P3` or `EXPECTED PRE-P4 LEGACY AUTHORITY — UNCHANGED BY P3`, from the live grants/RLS (§7.8). Fail on new/broadened/unexpected authority, claim elevation, owner-helper reachability, role escalation, or a writer in `_READ_ONLY_RPCS`. Do **not** fail on an unchanged deferred permission. | A blanket "all direct DML denied" contradicts §8. |
-
-**Role escalation.** `SET ROLE postgres` cannot be tested through a
-postgres-owned harness session, because the session user is already `postgres`.
-The load-bearing fact is proved instead: no client role holds `MEMBER` on
-`postgres` (`pg_has_role(...) = false` for `authenticated`, `anon`,
-`service_role`), so escalation is structurally impossible.
-
-### 7.8 S47 direct-DML classification (measured)
-
-| Surface | `authenticated` grants | Classification |
-|---|---|---|
-| `ordem_compra_aceite_comandos`, `entrega_cima_comandos`, `op_acabamento_comandos`, `expedicao_comandos` | `SELECT` only (RLS on) | **MUST BE DENIED IN P3** — no client write path to a command store |
-| `pedidos`, `ops`, `op_itens`, `expedicoes`, `entregas`, `saldo_fios_op` | `SELECT, INSERT, UPDATE, DELETE` behind RLS | **EXPECTED PRE-P4 LEGACY AUTHORITY — UNCHANGED BY P3** (P4 `db/106` direct-DML containment) |
-
-P3 asserts these are **unchanged**, never that they are absent. A grant present
-here but absent from the accepted baseline is a P3 failure; an unchanged
-deferred grant is not.
+S47 fails on new, broadened or unexpected authority, on claim elevation, on
+owner-helper reachability, on role escalation, or on a writer appearing in
+`_READ_ONLY_RPCS`. It does **not** fail on an unchanged deferred permission.
 
 ## 8. P3/P4 boundary
 
@@ -574,21 +396,26 @@ deferred grant is not.
 - cutover;
 - native receipt activation.
 
-A legacy permission that is explicitly scheduled for P4 containment must be
-classified as:
+A legacy permission explicitly scheduled for P4 containment is classified as:
 
 ```
 EXPECTED PRE-P4 LEGACY AUTHORITY — UNCHANGED BY P3
 ```
 
-and **must not** be reported as a P3 defect.
+and **must not** be reported as a P3 defect. A grant present in P3 but absent
+from the accepted baseline **is** a P3 failure.
 
-## 9. S34 failure-injection rule
+## 9. S34 failure-injection constraint
 
 `S34`–`S36` require a **deterministic, data-only** finishing failure.
 
 Not authorized: DDL; function replacement; trigger disable or manipulation;
-constraint modification; mock writer; any database-code patch.
+constraint modification; a mock writer; any database-code patch.
+
+The mechanism is **not** fixed by this contract. It is discovered by the
+execution order under the constraint above and recorded verbatim in the P3
+report. A mechanism that produces the right symptom for the wrong reason is not
+a valid injection: the executor must prove which gate actually raised.
 
 If no data-only mechanism exists, the executor stops with exactly:
 
@@ -596,310 +423,315 @@ If no data-only mechanism exists, the executor stops with exactly:
 P3_BLOCKED_RECOVERY_FAILURE_INJECTION
 ```
 
-The mechanism is **not** fixed by this contract; it is discovered by the
-execution order under the constraint above and recorded verbatim in the P3
-report.
-
-## 10. Required invariants
+## 10. Isolation and required invariants
 
 ### 10.1 Cutover invariant timing
 
-```
-ordem_compra_cutover.status = legacy_active
-read_authority              = flat
-```
-
-is asserted at these five points, **not** continuously through seed preparation:
+The starting cutover state — legacy, with `read_authority` flat — is asserted
+at five points, **not** continuously through seed preparation:
 
 ```
-A. before the bounded maintenance excursion of §6;
-B. immediately after resume_legacy and before 04b;
+A. before the bounded maintenance excursion of section 6;
+B. immediately after resuming legacy and before 04b;
 C. immediately before S01;
-D. after every S01-S47 scenario;
+D. after every S01–S47 scenario;
 E. at final isolation verification.
 ```
 
-The §6.2 excursion is the ONLY window in which `status` may read
-`maintenance_fenced`, and `read_authority` never leaves `flat`.
+The section 6.2 excursion is the ONLY window in which the maintenance state may
+be read, and `read_authority` never leaves flat. At **all** times, including
+maintenance preparation, `productive_receipt_started_at IS NULL` is mandatory
+and is asserted alongside every check above.
 
-At **all** times, including maintenance preparation:
+### 10.2 Preserved across the whole run
 
-```
-productive_receipt_started_at IS NULL
-```
-
-remains mandatory and is asserted alongside every check above.
-
-Preserved across the whole run:
-
-- migration-ledger terminal `20260731204800` on **both** the clone and
-  production, with the `db/112` forward patch recorded separately per §10.5;
+- the migration-ledger terminal is **identical on the clone and on production**
+  and identical to its value at restore, with the `db/112` forward patch
+  recorded separately per section 10.4;
 - no `db/103b`, no `db/104`, no `db/106`, no `db/110`;
-- the five real TD1 `saldo_fios` rows unchanged — see §10.2 for the algorithm
-  each recorded fingerprint belongs to;
+- the protected TD1 `saldo_fios` rows unchanged — see section 10.3;
 - `OC-001-3-26` and `OC-001-4-26` unchanged;
 - every copied non-`P3F` production row unchanged — count **and** ordered
   content hash identical before and after;
 - the function, policy, table-grant and column-grant catalogue unchanged
-  **except for the closed `EXPECTED DB112 DELTA` of §10.4**. Apart from that
-  single enumerated delta, P3 applies **no** DDL after restore and any other
-  catalogue movement is `UNAUTHORIZED CATALOGUE DRIFT` and a hard stop;
+  **except for the `db/112` delta of section 10.5**. Apart from that delta P3
+  applies **no** DDL after restore, and any other catalogue movement is
+  `UNAUTHORIZED CATALOGUE DRIFT` and a hard stop;
 - the `db/75`/`db/76` receipt-writer fence unchanged;
 - production `ucrjtfswnfdlxwtmxnoo`: zero row delta, zero catalogue delta.
 
-**Permitted delta surface (synthetic `P3F` rows only).** `pedidos`,
-`pedido_itens`, `pedido_eventos`, `ops`, `op_itens`, `op_numeros`,
-`pedido_identidade_numeros`, `saldo_fios_op`, `lotes`, `entregas` + items,
-`expedicoes` + `expedicao_itens`, `ordem_compra` + `ordem_compra_item` +
-`ordem_compra_item_alocacao`, `necessidade_compra_fio`,
-`necessidade_compra_planejamento`, the four command/attempt stores
-(`ordem_compra_aceite_comandos`, `entrega_cima_comandos`,
-`op_acabamento_comandos`, `op_acabamento_tentativas`), plus the `P3F` rows of
-`auth.users`, `usuarios`, `clientes`, `fornecedores` and `saldo_fios`, plus the
-`P3F` rows of `ordem_compra_recebimentos` and
-`ordem_compra_fio_lancamentos` created by the §6 seed.
+**Permitted delta surface (synthetic `P3F` rows only).** The Pedido, OP,
+delivery, expedition, purchase-order, need and planning tables together with
+their event and identity-numbering tables; the balance snapshot; the four
+command/attempt stores; the `P3F` rows of the identity, client, supplier and
+balance tables; and the `P3F` receipt header and ledger lines created by the
+section 6 seed. The exact table set is enumerated in `06-isolation.json` from
+the live schema. The cutover staging tables may hold rows ONLY inside the
+section 6.2 excursion and must be back at their copied baseline before `04b`;
+the cutover row itself must hash back to its copied baseline after resuming
+legacy.
 
-`ordem_compra_cutover_source_snapshot` and
-`ordem_compra_cutover_inventory_baseline` may hold rows ONLY inside the §6.2
-excursion and must be back at their copied baseline of zero rows before `04b`.
-`ordem_compra_cutover` itself must hash back to its copied baseline after
-`resume_legacy`.
+### 10.3 TD1 fingerprints — projections, not invariants
 
-### 10.2 TD1 fingerprints — three projections of the SAME five rows
-
-The five preserved rows are `public.saldo_fios WHERE id BETWEEN 11 AND 15`,
-`n = 5`, `sum(kg_total) = 2685.020`. Three fingerprints are on record. They are
-**not** three business invariants; they are three serializations, and each was
-reproduced byte-exactly from the current restored clone.
-
-| Name | Algorithm | Expected |
-|---|---|---|
-| **P1 canonical** | `md5(string_agg(to_jsonb(s)::text, E'\n' ORDER BY to_jsonb(s)::text))` — aggregates the RAW row JSON text, newline separator, ordered by that same text | `aa3986ffa0757c76390e43cadab8ea71` |
-| **P3-a** | `md5(string_agg(d, '\|' ORDER BY d))` where `d = md5(to_jsonb(s)::text)` — aggregates the PER-ROW DIGEST, pipe separator, ordered by the digest | `18a890412feeca2be31d5201ba72c446` |
-| **P3-b** | `md5(string_agg(d, '\|' ORDER BY id))` where `d = md5(to_jsonb(s)::text)` — per-row digest, pipe separator, ordered by `id` | `6f2632f75f66b6222ab25181ce5fea89` |
-
-`TimeZone = UTC` is **load-bearing** for all three: `kg_total` is `NUMERIC` so
-`extra_float_digits` is irrelevant, but `atualizado_em` is `timestamptz` and
-every projection changes under a different zone. The full pinned set used by the
-harness is `TimeZone=UTC`, `DateStyle=ISO,MDY`, `IntervalStyle=postgres`,
-`extra_float_digits=0`, `bytea_output=hex`, `client_encoding=UTF8` — production's
-own measured capture conditions.
+The preserved TD1 rows are a fixed row set with a fixed total. Several
+fingerprints of them are on record from earlier phases. They are **not**
+several business invariants; they are several serializations of the SAME rows,
+each produced by a different projection, ordering and separator.
 
 **Row identity and content equality is the authoritative test.** A hash
 comparison is valid ONLY when projection, ordering, separator and session
-serialization settings all match. Comparing two different projections and
-reporting a difference is a measurement error, not a fidelity failure. Do not
-invent a fourth fingerprint.
+serialization settings all match, and each recorded fingerprint must be
+compared against a re-derivation using ITS OWN algorithm. Comparing two
+different projections and reporting a difference is a measurement error, not a
+fidelity failure. **Do not invent an additional fingerprint.**
 
-### 10.3 The one narrow `op_numeros` exception
+The session serialization settings are pinned to production's own measured
+capture conditions and recorded in evidence; timezone is load-bearing because
+the row set carries a `timestamptz`.
 
-`db/108` derives the finishing-OP year as `EXTRACT(YEAR FROM CURRENT_DATE)` and
-calls `proximo_numero_op`, whose body is
-`INSERT … ON CONFLICT (tipo, ano) DO UPDATE SET ultimo_numero = ultimo_numero + 1`.
-A successful canonical finishing-OP creation therefore **must** increment the
-copied counter row
+### 10.4 Migration identity — three distinct facts
 
-```
-op_numeros(tipo = 'latex', ano = <year derived by the canonical function>)
-```
+"Terminal migration" is ambiguous across three different things and P3 must
+never conflate them:
 
-and no data-only mechanism can redirect it. That exact row — and only that row —
-may increase, solely as the unavoidable result of a successful canonical
-finishing-OP creation exercised by P3. For the currently preserved clone the
-measured baseline is `latex / 2026 / ultimo_numero = 18`.
+| # | Fact | Owner |
+|---|---|---|
+| 1 | the production migration ledger | the Supabase apply tooling |
+| 2 | the restored clone's inherited ledger — a copy of (1); P3 asserts it stays exactly that | inherited by `pg_restore` |
+| 3 | the P3-only forward patch `db/112`, applied post-restore outside that tooling | this contract |
 
-`06-isolation.json` must therefore report the exact baseline, every increment,
-the scenario and RPC that caused each one, the final value, and proof that no
-unrelated `op_numeros` row changed. **The counter must never be reset during
-cleanup merely to make an isolation hash pass.** This exception authorizes no
-other copied-row mutation; every other copied non-`P3F` row stays under the
-strict count-and-hash equality of §10 above.
+`db/112` writes no migration-ledger row, so applying it does **not** advance
+(2). **No ledger insertion is performed or permitted**: the ledger version is
+assigned by the Supabase apply tooling, `db/112` has never been applied through
+it, and inventing a version would fabricate provenance. Fact (3) is recorded as
+evidence by REPOSITORY identity — path, git blob identity, content digest, byte
+count, commit, and the clone it was applied to — measured at execution time and
+written to `03b-db112-clone-application.json`.
 
-**PONR marker.** `ponr` is **not** a stored column anywhere in the production
-database; `productive_receipt_started_at` is the enforced PONR marker per
-`db/75`/`db/76`. Recorded as `OSO-1`.
-
-### 10.4 EXPECTED DB112 DELTA ON THE DISPOSABLE CLONE
+### 10.5 The authorized `db/112` catalogue delta
 
 Applying `db/112` to the clone is authorized to change the catalogue in exactly
-one way, and in no other way. The nine measured dimensions are the ones the
-ACCEPTED Phase 2 evidence used, so this delta is continuous with
-`03-restore-verify.json` and is not a new yardstick. The prover is
-`scripts/c3d/catalogue-delta.mjs`.
+the way `db/112`'s own text implies, and in no other way. The executor derives
+the authorized set from `db/112` itself, measures the actual delta with
+`scripts/c3d/catalogue-delta.mjs` across the same strict dimensions the
+accepted restore-fidelity evidence used, and proves the two equal.
 
-| Dimension | Authorized change |
-|---|---|
-| `functions` | hash MOVES; count STABLE |
-| `policies`, `table_grants`, `column_grants`, `rls_strict`, `triggers`, `columns`, `eff_table_privs`, `eff_fn_privs` | **byte-identical** |
-
-Within `functions`, only these two signatures may differ, and only in the
-`src=md5(prosrc)` term:
-
-```
-ordem_compra_c3c_fence_and_snapshot|p_generation bigint
-ordem_compra_c3c_assert_import_reconciled|p_generation bigint
-```
-
-Every other term of those two signatures — `ret`, `sd`, `vol`, `kind`, `par`,
-`strict`, `retset`, `lang`, `cfg`, `own`, `acl` — must be UNCHANGED, which is
-what proves `CREATE OR REPLACE` neither widened authority nor altered the
-callable contract. No function may be added or removed. Any other changed
-dimension, any cardinality movement, any other changed function, or any changed
-protected term is:
+`db/112` is `CREATE OR REPLACE` only: cardinality must not move, no function
+may be added or removed, no dimension other than the function-body dimension
+may move, and for each replaced function every term other than the body digest
+— return type, security, volatility, kind, parameters, strictness, set-return,
+language, config, owner and ACL — must be UNCHANGED. That is what proves the
+replacement neither widened authority nor altered the callable contract.
+Anything else is:
 
 ```
 HARD STOP — UNAUTHORIZED DB112 CATALOGUE DRIFT
 ```
 
 **Production is out of scope of this delta.** Production carries no `db/112`
-and is compared against the original `db/111` baseline, where the catalogue
-must show ZERO delta in all nine dimensions.
+and is compared against its own restore baseline, where the catalogue must show
+ZERO delta in every dimension.
 
-### 10.5 Migration identity — three distinct facts
+### 10.6 The one narrow counter exception
 
-"Terminal migration" is ambiguous across three different things, and P3 must
-never conflate them:
+A successful canonical finishing-OP creation unavoidably increments exactly one
+copied OP-numbering counter row, because the canonical numbering function
+advances it and no data-only mechanism can redirect it. That row — and only
+that row — may increase, solely as the result of a successful canonical
+finishing-OP creation exercised by P3. The row's identity and its baseline
+value are **measured at run start**, never quoted from this file.
 
-| # | Fact | Value | Owner |
-|---|---|---|---|
-| 1 | **Production migration ledger** | `supabase_migrations.schema_migrations`, 60 rows, terminal `20260731204800` = `db/111` | Supabase apply tooling |
-| 2 | **Restored-clone inherited ledger** | byte-identical copy of (1): 60 rows, terminal `20260731204800` | inherited by `pg_restore`; P3 asserts it stays exactly this |
-| 3 | **P3-only forward patch** | `db/112`, applied post-restore by `psql -f`, recorded by REPOSITORY identity | this contract |
+`06-isolation.json` must report the measured baseline, every increment, the
+scenario and RPC that caused each one, the final value, and proof that no
+unrelated counter row changed. **The counter must never be reset during cleanup
+merely to make an isolation hash pass.** This exception authorizes no other
+copied-row mutation.
 
-`db/112` contains no `supabase_migrations` statement, so applying it does **not**
-advance (2). **No ledger insertion is performed, permitted or canonical here**:
-the ledger's `version` is assigned by the Supabase apply tooling, `db/112` has
-never been applied through it, and inventing a version would fabricate
-provenance. Fact (3) is therefore recorded as evidence, not as a ledger row:
+### 10.7 Isolation reporting — three separated classes
 
-```
-path        db/112_cutover_snapshot_completeness_invariant.sql
-git_blob    e08580b63849e3efe3329cfd6abf7c379fb7953f
-sha256      439729d9d4bb6453d70c4e880d23bdb3336b0cf1a8be68a4eaadbdabbd57059c
-bytes       25807
-commit      b817510082139ba80252ca0cd6a089890ce0304e
-applied_to  clone system_identifier 7668905723812930636 ONLY
-```
-
-recorded in `03b-db112-clone-application.json`. The §10.1 invariant and the §15
-production remeasurement both assert ledger terminal `20260731204800`, on both
-sides. Applying `db/112` to production is a SEPARATE future
-cutover/P5 authorization and is explicitly not part of P3.
-
-### 10.6 Isolation reporting — three separated classes
-
-`06-isolation.json` must report three classes SEPARATELY and must never
-compare the post-`db/112` clone catalogue against the pre-`db/112` Phase 2 hash
+`06-isolation.json` must report three classes SEPARATELY, and must never
+compare the post-`db/112` clone catalogue against the pre-`db/112` restore hash
 and call the intentional change drift:
 
 | Class | Content | Required verdict |
 |---|---|---|
-| **A** | inherited production baseline (copied rows, catalogue as restored) | unchanged, except the already-authorized `op_numeros` counter behaviour of §10.3 |
-| **B** | the clone-only `db/112` catalogue delta | EXACTLY the §10.4 authorized set and nothing else |
-| **C** | synthetic `P3F` scenario delta | confined to the §10.1 permitted delta surface |
+| **A** | inherited production baseline — copied rows, catalogue as restored | unchanged, except the authorized counter behaviour of section 10.6 |
+| **B** | the clone-only `db/112` catalogue delta | EXACTLY the section 10.5 authorized set and nothing else |
+| **C** | synthetic `P3F` scenario delta | confined to the section 10.2 permitted delta surface |
 
-Production stays compared against the original `db/111` baseline and must show
-zero catalogue and zero row delta.
-
-## 11. Evidence schema
+## 11. Evidence requirements and classification
 
 Evidence **may live outside the repository** and currently does (section 12).
 
-| Artifact | Content |
-|---|---|
-| `00-preflight.json` | Production identity, terminal migration, cutover row, row counts, `saldo_fios` hash, catalogue hashes — all read-only |
-| `01-dump-manifest.json` | Dump command, `pg_dump` version, byte size, SHA-256 of the archive, start/end timestamps, production read-only session proof |
-| `01b-post-dump-verify.json` | Re-measurement of everything in `00` immediately after the dump, diffed to zero |
-| `01c-credential-cleanup.json` | Credential acquisition source and post-run clearance; never the secret |
-| `02-cluster-boot.json` | Disposable `system_identifier`, PG version, port, data dir, the `<> 7642734024280108049` assertion |
-| `03-restore-verify.json` | Post-restore catalogue hashes and row counts vs `00`; the 14-RPC signature/ACL re-verification inside the clone |
-| `03b-db112-clone-application.json` | The §10.5 fact-(3) forward-patch record and the §10.4 measured catalogue delta, proved equal to the authorized set |
-| `04-fixtures.json` | Every `P3F` id created, in creation order |
-| `04b-productive-receipt-seed.json` | The seed lineage and the proved positive `oc_disponibilidade_op` result |
-| `05-scenarios/S01.json` … `S47.json` | Per scenario: identity assertion (`current_user`, `auth.uid()`, `auth.role()`, `auth.jwt()`), command, verbatim result, delta query results, non-delta assertions, pass/fail |
-| `06-isolation.json` | Before/after count + hash table for every copied production table, with the `P3F` exclusion applied, reported in the THREE separated classes of §10.6 |
-| `07-teardown.json` | `{stopResult, portClosed, pidAbsent, dirAbsent}` plus independent `fs.access` failures for data dir and dump path |
-| `08-production-untouched.json` | Post-run read-only re-measurement of everything in `00`, diffed to zero |
-| `P3-REPORT.md` | Human-readable roll-up, scenario table, failures, stop conditions hit |
+| Artifact | Content | Class |
+|---|---|---|
+| `00-preflight.json` | production identity, terminal migration, cutover row, row counts, protected-row hashes, catalogue hashes — all read-only | LOAD_BEARING |
+| `01-dump-manifest.json` | dump command, tool version, byte size, archive digest, timestamps, production read-only session proof | LOAD_BEARING |
+| `01b-post-dump-verify.json` | re-measurement of `00` immediately after the dump, diffed to zero | LOAD_BEARING |
+| `01c-credential-cleanup.json` | credential acquisition source and post-run clearance; **never** the secret | LOAD_BEARING |
+| `02-cluster-boot.json` | disposable `systemIdentifier`, version, port, data dir, and the assertion that the identifier is not production's | LOAD_BEARING |
+| `03-restore-verify.json` | post-restore catalogue hashes and row counts against `00`; the 14-RPC signature/ACL re-verification inside the clone | LOAD_BEARING |
+| `03b-db112-clone-application.json` | the section 10.4 fact-(3) record and the section 10.5 measured delta, proved equal to the authorized set | LOAD_BEARING |
+| `04-fixtures.json` | every `P3F` id created, in creation order | LOAD_BEARING |
+| `04b-productive-receipt-seed.json` | the seed lineage and the proved positive availability result | LOAD_BEARING |
+| `05-scenarios/S01.json` … `S47.json` | per scenario: identity assertion, the derived oracle, command, verbatim result, delta and non-delta assertions, pass/fail | LOAD_BEARING |
+| `06-isolation.json` | before/after count and hash for every copied production table with the `P3F` exclusion applied, in the three classes of section 10.7 | LOAD_BEARING |
+| `07-teardown.json` | stop result, port closed, pid absent, directory absent, plus independent filesystem checks for data dir and dump path | LOAD_BEARING |
+| `08-production-untouched.json` | post-run read-only re-measurement of `00`, diffed to zero | **CORROBORATIVE** |
+| `P3-REPORT.md` | human-readable roll-up, scenario table, failures, stop conditions hit | LOAD_BEARING |
+
+### 11.1 Production-untouched intent and its evidence class
+
+**Intent, unchanged and binding:** this P3 execution must have no
+mutation-capable path to production. Production is contacted only by separately
+authorized read-only work, every mutation is confined to the disposable clone
+verified by `systemIdentifier`, and production authority, rows and catalogue
+are unchanged at the end of the run.
+
+**Supervisor decision.** `08-production-untouched.json` is
+`EVIDENCE_CORROBORATIVE`. Its absence alone does not block P3 acceptance when
+independent structural evidence sufficiently proves that the execution held no
+mutation-capable production path — the read-only session proof of
+`01-dump-manifest.json` with its negative controls, the distinct-cluster
+assertion of `02-cluster-boot.json`, and the clone-confined mutation surface of
+`06-isolation.json`. A `WITHHELD` corroborative artifact must be declared, with
+its reason and the independent evidence relied on instead, per
+`docs/governance/AGENT_INSTRUCTIONS.md` section 13.5.
+
+**This decision does NOT authorize production access or mutation**, and does not
+relax any boundary in section 2. It classifies one artifact; it grants nothing.
+
+### 11.2 Teardown
 
 **Teardown is an acceptance criterion, not housekeeping.** If any teardown step
-fails, the run is reported FAILED even if all 47 scenarios passed.
+fails, the run is reported FAILED even if all 47 scenarios passed. Teardown
+covers the P3 clone and the superseded rehearsal cluster of section 12, and
+both remain OUTSTANDING.
 
-## 12. External execution root and predecessor state
+## 12. Preserved execution state
 
 ```
 external_execution_root:
   D:\p3-work\runs\p3-a0e2331-20260801T030008Z
-
 external_evidence_root:
   D:\p3-work\evidence\p3\p3-a0e2331-20260801T030008Z
-
 cluster_pointer:
   D:\p3-work\runs\p3-a0e2331-20260801T030008Z\scratch\cluster.json
+run_id:
+  p3-a0e2331-20260801T030008Z
 ```
 
-Run id `p3-a0e2331-20260801T030008Z`.
+**Preserved clone — do NOT rebuild.** `systemIdentifier 7668905723812930636`.
+Verify by `systemIdentifier`, never by port. A superseded rehearsal cluster
+(`D:\p3-work\rehearsal-JhFKAI`, `systemIdentifier 7668897191668365016`) has been
+observed still listening; it is **not** a valid P3 target, must not be used,
+and its teardown is outstanding.
 
-**Preserved predecessor progress (do NOT rebuild).** The clone is live and
-already holds the complete validated `P3F` namespace — 70 synthetic rows
-covering the four identities, five Pedidos, seven OPs, five needs, six Purchase
-Orders, eight allocations, the non-zero synthetic TD1 balance and the delivered
-Manta expedition — recorded in `04-fixtures.json`. `05-scenarios/` is empty: no
-scenario has ever been executed. The measured pre-seed state is
-`legacy_active` / `flat` / PONR marker NULL, terminal `20260731204800`, zero
-receipt headers, zero ledger lines, zero cutover snapshot and baseline rows, and
-`op_numeros(latex, 2026) = 18`. A resumption order starts at §6.3 step 1, not at
-§5.
+**Fixture state.** The clone already holds the complete validated `P3F`
+namespace, recorded in `04-fixtures.json`. A resumption order starts at
+section 6.3, not at section 5.
+
+**Scenario state — historical attempt exists; the authoritative matrix does
+not.** A first execution of the section 7 matrix ran **34 scenarios and
+produced 21 PASS / 13 FAIL**, and proved **no product defect**: some failures
+were executor errors and others were defects in this contract's own oracles,
+which is why section 7 now requires derived oracles. Those **34 artifacts are
+preserved as historical evidence under a separate attempt namespace** and must
+not be mixed with, promoted into, or counted towards the authoritative final
+matrix. **The authoritative final P3 matrix is INCOMPLETE: no scenario result
+is accepted, and no P3 result of any kind is claimed.** Any statement that no
+scenario has ever been executed is stale and is superseded by this paragraph.
 
 **Phase 1 — production read-only dump: ACCEPTED FOR P3 ENTRY.** Production
-identity proved by cluster `system_identifier 7642734024280108049` on
-PostgreSQL 17.6 with terminal migration `20260731204800`; read-only posture
-proved by two negative controls (`CREATE TABLE` and a real `UPDATE` both refused
-with *cannot execute … in a read-only transaction*); schemas `public`, `auth`,
-`supabase_migrations`; exit status 0; archive 1 767 578 bytes, SHA-256
-`da2f5ead962eea2ee7b8eaef46b7f27d54be0da2f6147a472b6183098b16a6cf`; production
-proved unchanged across the dump on all 66 tables, the catalogue, the cutover
-row, both protected Purchase Orders and the five TD1 rows; no secret present in
-any evidence file.
+identity proved by cluster system identifier; read-only posture proved by two
+negative controls; production proved unchanged across the dump on all tables,
+the catalogue, the cutover row, both protected Purchase Orders and the
+protected TD1 rows; no secret in any evidence file.
 
-**Phase 2 — restore fidelity: ACCEPTED FOR P3 ENTRY.** Restored from the Phase 1
-archive into a disposable PostgreSQL 18.4 cluster with
-`system_identifier 7668905723812930636` (≠ production); terminal migration
-`20260731204800` on both sides; all 14 RPCs match production including
-`body_md5` and ACL, with zero drift; zero row-count drift and zero row-hash
-drift across all 66 tables; all nine strict catalogue dimensions byte-equal
-(functions 227, policies 88, table grants 1322, column grants 7603, strict RLS
-67, triggers 75, columns 694, effective table privileges 268, effective function
-privileges 908); cutover state matches production; no production mutation.
-
-**Declared PostgreSQL 17 → 18 reconciliations.** (a) PG18 materialises `NOT NULL`
-as `pg_constraint contype='n'` (415 rows) which PG17 does not; every production
-constraint class matches exactly and `attnotnull` is proved independently by the
-column fingerprint. (b) Dropped-column `attnum` gaps in `clientes`,
-`fornecedores` and `ordem_compra` are compacted by `pg_restore`; column order is
-proved by ordinal position among live columns. (c) Owner-only tables may carry an
-explicit `relacl` in production and `NULL` in the clone; effective privileges are
-compared instead and match exactly. (d) One CHECK constraint,
-`ordem_compra.ordem_compra_codigo_formato`, deparses with one fewer redundant
-parenthesis group under PG18; it is reconciled only because **both** hold —
-token equivalence after stripping every parenthesis, and a seven-case
-behavioural probe on the clone. A differing relation absent from the captured
-production definitions is a hard stop, so that path cannot absorb an unexamined
+**Phase 2 — restore fidelity: ACCEPTED FOR P3 ENTRY.** Restored into a
+disposable cluster whose system identifier differs from production's; identical
+terminal migration on both sides; all 14 RPCs matching production including
+body digest and ACL with zero drift; zero row-count and row-hash drift; every
+strict catalogue dimension byte-equal; cutover state matching production; no
+production mutation. The declared PostgreSQL 17→18 reconciliations —
+materialized `NOT NULL` constraints, compacted dropped-column ordinals,
+owner-only `relacl` compared by effective privilege, and one CHECK constraint
+deparsed with one fewer redundant parenthesis group, reconciled only because
+both token equivalence and a behavioural probe hold — are part of that
+acceptance. A differing relation absent from the captured production
+definitions is a hard stop, so that path cannot absorb an unexamined
 difference.
 
+Both phases' measured values are owned by their artifacts (`00`, `01`, `01b`,
+`01c`, `02`, `03`) and by the ledger entry of section 14, not by this file.
+
 **Cluster liveness is not assumed.** The execution order must re-verify the
-clone by `systemIdentifier`, never by port alone, and must refuse any cluster
-whose `systemIdentifier` is not `7668905723812930636`. A superseded rehearsal
-cluster (`D:\p3-work\rehearsal-JhFKAI`, `systemIdentifier
-7668897191668365016`) has been observed still listening; it is **not** a valid
-P3 target and must not be used.
+clone before any mutation and refuse any cluster whose `systemIdentifier` is
+not the preserved one.
 
-## 13. Provenance
+## 13. Acceptance and hard stops
 
-The scenario matrix, identity model, fixture model, delta/non-delta surfaces and
-evidence schema in this file are the canonicalisation of the reviewed
+P3 is accepted only by the architect, only on evidence, and **never by the
+executor**. P3 must not self-accept. Completion of the scenario matrix
+authorizes nothing further: P4 and P5 remain NOT AUTHORIZED and nothing chains
+from a P3 result.
+
+**Acceptance requires** every `EVIDENCE_LOAD_BEARING` artifact of section 11
+present and directly proved; the 47 scenarios executed in order with derived
+oracles recorded; the section 10 invariants held at every asserted point; the
+isolation report in its three separated classes; teardown complete; and the
+production-untouched intent of section 11.1 satisfied.
+
+**Hard stop, report and do not continue, when:**
+
+- the cutover state, the PONR marker, or the `db/75`/`db/76` fence is anything
+  other than section 10 requires at an asserted point;
+- catalogue movement outside the authorized `db/112` delta is measured;
+- a copied non-`P3F` row changes outside the section 10.6 counter exception;
+- a protected Purchase Order or a protected TD1 row is reached by any command;
+- a scenario would need production, the retired project, or the forbidden
+  project;
+- a scenario would need DDL, a function or trigger patch, or a
+  `session_replication_role` bypass;
+- the target cluster's `systemIdentifier` is not the preserved one;
+- identity `F` would be needed to satisfy a caller-proof scenario;
+- no data-only S34 mechanism exists (`P3_BLOCKED_RECOVERY_FAILURE_INJECTION`);
+- a required piece of evidence proves unreachable — report it as a contract
+  defect under `AGENT_INSTRUCTIONS.md` section 13.4, do not approximate it;
+- removing or reinterpreting an active statement of this contract would need a
+  new human decision on product intent, acceptance, architecture, security or a
+  phase boundary.
+
+A derived mechanic that contradicts stale prose is **not** a hard stop: it is
+`MECHANICAL_DOCUMENT_DRIFT` under `AGENT_INSTRUCTIONS.md` section 13.3 —
+measure, correct, report.
+
+## 14. Historical record — non-normative
+
+The following are preserved as history and are **not** normative. They are not
+rewritten, and this refoundation withdraws none of the accepted evidence they
+carry.
+
+| Record | Reachable at |
+|---|---|
+| original activation of this contract, with the full 14-RPC signature tables, the literal `S01`–`S47` oracle matrix, the fixture content list and the original evidence schema | commit `e74680d` |
+| **Amendment R1** — bounded maintenance excursion, observed `S24` refusal shape, invariant timing, TD1 fingerprint algorithms, `op_numeros` exception bounds | commit `f3d2457` |
+| **Amendment R2** — the `db/112` root-cause correction of the frozen cutover cardinalities and its consequences for P3 | commit `f3d2457`, migration at `b817510` |
+| **Amendment R3** — R3.1 catalogue-invariant reconciliation by measurement, R3.2 the three migration-identity facts, R3.3 schema-enforced one-flat-row-one-mapping | commit `1c43442` |
+| **Amendment R4** — scenario-oracle reconciliation after the 21 PASS / 13 FAIL first attempt | commit `aee48b4` |
+| accepted Phase 1 and Phase 2 measured evidence, the P3 activation record and the protected-residue incident | `docs/ledgers/G28_LEDGER.md` :: `## 2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P3-CANONICAL-ACTIVATION-R1 — docs: activate P3 authenticated proof` |
+| the 34 historical scenario artifacts of the first attempt | the separate attempt namespace under the external evidence root of section 12 |
+
+Where a historical record and this file disagree, **this file governs** for
+active execution, and the historical record stands unaltered as evidence of
+what was decided and measured at the time.
+
+## 15. Provenance
+
+The scenario intent, identity model, fixture model, delta/non-delta surfaces
+and evidence schema in this file are the canonicalisation of the reviewed
 `P3 DIAGNOSIS AND EXECUTION PLANNING` report, sections 3, 5, 10, 11, 12, 13, 14
-and 15. Section 9.9.Q of
+and 15, as refounded here. Section 9.9.Q of
 `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md` remains the owner
 of the authenticated acceptance intent; this file enumerates it and does not
 override it.
