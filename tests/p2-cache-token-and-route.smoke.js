@@ -38,27 +38,56 @@ function tokenDe(asset) {
   return m ? m[1] : null;
 }
 
-test('1. TODO asset JS alterado por P2 carrega o token da fase', () => {
+// NATIVE-RECEIPT-COORDINATED-RELEASE-P2-STABILIZATION-R1: a estabilizacao
+// alterou DOIS dos assets do P2 depois da publicacao da fase, entao eles
+// passam a carregar o token da ordem que os alterou POR ULTIMO — o mesmo
+// mecanismo que toda ordem posterior usou. O sujeito do guard nao muda: todo
+// asset alterado carrega um token da fase, e nenhum asset inalterado carrega
+// token de fase nenhum.
+const STABILIZATION_TOKEN = '20260731-native-receipt-p2-stabilization-r1';
+const STABILIZATION_ASSETS = [
+  'js/screens/pedido-detail-events.js',
+  'js/screens/expedicao-admin.js',
+];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN];
+
+function tokenEsperado(asset) {
+  return STABILIZATION_ASSETS.includes(asset) ? STABILIZATION_TOKEN : P2_TOKEN;
+}
+
+test('1. TODO asset JS alterado por P2 carrega o token da fase que o alterou por ultimo', () => {
   const alterados = alteradosPorP2();
   assert.ok(alterados.length >= 16, 'a fase alterou pelo menos 16 modulos, achou ' + alterados.length);
   const semToken = [];
   for (const a of alterados) {
     const t = tokenDe(a);
     if (t === null) continue;               // modulo nao montado por index.html
-    if (t !== P2_TOKEN) semToken.push(a + ' => ' + t);
+    if (t !== tokenEsperado(a)) semToken.push(a + ' => ' + t);
   }
   assert.deepEqual(semToken, [],
     'nenhum asset alterado por P2 pode reter um token antigo');
 });
 
-test('2. nenhum asset INALTERADO recebeu o token da fase (sem churn)', () => {
+test('1b. os dois assets da estabilizacao carregam EXATAMENTE o token da estabilizacao', () => {
+  for (const a of STABILIZATION_ASSETS) {
+    assert.equal(tokenDe(a), STABILIZATION_TOKEN, a + ' deve carregar o token da estabilizacao');
+  }
+  const portadores = Array.from(INDEX.matchAll(/src="([^"]+?)\?v=([^"]+)"/g))
+    .filter((m) => m[2] === STABILIZATION_TOKEN)
+    .map((m) => m[1]);
+  assert.deepEqual(portadores.slice().sort(), STABILIZATION_ASSETS.slice().sort(),
+    'somente os dois assets corrigidos podem carregar o token da estabilizacao');
+  assert.notEqual(STABILIZATION_TOKEN, P2_TOKEN, 'o token da estabilizacao difere do token do P2');
+});
+
+test('2. nenhum asset INALTERADO recebeu token de fase (sem churn)', () => {
   const alterados = new Set(alteradosPorP2());
   const portadores = Array.from(INDEX.matchAll(/src="([^"]+?)\?v=([^"]+)"/g))
-    .filter((m) => m[2] === P2_TOKEN)
+    .filter((m) => TOKENS_DA_FASE.includes(m[2]))
     .map((m) => m[1]);
   const intrusos = portadores.filter((p) => !alterados.has(p));
   assert.deepEqual(intrusos, [],
-    'so assets realmente alterados podem carregar o token da fase');
+    'so assets realmente alterados podem carregar um token da fase');
 });
 
 test('3. nenhum modulo e montado duas vezes', () => {

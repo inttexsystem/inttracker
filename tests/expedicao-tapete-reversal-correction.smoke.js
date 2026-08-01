@@ -394,3 +394,201 @@ test('22. nenhum endpoint hospedado e contatado por este arquivo', () => {
   const meu = fs.readFileSync(__filename, 'utf8');
   assert.doesNotMatch(meu, /https?:\/\/[a-z0-9-]+\.supabase\.co/i);
 });
+
+// =====================================================================
+// NATIVE-RECEIPT-COORDINATED-RELEASE-P2-STABILIZATION-R1 — defeito D-2
+//
+// `render()` monta a tela com `container.replaceChildren(...)`, que e a API
+// NATIVA. Ao contrario de `el()`, ela NAO descarta ausencia: pela
+// especificacao, todo argumento que nao e um Node vira um Text node com
+// `String(argumento)` — e um painel opcional ausente virava o texto "null"
+// pintado na tela.
+//
+// O `FakeNode` acima filtra `null` e por isso NUNCA poderia ter flagrado esse
+// defeito. As provas abaixo usam um no FIEL a especificacao; um fake
+// permissivo aqui seria um teste que prova a si mesmo.
+// =====================================================================
+
+class NativeishNode extends FakeNode {
+  // Espelha https://dom.spec.whatwg.org/#dom-parentnode-replacechildren :
+  // cada argumento que nao e um Node e convertido em Text via String().
+  replaceChildren(...ns) {
+    this.children = [];
+    for (const n of ns) {
+      if (n && typeof n === 'object' && (n instanceof NativeishNode || 'textContent' in n || 'tagName' in n)) {
+        this.children.push(n);
+        continue;
+      }
+      this.children.push({ __text: true, textContent: String(n), children: [] });
+    }
+  }
+}
+
+function nosDeTextoParasita(root) {
+  return flatten(root)
+    .filter((n) => n && n.__text === true)
+    .map((n) => String(n.textContent).trim())
+    .filter((t) => t === 'null' || t === 'undefined' || t === 'false');
+}
+
+// Sandbox FIEL: identico ao de cima, exceto pelo no que respeita a
+// especificacao de replaceChildren e pela rota/itens parametrizados.
+async function renderTelaFiel({ rota, itens }) {
+  const rpcCalls = [];
+  const expedicao = rota === 'manta'
+    ? Object.assign({}, EXPEDICAO, { op_latex_id: null, op_tecelagem_id: 44, op: null, op_tecelagem: { id: 44, numero: 3, ano: 2026, tipo: 'tecelagem' } })
+    : EXPEDICAO;
+  const sandbox = {
+    console: { error() {}, warn() {}, log() {} },
+    Promise, Object, Array, Number, String, Math, JSON, Error, Boolean, Date,
+    document: {
+      createElement: (t) => new NativeishNode(t),
+      createTextNode: (t) => ({ __text: true, textContent: t, children: [] }),
+      querySelector: () => new NativeishNode('div'),
+      querySelectorAll: () => [],
+      addEventListener() {}, removeEventListener() {},
+      body: new NativeishNode('body'),
+    },
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+
+  function dataFor(table) {
+    if (table === 'expedicoes') return { data: expedicao, error: null };
+    if (table === 'expedicao_itens') return { data: itens, error: null };
+    if (table === 'lotes') return { data: [{ id: 5 }], error: null };
+    return { data: [], error: null };
+  }
+  sandbox.supa = {
+    from(table) {
+      const chain = {
+        select() { return chain; }, eq() { return chain; }, in() { return chain; }, order() { return chain; },
+        insert() { return chain; }, update() { return chain; }, delete() { return chain; },
+        maybeSingle: () => Promise.resolve(dataFor(table)),
+        single: () => Promise.resolve(dataFor(table)),
+        then: (res, rej) => Promise.resolve(dataFor(table)).then(res, rej),
+      };
+      return chain;
+    },
+    rpc(fn, params) {
+      rpcCalls.push({ fn, params });
+      if (fn === 'consultar_saldo_expedicao_manta') return Promise.resolve({ data: { linhas: [] }, error: null });
+      return Promise.resolve({ data: { ok: true }, error: null });
+    },
+  };
+  sandbox.el = function (tag, attrs) {
+    const n = new NativeishNode(tag);
+    const rest = Array.prototype.slice.call(arguments, 2);
+    Object.keys(attrs || {}).forEach((k) => {
+      if (k === 'onclick') n._listeners.click = attrs[k]; else n.setAttribute(k, attrs[k]);
+    });
+    rest.flat().forEach((c) => {
+      if (c == null || c === false || c === '') return;
+      n.appendChild(typeof c === 'string' ? { __text: true, textContent: c, children: [] } : c);
+    });
+    return n;
+  };
+  sandbox.textInput = (o) => { const n = new NativeishNode('input'); n.value = (o && o.value) || ''; return n; };
+  sandbox.selectInput = () => new NativeishNode('select');
+  sandbox.textArea = () => new NativeishNode('textarea');
+  sandbox.toast = () => {};
+  sandbox.navigate = () => {};
+  sandbox.shellLayout = (menu, node) => node;
+  sandbox.ADMIN_MENU = [];
+  sandbox.fmtMetros = (n) => Number(n || 0).toFixed(2).replace('.', ',') + ' m';
+  sandbox.RAVATEX_OP_DISPLAY = { formatOpOperationalCode: () => 'OP-SINT-1-99' };
+  sandbox.RAVATEX_PRODUCT_ROUTE = {
+    resolveExpedicaoSource: () => rota === 'manta'
+      ? { opId: 44, column: 'op_tecelagem_id', route: 'manta', label: 'Tecelagem (Manta)' }
+      : { opId: 44, column: 'op_latex_id', route: 'tapete', label: 'Acabamento (Tapete)' },
+  };
+  // A rota Manta tem o SEU painel, que continua sendo dono da rota dela.
+  sandbox.RAVATEX_SCREENS = {
+    mantaExpedicaoUi: {
+      buildMantaExpedicaoPanel: () => {
+        const n = new NativeishNode('div');
+        n.setAttribute('data-rv-manta-painel', '');
+        n.appendChild({ __text: true, textContent: 'Expedicao Manta', children: [] });
+        return n;
+      },
+    },
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(eaSrc, sandbox, { filename: 'js/screens/expedicao-admin.js' });
+  const root = await sandbox.screenExpedicaoAdmin(700);
+  return { sandbox, root, rpcCalls };
+}
+
+test('D2/1. o no fiel usado nestas provas realmente reproduz replaceChildren nativo', () => {
+  const n = new NativeishNode('div');
+  n.replaceChildren(new NativeishNode('span'), null);
+  assert.equal(n.children.length, 2, 'a API nativa NAO descarta ausencia');
+  assert.equal(n.children[1].textContent, 'null', 'ela converte o ausente em texto');
+  const permissivo = new FakeNode('div');
+  permissivo.replaceChildren(new FakeNode('span'), null);
+  assert.equal(permissivo.children.length, 1,
+    'o fake permissivo filtra — e por isso jamais teria flagrado o defeito');
+});
+
+test('D2/2. rota TAPETE com itens nao renderiza texto parasita', async () => {
+  const { root } = await renderTelaFiel({ rota: 'tapete', itens: ITENS });
+  assert.deepEqual(nosDeTextoParasita(root), []);
+});
+
+test('D2/3. rota MANTA nao renderiza texto parasita', async () => {
+  const { root } = await renderTelaFiel({ rota: 'manta', itens: ITENS });
+  assert.deepEqual(nosDeTextoParasita(root), []);
+});
+
+test('D2/4. rota TAPETE com ZERO itens nao renderiza texto parasita', async () => {
+  const { root } = await renderTelaFiel({ rota: 'tapete', itens: [] });
+  assert.deepEqual(nosDeTextoParasita(root), []);
+});
+
+test('D2/5. painel ausente nao vira wrapper vazio nem espaco visual', async () => {
+  for (const caso of [
+    { rota: 'tapete', itens: ITENS },
+    { rota: 'manta', itens: ITENS },
+    { rota: 'tapete', itens: [] },
+  ]) {
+    const { root } = await renderTelaFiel(caso);
+    const container = flatten(root).find((n) => n.children && n.children.some((c) => c && c.tagName === 'DIV'
+      && /Expedicao|Itens da expedicao|Historico/.test(textOf(c)))) || root;
+    for (const filho of container.children) {
+      assert.ok(filho && filho.tagName, caso.rota + ': todo filho direto do render e um elemento, nunca texto');
+      const vazio = (filho.children || []).length === 0 && !String(filho.textContent || '').trim();
+      assert.equal(vazio, false, caso.rota + ': nenhum wrapper vazio foi introduzido');
+    }
+  }
+});
+
+test('D2/6. os dois paineis de rota continuam mutuamente exclusivos', async () => {
+  const tap = await renderTelaFiel({ rota: 'tapete', itens: ITENS });
+  assert.ok(painelPorMarcador(tap.root, 'estorno'), 'Tapete tem estorno');
+  assert.ok(painelPorMarcador(tap.root, 'correcao'), 'Tapete tem correcao');
+  assert.equal(flatten(tap.root).some((n) => n.getAttribute && n.getAttribute('data-rv-manta-painel') != null), false,
+    'a rota Tapete nao monta o painel Manta');
+
+  const man = await renderTelaFiel({ rota: 'manta', itens: ITENS });
+  assert.ok(flatten(man.root).some((n) => n.getAttribute && n.getAttribute('data-rv-manta-painel') != null),
+    'a rota Manta monta o painel dela');
+  assert.equal(painelPorMarcador(man.root, 'estorno'), null, 'a rota Manta nao recebe o estorno Tapete');
+  assert.equal(painelPorMarcador(man.root, 'correcao'), null, 'a rota Manta nao recebe a correcao Tapete');
+});
+
+test('D2/7. a rota Manta nao chama escritor de acabamento nenhum', async () => {
+  const { rpcCalls } = await renderTelaFiel({ rota: 'manta', itens: ITENS });
+  const proibidas = ['gerar_op_acabamento', 'gerar_op_latex', 'gerar_op_latex_split', 'registrar_entrega_cima_com_acabamento'];
+  assert.deepEqual(rpcCalls.map((c) => c.fn).filter((f) => proibidas.includes(f)), []);
+});
+
+test('D2/8. a normalizacao e por MECANISMO, nao por nome de rota', () => {
+  const bloco = (eaExec.match(/var filhos = \[[\s\S]{0,900}?container\.replaceChildren\.apply\(container, filhos\);/) || [''])[0];
+  assert.ok(bloco, 'render() normaliza a lista inteira de filhos');
+  assert.match(bloco, /\.filter\(/, 'a lista e filtrada');
+  assert.doesNotMatch(bloco, /route\s*===|route\s*!==|'manta'|'tapete'/,
+    'o filtro nao testa nome de rota');
+  assert.doesNotMatch(eaExec, /container\.replaceChildren\(\s*\n?\s*buildHeader/,
+    'a chamada crua com paineis opcionais foi retirada');
+});

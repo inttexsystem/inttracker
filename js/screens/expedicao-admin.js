@@ -742,7 +742,19 @@
       }
       var totalLiberado = sum(state.itens, 'metros_liberados');
       var totalEntregue = sum(state.itens, 'metros_entregues');
-      container.replaceChildren(
+      // PAINEIS OPCIONAIS (P2-STABILIZATION, defeito D-2).
+      //
+      // `buildMantaPainel` e `buildTapetePainel` devolvem `null` quando a rota
+      // da expedicao nao e a deles — e `buildTapetePainel` tambem quando nao
+      // ha item para operar. `container.replaceChildren()` e a API NATIVA e,
+      // ao contrario de `el()`, ela nao descarta ausencia: ela converte
+      // `null` no texto "null" e o pinta na tela.
+      //
+      // A normalizacao e por MECANISMO, sobre a lista inteira de filhos:
+      // ausencia nao vira no nenhum, venha ela de qual construtor for. Nao ha
+      // teste por nome de rota, nao ha wrapper novo e a ordem dos paineis
+      // obrigatorios e a mesma.
+      var filhos = [
         buildHeader(totalLiberado, totalEntregue),
         buildResumo(totalLiberado, totalEntregue),
         buildMantaPainel(),
@@ -750,8 +762,9 @@
         buildRegistro(totalLiberado, totalEntregue),
         buildTapetePainel(),
         buildHistorico(),
-        buildConclusao(totalLiberado, totalEntregue)
-      );
+        buildConclusao(totalLiberado, totalEntregue),
+      ].filter(function (no) { return no != null && no !== false && no !== ''; });
+      container.replaceChildren.apply(container, filhos);
     }
 
     render();

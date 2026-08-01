@@ -1225,8 +1225,17 @@ test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () 
   // obrigatorio no cancelamento e codigos de recusa visiveis. A SEMANTICA de
   // status nao mora aqui: ela e do servidor (db/105). O gate segue sendo um
   // ratchet, apenas reancorado no bloco autorizado que o moveu.
-  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2975,
-    'pedido-detail-events.js deve permanecer <= 2975 linhas');
+  // 2975 -> 3040: +62 linhas de NATIVE-RECEIPT-COORDINATED-RELEASE-P2-
+  // STABILIZATION-R1 — a correcao do defeito D-1. A superficie de acoes
+  // ganhou um DONO LOCAL DE ERRO (`role="alert"` / `aria-live="assertive"`) e
+  // as duas funcoes de transicao passaram a devolver um RESULTADO EXPLICITO,
+  // para que o modal so feche com sucesso provado em vez de fechar sempre e
+  // deixar a recusa num toast transitorio. A SEMANTICA de status continua nao
+  // morando aqui: ela e do servidor (db/105), as transicoes permitidas sao as
+  // mesmas e nenhuma assinatura de RPC mudou. O gate segue sendo um ratchet,
+  // apenas reancorado no bloco autorizado que o moveu.
+  assert.ok(lines('js/screens/pedido-detail-events.js') <= 3040,
+    'pedido-detail-events.js deve permanecer <= 3040 linhas');
   assert.ok(lines('js/screens/pedido-detail-progress.js') <= 918,
     'pedido-detail-progress.js deve permanecer <= 918 linhas');
 });

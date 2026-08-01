@@ -190,11 +190,27 @@
       return r == null ? null : Number(r);
     }
 
+    // RESULTADO EXPLICITO DA TRANSICAO (P2-STABILIZATION, defeito D-1).
+    //
+    // Antes estas funcoes devolviam um booleano e a superficie que as iniciou
+    // fechava o modal INCONDICIONALMENTE. Uma recusa determinstica — Pedido
+    // inelegivel, revisao desatualizada, erro de transporte — destruia a
+    // superficie que a levantou e sobrava so um toast transitorio, que e o
+    // dono errado de um erro.
+    //
+    // Agora o contrato e um RESULTADO EXPLICITO `{ ok, codigo }`. O chamador
+    // so pode fechar a sua superficie quando `ok === true`; qualquer outro
+    // desfecho mantem a superficie montada com o motivo visivel. Nada aqui
+    // muda as transicoes permitidas nem a assinatura das RPCs.
+    function resultado(ok, codigo) {
+      return { ok: ok === true, codigo: codigo == null ? null : codigo };
+    }
+
     async function alterarStatus(novoStatus, btn, mostrarErro) {
       var erro = typeof mostrarErro === 'function'
         ? mostrarErro
         : function (m) { window.toast(m, 'error'); };
-      if (!state.pedido) { erro('Pedido nao carregado.'); return false; }
+      if (!state.pedido) { erro('Pedido nao carregado.'); return resultado(false, null); }
 
       if (novoStatus === 'cancelado') return await cancelarPedido(btn, erro);
 
@@ -202,7 +218,7 @@
       var permitidas = TRANSICOES_CANONICAS[statusAtual] || [];
       if (permitidas.indexOf(novoStatus) === -1) {
         erro('Transicao nao permitida pelo contrato do servidor: ' + statusAtual + ' -> ' + novoStatus + '.');
-        return false;
+        return resultado(false, 'TRANSICAO_NAO_PERMITIDA');
       }
 
       var oldLabel = btn ? btn.textContent : null;
@@ -221,7 +237,7 @@
         erro('Nao foi possivel confirmar a mudanca de status. Tente novamente.');
         console.error('pedido-detail: alterar_status_pedido', res.error);
         restaurar();
-        return false;
+        return resultado(false, null);
       }
       var data = res.data || {};
       if (data.ok !== true) {
@@ -235,35 +251,40 @@
           console.error('pedido-detail: status recusado', data);
           restaurar();
           definirPrioridade();
-          return false;
+          return resultado(false, data.codigo);
         } else {
           erro('Mudanca de status recusada: ' + (data.codigo || 'motivo nao informado pelo servidor'));
         }
         console.error('pedido-detail: status recusado', data);
         restaurar();
-        return false;
+        return resultado(false, data.codigo);
       }
 
       window.toast('Pedido marcado como ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(novoStatus) : novoStatus) + '.', 'success');
       await reload();
       render();
-      return true;
+      return resultado(true, null);
     }
 
     // Cancelamento: portao de elegibilidade + escritor D7. Um ERRO ao
     // consultar a elegibilidade NAO e a mesma coisa que ser inelegivel, e as
     // duas situacoes sao ditas de formas diferentes.
+    //
+    // D-1: as duas recusas abaixo acontecem ANTES de qualquer modal de
+    // cancelamento existir, entao quem as anuncia e o dono de erro da
+    // superficie que iniciou a acao — passado em `erro`. Devolver um resultado
+    // de FALHA e o que mantem aquela superficie montada.
     async function cancelarPedido(btn, erro) {
       var gate = await window.supa.rpc('pedido_elegivel_cancelamento', { p_pedido_id: pedidoId });
       if (gate.error) {
         erro('Nao foi possivel verificar se este Pedido pode ser cancelado. Tente novamente.');
         console.error('pedido-detail: pedido_elegivel_cancelamento', gate.error);
-        return false;
+        return resultado(false, null);
       }
       var g = gate.data || {};
       if (g.elegivel !== true) {
         erro('Este Pedido nao pode ser cancelado: ' + (g.codigo || 'motivo nao informado pelo servidor'));
-        return false;
+        return resultado(false, g.codigo);
       }
 
       var motivoInput = window.textInput({ type: 'text', placeholder: 'motivo do cancelamento (obrigatorio)' });
@@ -275,48 +296,63 @@
       });
       function erroLocal(m) { alerta.textContent = m; alerta.style.display = 'block'; }
 
-      window.modal({
-        title: 'Cancelar pedido',
-        body: window.el('div', {},
-          window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' },
-            'O cancelamento libera o planejamento de compra e cancela as OPs relacionadas. Informe o motivo.'),
-          motivoInput,
-          alerta),
-        saveLabel: 'Cancelar pedido',
-        onSave: async function () {
-          var motivo = motivoInput.value ? String(motivoInput.value).trim() : '';
-          if (!motivo) {
-            erroLocal('Informe o motivo do cancelamento.');
-            motivoInput.focus();
-            return false;
-          }
-          var res = await window.supa.rpc('cancelar_pedido', {
-            p_pedido_id: pedidoId,
-            p_base_revisao: revisaoBase(),
-            p_motivo: motivo,
-          });
-          if (res.error) {
-            erroLocal('Nao foi possivel confirmar o cancelamento. Tente novamente.');
-            console.error('pedido-detail: cancelar_pedido', res.error);
-            return false;
-          }
-          var data = res.data || {};
-          if (data.ok !== true) {
-            if (data.codigo === 'PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA') {
-              erroLocal('O Pedido foi alterado em outra sessao. Nada foi gravado. Recarregue os dados e refaca a acao.');
-            } else {
-              erroLocal('Cancelamento recusado: ' + (data.codigo || 'motivo nao informado pelo servidor'));
+      // O resultado so fica conhecido quando o modal de cancelamento atinge um
+      // desfecho TERMINAL. Enquanto o operador esta corrigindo o motivo ou
+      // relendo uma recusa, nao ha resultado nenhum a devolver — e por isso o
+      // chamador nao pode fechar a sua superficie. `concluir` e idempotente:
+      // o `close()` que o proprio sucesso dispara chama `onClose` depois, e o
+      // primeiro desfecho e o que vale.
+      return await new Promise(function (resolver) {
+        var concluido = false;
+        function concluir(r) { if (concluido) return; concluido = true; resolver(r); }
+
+        window.modal({
+          title: 'Cancelar pedido',
+          body: window.el('div', {},
+            window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' },
+              'O cancelamento libera o planejamento de compra e cancela as OPs relacionadas. Informe o motivo.'),
+            motivoInput,
+            alerta),
+          saveLabel: 'Cancelar pedido',
+          onSave: async function () {
+            var motivo = motivoInput.value ? String(motivoInput.value).trim() : '';
+            if (!motivo) {
+              erroLocal('Informe o motivo do cancelamento.');
+              motivoInput.focus();
+              return false;
             }
-            console.error('pedido-detail: cancelamento recusado', data);
-            return false;
-          }
-          window.toast('Pedido cancelado.', 'success');
-          await reload();
-          render();
-          return true;
-        },
+            var res = await window.supa.rpc('cancelar_pedido', {
+              p_pedido_id: pedidoId,
+              p_base_revisao: revisaoBase(),
+              p_motivo: motivo,
+            });
+            if (res.error) {
+              erroLocal('Nao foi possivel confirmar o cancelamento. Tente novamente.');
+              console.error('pedido-detail: cancelar_pedido', res.error);
+              return false;
+            }
+            var data = res.data || {};
+            if (data.ok !== true) {
+              if (data.codigo === 'PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA') {
+                erroLocal('O Pedido foi alterado em outra sessao. Nada foi gravado. Recarregue os dados e refaca a acao.');
+              } else {
+                erroLocal('Cancelamento recusado: ' + (data.codigo || 'motivo nao informado pelo servidor'));
+              }
+              console.error('pedido-detail: cancelamento recusado', data);
+              return false;
+            }
+            window.toast('Pedido cancelado.', 'success');
+            await reload();
+            render();
+            // O sucesso so e declarado DEPOIS da recarga autoritativa.
+            concluir(resultado(true, null));
+            return true;
+          },
+          // Desistencia do operador NAO e sucesso: a superficie que iniciou a
+          // acao continua montada.
+          onClose: function () { concluir(resultado(false, null)); },
+        });
       });
-      return true;
     }
 
     async function concluirPedido(btn) {
@@ -2605,6 +2641,20 @@
       });
       body.appendChild(buttonsWrap);
 
+      // DONO LOCAL DO ERRO desta superficie (P2-STABILIZATION, defeito D-1).
+      // A recusa de uma transicao — inclusive a inelegibilidade de
+      // cancelamento — fica AQUI, persistente, ao lado da acao que a
+      // provocou. Um toast some em segundos e nao pode ser o unico dono de um
+      // motivo de recusa.
+      var alertaStatus = window.el('div', {
+        role: 'alert',
+        'aria-live': 'assertive',
+        style: 'display:none;margin-top:12px;font-size:13px;font-weight:700;color:var(--rv-signal-negative);line-height:1.45;',
+      });
+      function mostrarErroStatus(m) { alertaStatus.textContent = m; alertaStatus.style.display = 'block'; }
+      function limparErroStatus() { alertaStatus.textContent = ''; alertaStatus.style.display = 'none'; }
+      body.appendChild(alertaStatus);
+
       var modalRef = window.modal({
         title: 'Acoes do pedido',
         body: body,
@@ -2614,12 +2664,29 @@
 
       actions.forEach(function (action) {
         var isCancel = action.status === 'cancelado';
+        var emCurso = false;
         var btn = window.el('button', {
           type: 'button',
           style: 'display:flex;align-items:center;justify-content:center;background:' + (isCancel ? 'var(--rv-surface)' : 'var(--rv-brand)') + ';color:' + (isCancel ? 'var(--rv-signal-negative)' : 'var(--rv-text-on-brand)') + ';border:' + (isCancel ? '1px solid var(--rv-signal-negative-border)' : 'none') + ';border-radius:4px;padding:10px 12px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;',
           onclick: async function () {
-            await alterarStatus(action.status, btn);
-            modalRef.close();
+            // Um clique repetido enquanto o comando esta em voo NAO vira um
+            // segundo comando; a acao volta a ficar disponivel assim que a
+            // recusa determinstica termina.
+            if (emCurso) return;
+            emCurso = true;
+            limparErroStatus();
+            var rotuloOriginal = btn.textContent;
+            btn.disabled = true;
+            try {
+              var r = await alterarStatus(action.status, btn, mostrarErroStatus);
+              // A superficie so fecha com SUCESSO EXPLICITO, e o sucesso ja
+              // inclui a recarga autoritativa.
+              if (r && r.ok === true) { modalRef.close(); return; }
+            } finally {
+              emCurso = false;
+              btn.disabled = false;
+              btn.textContent = rotuloOriginal;
+            }
           },
         }, action.label);
         buttonsWrap.appendChild(btn);
