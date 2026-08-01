@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "d4506d9a117bec5081632a24e41b348c6611fc85",
-      "sha256": "86a64378822a3a136d27528e391800ab9aa31833ff7e7b7bc2a48e79735fdaf1",
+      "git_object_id": "be5557557c295fc91eb67c45aef6eab27296a742",
+      "sha256": "9d7a3c959af863359b2230c6bb238d68a6d6ad2986dc3c6f1c975b1ebd23bc5f",
       "line_count": 45,
-      "byte_count": 14003,
+      "byte_count": 11627,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -23713,10 +23713,10 @@
     },
     {
       "path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-      "git_object_id": "e88dad459a4f95b249b2449a1afa19a04ee880f2",
-      "sha256": "67cf87f98930f96fb8e027ca144e495fc881542d159f0e419dbee81c26f29e52",
+      "git_object_id": "f538098bafdc0b74bd3924e103cc672ea75ba39b",
+      "sha256": "001fb08ff124eaaa714d4914cf2d670d2544957bca9694516e7b2de995ec28f5",
       "line_count": 822,
-      "byte_count": 47262,
+      "byte_count": 47218,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
