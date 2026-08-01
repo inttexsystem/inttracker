@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "977fd9cee2a1a57a30d6af4826bcc04775eed445",
-      "sha256": "ac4314050f2fae1aa7950c9d6aa05cdb22ff8ca8f8343f0d1810746e6981d513",
+      "git_object_id": "5ac6d73fef3487289b979db28e532bfd1fdbcc56",
+      "sha256": "0cb08aa54aa821c03671b6ac0acf09e55644ff3f8b922af702a0f7be15b4c91b",
       "line_count": 45,
-      "byte_count": 15854,
+      "byte_count": 17790,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -23713,10 +23713,10 @@
     },
     {
       "path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-      "git_object_id": "9d55ce1bc040f8a544a57104b782a1dd792e0dad",
-      "sha256": "0ff004cf85b128c53d1319f902c0591145d1adf90b6c0eab489f56fd2b46f912",
-      "line_count": 736,
-      "byte_count": 44256,
+      "git_object_id": "557bb6cb840e1723e04aee5b22a3103f77ffe264",
+      "sha256": "56df117ff90ed1d41472192f6c3563f858852b54b05ebc916c45a8782ed45eb8",
+      "line_count": 858,
+      "byte_count": 50979,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -23733,7 +23733,7 @@
           "target_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 734
+          "source_line": 856
         }
       ],
       "inbound_references": [
@@ -23777,181 +23777,199 @@
           "level": 2,
           "text": "1. P3 purpose",
           "anchor": "1-p3-purpose",
-          "line": 74
+          "line": 111
         },
         {
           "level": 2,
           "text": "2. Environment boundary",
           "anchor": "2-environment-boundary",
-          "line": 87
+          "line": 124
         },
         {
           "level": 2,
           "text": "3. Exact 14-RPC inventory",
           "anchor": "3-exact-14-rpc-inventory",
-          "line": 101
+          "line": 139
         },
         {
           "level": 3,
           "text": "3.1 Read RPCs (4)",
           "anchor": "31-read-rpcs-4",
-          "line": 110
+          "line": 148
         },
         {
           "level": 3,
           "text": "3.2 Mutation RPCs (10)",
           "anchor": "32-mutation-rpcs-10",
-          "line": 119
+          "line": 157
         },
         {
           "level": 2,
           "text": "4. Identity model",
           "anchor": "4-identity-model",
-          "line": 139
+          "line": 177
         },
         {
           "level": 2,
           "text": "5. Synthetic namespace",
           "anchor": "5-synthetic-namespace",
-          "line": 196
+          "line": 234
         },
         {
           "level": 2,
           "text": "6. Productive availability seed",
           "anchor": "6-productive-availability-seed",
-          "line": 235
+          "line": 273
         },
         {
           "level": 3,
           "text": "6.1 Why a bounded maintenance excursion is required",
           "anchor": "61-why-a-bounded-maintenance-excursion-is-required",
-          "line": 258
+          "line": 296
         },
         {
           "level": 3,
           "text": "6.2 Boundary of the excursion",
           "anchor": "62-boundary-of-the-excursion",
-          "line": 286
+          "line": 324
         },
         {
           "level": 3,
           "text": "6.3 Mandatory ordering",
           "anchor": "63-mandatory-ordering",
-          "line": 302
+          "line": 340
         },
         {
           "level": 3,
           "text": "6.4 Seed provenance namespace",
           "anchor": "64-seed-provenance-namespace",
-          "line": 333
+          "line": 371
         },
         {
           "level": 3,
           "text": "6.5 Prohibited in every case",
           "anchor": "65-prohibited-in-every-case",
-          "line": 357
+          "line": 395
         },
         {
           "level": 3,
           "text": "6.6 Availability proof",
           "anchor": "66-availability-proof",
-          "line": 367
+          "line": 405
         },
         {
           "level": 2,
           "text": "7. Scenario matrix S01-S47",
           "anchor": "7-scenario-matrix-s01-s47",
-          "line": 374
+          "line": 412
         },
         {
           "level": 3,
           "text": "7.1 Group 1 — availability and production (S01–S12)",
           "anchor": "71-group-1-availability-and-production-s01s12",
-          "line": 385
+          "line": 423
         },
         {
           "level": 3,
           "text": "7.2 Group 2 — supplier acceptance (S13–S20)",
           "anchor": "72-group-2-supplier-acceptance-s13s20",
-          "line": 402
+          "line": 440
         },
         {
           "level": 3,
           "text": "7.3 Group 3 — Pedido lifecycle (S21–S29)",
           "anchor": "73-group-3-pedido-lifecycle-s21s29",
-          "line": 415
+          "line": 453
         },
         {
           "level": 3,
           "text": "7.4 Group 4 — delivery and finishing (S30–S38)",
           "anchor": "74-group-4-delivery-and-finishing-s30s38",
-          "line": 429
+          "line": 467
         },
         {
           "level": 3,
           "text": "7.5 Group 5 — expedition (S39–S44)",
           "anchor": "75-group-5-expedition-s39s44",
-          "line": 443
+          "line": 481
         },
         {
           "level": 3,
           "text": "7.6 Group 6 — permission and security (S45–S47, each a sweep over all 14)",
           "anchor": "76-group-6-permission-and-security-s45s47-each-a-sweep-over-all-14",
-          "line": 454
+          "line": 492
         },
         {
           "level": 2,
           "text": "8. P3/P4 boundary",
           "anchor": "8-p3p4-boundary",
-          "line": 472
+          "line": 510
         },
         {
           "level": 2,
           "text": "9. S34 failure-injection rule",
           "anchor": "9-s34-failure-injection-rule",
-          "line": 501
+          "line": 539
         },
         {
           "level": 2,
           "text": "10. Required invariants",
           "anchor": "10-required-invariants",
-          "line": 518
+          "line": 556
         },
         {
           "level": 3,
           "text": "10.1 Cutover invariant timing",
           "anchor": "101-cutover-invariant-timing",
-          "line": 520
+          "line": 558
         },
         {
           "level": 3,
           "text": "10.2 TD1 fingerprints — three projections of the SAME five rows",
           "anchor": "102-td1-fingerprints-three-projections-of-the-same-five-rows",
-          "line": 582
+          "line": 621
         },
         {
           "level": 3,
           "text": "10.3 The one narrow `op_numeros` exception",
           "anchor": "103-the-one-narrow-op_numeros-exception",
-          "line": 608
+          "line": 647
+        },
+        {
+          "level": 3,
+          "text": "10.4 EXPECTED DB112 DELTA ON THE DISPOSABLE CLONE",
+          "anchor": "104-expected-db112-delta-on-the-disposable-clone",
+          "line": 675
+        },
+        {
+          "level": 3,
+          "text": "10.5 Migration identity — three distinct facts",
+          "anchor": "105-migration-identity-three-distinct-facts",
+          "line": 711
+        },
+        {
+          "level": 3,
+          "text": "10.6 Isolation reporting — three separated classes",
+          "anchor": "106-isolation-reporting-three-separated-classes",
+          "line": 742
         },
         {
           "level": 2,
           "text": "11. Evidence schema",
           "anchor": "11-evidence-schema",
-          "line": 636
+          "line": 757
         },
         {
           "level": 2,
           "text": "12. External execution root and predecessor state",
           "anchor": "12-external-execution-root-and-predecessor-state",
-          "line": 659
+          "line": 781
         },
         {
           "level": 2,
           "text": "13. Provenance",
           "anchor": "13-provenance",
-          "line": 728
+          "line": 850
         }
       ]
     },
@@ -34183,7 +34201,7 @@
         },
         {
           "source_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-          "source_line": 734,
+          "source_line": 856,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

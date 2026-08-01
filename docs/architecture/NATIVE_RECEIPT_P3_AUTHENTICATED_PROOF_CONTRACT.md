@@ -58,8 +58,9 @@ defect corrected in the repository and proved on a disposable database; it is
 **not applied to production**. Consequences for P3, which override the
 corresponding statements in §2, §6.3 and §10.1 below:
 
-- the P3 disposable clone must have **`db/112` applied** before §6.3 step 2, and
-  its terminal migration then reads `db/112`, not `db/111`;
+- the P3 disposable clone must have **`db/112` applied** before §6.3 step 2
+  (its migration-ledger terminal nevertheless stays `20260731204800` — see
+  Amendment R3.2 and §10.5);
 - production remains at terminal `db/111` (`20260731204800`) and the §15
   production-untouched remeasurement is still asserted against `db/111`;
 - §6.3 gains **step 0**: apply `db/112` to the preserved clone and record it;
@@ -68,6 +69,42 @@ corresponding statements in §2, §6.3 and §10.1 below:
 
 Nothing else in this contract changes. P3 remains unaccepted, no scenario has
 run, and P4/P5 remain unauthorized.
+
+**Amendment R3 (2026-08-01).** Supervisor review of R2 found two internal
+contradictions and one unproved assumption. R3 resolves all three. It changes
+no product semantics and required no change to `db/112`.
+
+**R3.1 — the §10.1 catalogue invariant vs. applying `db/112`.** R2 requires
+`db/112` on the clone, while §10.1 requires the catalogue unchanged "P3 applies
+**no** DDL after restore". `db/112` is two `CREATE OR REPLACE FUNCTION`
+statements, so read naively the two rules contradict. They are reconciled by
+**measuring, not weakening**: §10.1 now carries a closed, enumerated
+`EXPECTED DB112 DELTA ON THE DISPOSABLE CLONE`, and everything outside it stays
+`UNAUTHORIZED CATALOGUE DRIFT`. See §10.4.
+
+**R3.2 — what "terminal migration = `db/112`" actually means.** R2's prose was
+wrong. Measured facts: `db/112` contains **no** reference to
+`supabase_migrations`; the ledger's `version` values (e.g. `20260731204800` ↔
+`111_entrega_cima_acabamento_atomico`) are assigned by the Supabase apply
+tooling, not by the `db/*.sql` files; `db/112` has never been applied through
+that tooling anywhere, so **no Supabase version exists for it and none may be
+invented**. §10.5 therefore canonicalises three DISTINCT facts that must never
+be conflated, and the clone's migration-ledger terminal stays `20260731204800`.
+
+**R3.3 — one flat row / one mapping.** The import lineage is keyed by
+`'c3c_snapshot:<cutover>:<generation>:<flat_row_id>'`, so it assumes one
+lineage per flat row. This is **schema-enforced, not incidental**: `db/67`
+declares `ordens_compra_fio_id BIGINT NOT NULL UNIQUE` on
+`ordem_compra_item_compat_fio`, live as
+`ordem_compra_item_compat_fio_ordens_compra_fio_id_key :: UNIQUE (ordens_compra_fio_id)`,
+and a second mapping for the same flat row is refused at runtime with
+`duplicar valor da chave viola a restrição de unicidade`. `db/112` therefore
+needs no additional guard for that ambiguity; the remaining multiplication
+vector is multiple allocations per mapped item, which `snapshot_ambiguous_mapping`
+already closes. Proved by
+`tests/db112-cutover-snapshot-completeness.integration.mjs` (55/55, exit 0),
+which cites the constraint and exercises the refusal rather than inferring
+uniqueness from the historical 51/51 shape.
 
 ---
 
@@ -93,8 +130,9 @@ inactive.
 - P3 does **not** activate the receipt.
 - P3 does **not** alter production authority.
 - P3 does **not** apply `db/103b`, `db/104`, `db/106` or `db/110`. Those numbers
-  remain RESERVED and uncreated. Per Amendment R2 the disposable clone carries
-  terminal `db/112`; production stays at terminal `db/111`.
+  remain RESERVED and uncreated. Per Amendments R2/R3 the disposable clone
+  carries the `db/112` forward patch on top of the restored `db/111` catalogue;
+  both sides keep migration-ledger terminal `20260731204800` (§10.5).
 - The retired project `gqmpsxkxynrjvidfmojk` is not a target. The forbidden
   project `bhgifjrfagkzubpyqpew` is not accessed at all.
 
@@ -547,17 +585,18 @@ remains mandatory and is asserted alongside every check above.
 
 Preserved across the whole run:
 
-- terminal migration `db/112` on the disposable clone and `db/111`
-  (`supabase_migrations` version `20260731204800`) on production, per
-  Amendment R2;
+- migration-ledger terminal `20260731204800` on **both** the clone and
+  production, with the `db/112` forward patch recorded separately per §10.5;
 - no `db/103b`, no `db/104`, no `db/106`, no `db/110`;
 - the five real TD1 `saldo_fios` rows unchanged — see §10.2 for the algorithm
   each recorded fingerprint belongs to;
 - `OC-001-3-26` and `OC-001-4-26` unchanged;
 - every copied non-`P3F` production row unchanged — count **and** ordered
   content hash identical before and after;
-- the function, policy, table-grant and column-grant catalogue unchanged (P3
-  applies **no** DDL after restore);
+- the function, policy, table-grant and column-grant catalogue unchanged
+  **except for the closed `EXPECTED DB112 DELTA` of §10.4**. Apart from that
+  single enumerated delta, P3 applies **no** DDL after restore and any other
+  catalogue movement is `UNAUTHORIZED CATALOGUE DRIFT` and a hard stop;
 - the `db/75`/`db/76` receipt-writer fence unchanged;
 - production `ucrjtfswnfdlxwtmxnoo`: zero row delta, zero catalogue delta.
 
@@ -633,6 +672,88 @@ strict count-and-hash equality of §10 above.
 database; `productive_receipt_started_at` is the enforced PONR marker per
 `db/75`/`db/76`. Recorded as `OSO-1`.
 
+### 10.4 EXPECTED DB112 DELTA ON THE DISPOSABLE CLONE
+
+Applying `db/112` to the clone is authorized to change the catalogue in exactly
+one way, and in no other way. The nine measured dimensions are the ones the
+ACCEPTED Phase 2 evidence used, so this delta is continuous with
+`03-restore-verify.json` and is not a new yardstick. The prover is
+`scripts/c3d/catalogue-delta.mjs`.
+
+| Dimension | Authorized change |
+|---|---|
+| `functions` | hash MOVES; count STABLE |
+| `policies`, `table_grants`, `column_grants`, `rls_strict`, `triggers`, `columns`, `eff_table_privs`, `eff_fn_privs` | **byte-identical** |
+
+Within `functions`, only these two signatures may differ, and only in the
+`src=md5(prosrc)` term:
+
+```
+ordem_compra_c3c_fence_and_snapshot|p_generation bigint
+ordem_compra_c3c_assert_import_reconciled|p_generation bigint
+```
+
+Every other term of those two signatures — `ret`, `sd`, `vol`, `kind`, `par`,
+`strict`, `retset`, `lang`, `cfg`, `own`, `acl` — must be UNCHANGED, which is
+what proves `CREATE OR REPLACE` neither widened authority nor altered the
+callable contract. No function may be added or removed. Any other changed
+dimension, any cardinality movement, any other changed function, or any changed
+protected term is:
+
+```
+HARD STOP — UNAUTHORIZED DB112 CATALOGUE DRIFT
+```
+
+**Production is out of scope of this delta.** Production carries no `db/112`
+and is compared against the original `db/111` baseline, where the catalogue
+must show ZERO delta in all nine dimensions.
+
+### 10.5 Migration identity — three distinct facts
+
+"Terminal migration" is ambiguous across three different things, and P3 must
+never conflate them:
+
+| # | Fact | Value | Owner |
+|---|---|---|---|
+| 1 | **Production migration ledger** | `supabase_migrations.schema_migrations`, 60 rows, terminal `20260731204800` = `db/111` | Supabase apply tooling |
+| 2 | **Restored-clone inherited ledger** | byte-identical copy of (1): 60 rows, terminal `20260731204800` | inherited by `pg_restore`; P3 asserts it stays exactly this |
+| 3 | **P3-only forward patch** | `db/112`, applied post-restore by `psql -f`, recorded by REPOSITORY identity | this contract |
+
+`db/112` contains no `supabase_migrations` statement, so applying it does **not**
+advance (2). **No ledger insertion is performed, permitted or canonical here**:
+the ledger's `version` is assigned by the Supabase apply tooling, `db/112` has
+never been applied through it, and inventing a version would fabricate
+provenance. Fact (3) is therefore recorded as evidence, not as a ledger row:
+
+```
+path        db/112_cutover_snapshot_completeness_invariant.sql
+git_blob    e08580b63849e3efe3329cfd6abf7c379fb7953f
+sha256      439729d9d4bb6453d70c4e880d23bdb3336b0cf1a8be68a4eaadbdabbd57059c
+bytes       25807
+commit      b817510082139ba80252ca0cd6a089890ce0304e
+applied_to  clone system_identifier 7668905723812930636 ONLY
+```
+
+recorded in `03b-db112-clone-application.json`. The §10.1 invariant and the §15
+production remeasurement both assert ledger terminal `20260731204800`, on both
+sides. Applying `db/112` to production is a SEPARATE future
+cutover/P5 authorization and is explicitly not part of P3.
+
+### 10.6 Isolation reporting — three separated classes
+
+`06-isolation.json` must report three classes SEPARATELY and must never
+compare the post-`db/112` clone catalogue against the pre-`db/112` Phase 2 hash
+and call the intentional change drift:
+
+| Class | Content | Required verdict |
+|---|---|---|
+| **A** | inherited production baseline (copied rows, catalogue as restored) | unchanged, except the already-authorized `op_numeros` counter behaviour of §10.3 |
+| **B** | the clone-only `db/112` catalogue delta | EXACTLY the §10.4 authorized set and nothing else |
+| **C** | synthetic `P3F` scenario delta | confined to the §10.1 permitted delta surface |
+
+Production stays compared against the original `db/111` baseline and must show
+zero catalogue and zero row delta.
+
 ## 11. Evidence schema
 
 Evidence **may live outside the repository** and currently does (section 12).
@@ -645,10 +766,11 @@ Evidence **may live outside the repository** and currently does (section 12).
 | `01c-credential-cleanup.json` | Credential acquisition source and post-run clearance; never the secret |
 | `02-cluster-boot.json` | Disposable `system_identifier`, PG version, port, data dir, the `<> 7642734024280108049` assertion |
 | `03-restore-verify.json` | Post-restore catalogue hashes and row counts vs `00`; the 14-RPC signature/ACL re-verification inside the clone |
+| `03b-db112-clone-application.json` | The §10.5 fact-(3) forward-patch record and the §10.4 measured catalogue delta, proved equal to the authorized set |
 | `04-fixtures.json` | Every `P3F` id created, in creation order |
 | `04b-productive-receipt-seed.json` | The seed lineage and the proved positive `oc_disponibilidade_op` result |
 | `05-scenarios/S01.json` … `S47.json` | Per scenario: identity assertion (`current_user`, `auth.uid()`, `auth.role()`, `auth.jwt()`), command, verbatim result, delta query results, non-delta assertions, pass/fail |
-| `06-isolation.json` | Before/after count + hash table for every copied production table, with the `P3F` exclusion applied |
+| `06-isolation.json` | Before/after count + hash table for every copied production table, with the `P3F` exclusion applied, reported in the THREE separated classes of §10.6 |
 | `07-teardown.json` | `{stopResult, portClosed, pidAbsent, dirAbsent}` plus independent `fs.access` failures for data dir and dump path |
 | `08-production-untouched.json` | Post-run read-only re-measurement of everything in `00`, diffed to zero |
 | `P3-REPORT.md` | Human-readable roll-up, scenario table, failures, stop conditions hit |

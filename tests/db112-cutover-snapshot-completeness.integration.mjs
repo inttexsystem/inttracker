@@ -44,6 +44,9 @@ import {
   reconstructBaseline, applyFile, scalar, writeTemp, log, ADMIN_UUID, REPO_ROOT,
 } from '../scripts/c3d/p1-harness.mjs';
 import { FIXTURE_SQL, OP1, OC1, OCI1, ALO1 } from '../scripts/c3d/p1-fixture.mjs';
+import {
+  CATALOGUE_SNAPSHOT_SQL, diffCatalogue, assertDb112Delta, DB112_EXPECTED_DELTA,
+} from '../scripts/c3d/catalogue-delta.mjs';
 
 const GEN = 112001;
 const DB112 = path.join(REPO_ROOT, 'db', '112_cutover_snapshot_completeness_invariant.sql');
@@ -150,9 +153,85 @@ SELECT public.ordem_compra_c3c_import_and_reconcile(${GEN});`, { expectFailure: 
     eq('CONTROL: reset after the refused import', cutoverState(handle), 'legacy_active/flat/ponrnull');
 
     // -----------------------------------------------------------------
-    // Apply the correction.
+    // MAPPING UNIQUENESS (supervisor finding 3).
+    //
+    // The import lineage is keyed by flat_row_id
+    // ('c3c_snapshot:<cutover>:<generation>:<flat_row_id>'), so it assumes ONE
+    // snapshot/import lineage per flat row. db/112 needs no extra guard for
+    // that ONLY IF the schema already forbids a second mapping for the same
+    // flat row. db/67 declares ordens_compra_fio_id BIGINT NOT NULL UNIQUE;
+    // this proves the constraint exists AND that it actually refuses at
+    // runtime, rather than inferring uniqueness from the historical 51/51.
     // -----------------------------------------------------------------
+    eq('UNIQUENESS: compat_fio carries UNIQUE (ordens_compra_fio_id)',
+      scalar(handle, `SELECT count(*)::text FROM pg_constraint con
+        JOIN pg_class c ON c.oid = con.conrelid
+        WHERE c.relname = 'ordem_compra_item_compat_fio' AND con.contype = 'u'
+          AND pg_get_constraintdef(con.oid) = 'UNIQUE (ordens_compra_fio_id)';`), '1');
+    // Every corpus item is already mapped, and ordem_compra_item_id is UNIQUE
+    // too, so the second mapping needs a BRAND NEW item pointed at an
+    // ALREADY-MAPPED flat row. That isolates the ordens_compra_fio_id
+    // constraint as the one that must refuse.
+    const dupMap = await session(handle, scratch, 'uniqueness-second-mapping', `
+BEGIN;
+DO $u$
+DECLARE v_item BIGINT; v_flat BIGINT; v_ordem BIGINT;
+BEGIN
+  -- ordem_compra_item_unico_poliester makes (ordem_id, cor_poliester) unique
+  -- for poliester, so pick a rascunho order that has no PRETO poliester item.
+  SELECT o.id INTO v_ordem FROM public.ordem_compra o
+   WHERE o.status_administrativo = 'rascunho'
+     AND NOT EXISTS (SELECT 1 FROM public.ordem_compra_item i
+                      WHERE i.ordem_id = o.id AND i.material = 'poliester'
+                        AND i.cor_poliester = 'PRETO')
+   ORDER BY o.id LIMIT 1;
+  SELECT c.ordens_compra_fio_id INTO v_flat
+    FROM public.ordem_compra_item_compat_fio c ORDER BY c.id LIMIT 1;
+  IF v_ordem IS NULL OR v_flat IS NULL THEN
+    RAISE EXCEPTION 'UNIQUENESS_FIXTURE_UNAVAILABLE';
+  END IF;
+  INSERT INTO public.ordem_compra_item (ordem_id, material, cor_id, cor_poliester, kg_pedido, kg_recebido)
+  VALUES (v_ordem, 'poliester', NULL, 'PRETO', 1.000, 0)
+  RETURNING id INTO v_item;
+  -- The flat row already has a mapping; this must violate
+  -- ordem_compra_item_compat_fio_ordens_compra_fio_id_key.
+  INSERT INTO public.ordem_compra_item_compat_fio (ordem_compra_item_id, ordens_compra_fio_id, origem)
+  VALUES (v_item, v_flat, 'native_bridge');
+  RAISE EXCEPTION 'UNIQUENESS_NOT_ENFORCED: a second mapping for flat row % was accepted', v_flat;
+END
+$u$;
+ROLLBACK;`, { expectFailure: true });
+    ok('UNIQUENESS: a SECOND mapping for the same flat row is refused at runtime',
+      /unicidade|unique/i.test(dupMap) && dupMap.includes('ordens_compra_fio_id'),
+      dupMap.trim().split('\n')[0]);
+    log('UNIQUENESS_VERDICT', {
+      note: 'one ordens_compra_fio row -> at most one ordem_compra_item_compat_fio mapping is SCHEMA-ENFORCED (db/67), so the flat_row_id-keyed import lineage cannot be ambiguous and db/112 needs no additional C6 guard. The remaining multiplication vector is allocations, which C3 (snapshot_ambiguous_mapping) closes.',
+    });
+
+    // -----------------------------------------------------------------
+    // Apply the correction, measuring the EXACT catalogue delta
+    // (supervisor finding 1).
+    // -----------------------------------------------------------------
+    const catBefore = JSON.parse(scalar(handle, CATALOGUE_SNAPSHOT_SQL));
     applyFile(handle, DB112, 'db/112');
+    const catAfter = JSON.parse(scalar(handle, CATALOGUE_SNAPSHOT_SQL));
+    const delta = diffCatalogue(catBefore, catAfter);
+    const verdict = assertDb112Delta(delta);
+    log('DB112_CATALOGUE_DELTA', {
+      changed_dimensions: delta.changedDimensions.join(',') || '(none)',
+      changed_functions: delta.changedFunctions.map((f) => `${f.function}[${f.changed_terms.join('+')}]`).join(' ') || '(none)',
+      count_changes: delta.countChanges.length,
+    });
+    ok('DB112 DELTA: exactly the authorized catalogue delta and nothing else',
+      verdict.authorized, verdict.violations.join(' | ') || 'no violations');
+    eq('DB112 DELTA: only the functions dimension moved',
+      delta.changedDimensions.join(','), DB112_EXPECTED_DELTA.changed_dimensions.join(','));
+    eq('DB112 DELTA: exactly two function bodies changed', delta.changedFunctions.length, 2);
+    eq('DB112 DELTA: only the src term moved in each',
+      [...new Set(delta.changedFunctions.flatMap((f) => f.changed_terms))].join(','), 'src');
+    eq('DB112 DELTA: zero functions added or removed',
+      delta.addedFunctions.length + delta.removedFunctions.length, 0);
+    eq('DB112 DELTA: zero catalogue cardinality change', delta.countChanges.length, 0);
     log('APPLIED', { migration: 'db/112' });
     eq('db/112 is inactive: cutover still legacy_active/flat', cutoverState(handle), 'legacy_active/flat/ponrnull');
     eq('db/112 dropped the frozen 51 assertion',
