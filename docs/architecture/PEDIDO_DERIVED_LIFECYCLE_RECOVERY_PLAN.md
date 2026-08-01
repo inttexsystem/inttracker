@@ -2554,6 +2554,122 @@ design requires.
 
 ---
 
+### 9.9.V P5 implementation evidence — the cutover was executed
+
+`NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1` executed the accepted P5
+cutover of section 9.9.G against production `ucrjtfswnfdlxwtmxnoo`. This
+subsection records that operational fact; it does not modify the accepted
+design above. **P5 IS NOT SELF-ACCEPTED. The PONR WAS NOT CROSSED.**
+
+**Freshness gate — the retained LR-12 position was re-proved, not assumed.**
+Identity was re-measured through the same connection used for the mutation:
+`system_identifier` 7642734024280108049 on PostgreSQL 17.6, `current_user`
+`postgres`. The retained artifact re-hashed **byte-exact** to
+`2afdc7f4eb5bc7e68c0201abda6d20ecf181a9e04abf2278d3e720e8e0bf5952` at
+1,993,135 bytes. Every load-bearing fact LR-12 captured was remeasured against
+live production and **every one matched with zero drift** — terminal migration
+`20260801213507`, 65 applied migrations, `legacy_active/flat` with generation
+NULL / reconciliation `not_started` / PONR NULL, TD2 OBS-4 grants 0, the four
+protected-fact fences, the 84-row recovery baseline, business rows
+`5/36/1/2/0/0`, the five TD1 `saldo_fios` rows fingerprinting
+`72c789986ce94c9edfe82fc9916acd76`, both protected Purchase Orders as
+`emitida / nao_aplicavel / false`, ledger/headers/flat `0/0/0` and 215
+`SECURITY DEFINER` functions. No refresh capture was needed and none was taken.
+
+**The rehearsal restored the real artifact rather than reconstructing a proxy.**
+`tests/p5-cutover-rehearsal.integration.mjs` restores the retained LR-12 dump
+into a disposable PostgreSQL 18.4 cluster — proved distinct from production by
+`system_identifier` before any local mutation — applies `db/112`, drives the
+WHOLE P5 sequence and then drives the pre-PONR recovery contract from the
+activated state. **35 assertions, 0 failures.** A migration-reconstructed
+cluster would have been a weaker proxy; this is the exact byte image production
+was in.
+
+**The db/112 defect is real, and was proved on that image before it was fixed.**
+With `db/112` absent, `fence_and_snapshot` refused the empty-but-complete source
+set with `snapshot_mapping_count_mismatch` and left the cutover untouched, so the
+only canonical transition into `maintenance_fenced` was genuinely unreachable.
+The rehearsal proves the refusal first and the repair second.
+
+**db/112 applied to production exactly once, and verified after application.**
+Recorded as `supabase_migrations` version **`20260801225433`**
+(`112_cutover_snapshot_completeness_invariant`), which made 66 applied
+migrations. Both replaced bodies are **byte-identical to the committed file**:
+`md5(prosrc)` `5015ec66c027798a1cc6f1d00ffe003a` (8728 bytes) for
+`ordem_compra_c3c_fence_and_snapshot` and `3781eec3c25577e5da2ad3e5798cec40`
+(4753 bytes) for `ordem_compra_c3c_assert_import_reconciled`, both matching the
+fingerprints derived from `db/112` itself. The frozen `51` is gone, both
+functions remain `postgres`-owned `SECURITY DEFINER` with a pinned
+`search_path`, no client role reached either, and the migration left the cutover
+row at `legacy_active / flat` with the PONR NULL exactly as its own
+self-verification requires.
+
+**The state machine ran as ONE transaction, which is stronger than the sequence
+required.** Each MCP call opens a distinct backend, and the cutover functions
+demand a **session-held** advisory lock, so the eight steps cannot be spread
+across calls. Running them in a single session therefore also made them a single
+transaction: any failed assertion would have rolled production back to
+`legacy_active` with no residue and without needing a recovery function at all.
+
+**Cutover generation `20260801`.** Every step asserted its expected predecessor
+state, the generation identity, and a NULL PONR before proceeding.
+
+| Step | Result |
+|---|---|
+| `fence_and_snapshot` | `mapping_count` 0, `inventory_count` 5, `inventory_total_kg` 2685.020; `maintenance_fenced/flat/previewed` |
+| `lock_import_resources` + `assert_snapshot_and_live` | ok |
+| `import_and_reconcile` | headers 0, ledger lines 0, reconstructed 0.000 kg, excess 0.000 kg, inventory movements 0; `maintenance_fenced/flat/reconciled` |
+| `set_canonical_read` | `maintenance_fenced/canonical` |
+| `capture_acl_manifest` | 201 rows — 168 table grants, 20 column grants, 11 policies, 2 function grants, all bound to generation 20260801 |
+| `close_final_acl` | closed; client grants on `ordens_compra_fio` = 0 |
+| `activate` | `canonical_active/canonical`, activated 2026-08-01T22:57:32.467248Z |
+
+**The zero-row import is a real transition, not a skipped one.** The flat corpus
+is legitimately empty, so the snapshot is empty *and complete*; the inventory
+baseline is not. `db/112`'s C5 completeness rule is what makes that distinction
+enforceable, and the baseline captured all five TD1 rows at 2685.020 kg.
+
+**TD1 held.** The five `saldo_fios` rows were captured verbatim into the
+inventory baseline and were **not** transformed into productive OP availability:
+the fingerprint is unchanged at `72c789986ce94c9edfe82fc9916acd76`, the native
+ledger holds 0 rows, and `_oc_material_recebido_liquido` — the productive
+predicate — does not reference `saldo_fios` at all.
+
+**Independently verified after activation, in a fresh session.** Terminal state
+`canonical_active / canonical / gen=20260801 / recon=reconciled / ponr=NULL`
+with all five lifecycle timestamps set; business rows unchanged at
+`5/36/1/2/0/0`; both protected Purchase Orders intact and still
+`emitida / nao_aplicavel / nao_recebido / legado=false`; **zero** native receipt
+commands; client grants on the flat and receipt tables now 0; P4 containment
+intact (OBS-4 = 0, four fences, 84-row baseline); zero disabled receipt-writer
+guards; and the canonical application authorities still reachable by
+`authenticated`. Unrelated privilege did **not** move — `pedidos`, `ops`,
+`op_itens`, `modelos`, `cores`, `pedido_itens` and `expedicoes` hold their prior
+grant counts, 77 policies remain overall and 0 remain on the protected set.
+
+**Native receipt is REACHABLE, and that was proved WITHOUT executing one.** The
+`db/100` read-model predicate `acoes.receber` — `canonical AND NOT legado AND
+status_administrativo = 'emitida' AND status_aceite IN ('nao_aplicavel','aceita')`
+— evaluates to **true for both** protected orders 105 and 106, where it
+evaluated false before the cutover. No receipt command, no reversal and no
+wrapper call was issued at any point.
+
+**Pre-PONR recovery remains reachable, with preconditions re-proved rather than
+merely present.** All five recovery owners exist, are `postgres`-owned and leak
+to no client role; `purge_generation`'s pre-PONR precondition holds because the
+PONR is NULL; the generation matches; and the 201-row manifest is complete and
+bound to generation 20260801. The rehearsal executed
+`restore_acl_manifest → purge_generation → resume_legacy` from the identical
+activated state and returned that cluster to `legacy_active/flat` with the TD1
+fingerprint restored, the flat grant restored, no imported footprint, every
+receipt-writer guard re-enabled and both protected orders intact. The retained
+LR-12 capture remains the external recovery anchor and is still retained.
+
+**PONR.** `productive_receipt_started_at` **IS STILL NULL**. P6 was not started,
+no native receipt was executed, and this order does not accept P5.
+
+---
+
 ## 11. Acceptance model
 
 Migrations, tests, hashes, commits, pushes and deployments are **necessary but
@@ -2812,10 +2928,16 @@ IMPLEMENTATION:
 P1 (additive backend), P2 (frontend), P3 (authenticated proof) and P4
 (coordinated authority switch) are all CLOSED / ACCEPTED. P4 is accepted at
 checkpoint 5d1adb495e4b52bff333d069947a174d54d36d64; its implementation
-evidence is section 9.9.T.
+evidence is section 9.9.T. P5 (cutover) is IMPLEMENTED / CUTOVER EXECUTED /
+AWAITING SUPERVISOR REVIEW; its implementation evidence is section 9.9.V and it
+is NOT self-accepted.
 
 NATIVE RECEIPT CUTOVER:
-NOT AUTHORIZED
+EXECUTED, PRE-PONR, AWAITING SUPERVISOR REVIEW. ordem_compra_cutover is
+canonical_active / canonical at cutover_generation 20260801 with
+reconciliation_status reconciled and productive_receipt_started_at STILL NULL.
+Native receipt is now REACHABLE by the read models and eligibility rules, and
+NO NATIVE RECEIPT COMMAND HAS BEEN EXECUTED. P6 REMAINS NOT AUTHORIZED.
 
 db/100 SUPERVISOR REVIEW:
 STILL OUTSTANDING
@@ -2828,14 +2950,13 @@ accepted execution proof NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1
 implementation is accepted.
 
 NEXT AUTHORIZABLE PHASE:
-P5 (cutover), SUBJECT TO A SEPARATE ORDER AND TO LR-12 BEING DISCHARGED. No
-phase is chained to the P4 acceptance, and P6 (the first successful native
-receipt command, which crosses the PONR) is a further separate authorization.
+SUPERVISOR REVIEW OF THE P5 CUTOVER EVIDENCE. No phase is chained to the P5
+execution, and P6 (the first successful native receipt command, which crosses
+the PONR) is a further separate authorization that has NOT been granted.
 
 ONLY REMAINING PRODUCTION-CUTOVER EXECUTION PREREQUISITE:
-LR-12 - a fresh verified production backup and a proved restore rehearsal. It
-did not block acceptance of the technical design or of P4, and must be
-discharged before the phase P5 cutover run.
+NONE. LR-12 was discharged and its retained capture was re-proved byte-exact
+immediately before the P5 run, with zero drift on every load-bearing fact.
 
 BINDING RULINGS CARRIED BY THE ACCEPTED TECHNICAL DESIGN:
 TD1 (section 9.9.H) - preserved historical global stock, never productive OP
@@ -2850,33 +2971,34 @@ PEDIDO-DERIVED-LIFECYCLE-TARGET-FUNCTIONAL-DESIGN-ACCEPTANCE-R1.
 Rulings R1-R13 and D1-D7 are accepted and are NOT rewritten or compacted.
 The acceptance covers the FUNCTIONAL specification only.
 
-PRODUCTION POSITION (verified read-only 2026-08-01, cluster system_identifier
-7642734024280108049 on PostgreSQL 17.6):
-TERMINAL APPLIED MIGRATION IS 20260801213507 (106b_contencao_dml), 65 applied
-migrations. THE P4 AUTHORITY SWITCH IS THE CURRENT PRODUCTION AUTHORITY STATE:
-the TD2 OBS-4 measurement is 0 table-level INSERT/UPDATE/DELETE grants for anon
-and authenticated on pedidos/ops/op_itens, the four protected-fact fences are
+PRODUCTION POSITION (verified 2026-08-01 after the P5 run, cluster
+system_identifier 7642734024280108049 on PostgreSQL 17.6):
+TERMINAL APPLIED MIGRATION IS 20260801225433
+(112_cutover_snapshot_completeness_invariant), 66 applied migrations. THE P4
+AUTHORITY SWITCH REMAINS THE CURRENT PRODUCTION AUTHORITY STATE: the TD2 OBS-4
+measurement is 0 table-level INSERT/UPDATE/DELETE grants for anon and
+authenticated on pedidos/ops/op_itens, the four protected-fact fences are
 installed, and the 84-row recovery baseline is captured.
-NATIVE RECEIPT STILL INACTIVE: ordem_compra_cutover = legacy_active / flat,
-cutover_generation NULL, reconciliation_status not_started and
-productive_receipt_started_at NULL, so NO P5 CUTOVER HAS BEGUN.
+NATIVE RECEIPT CUTOVER EXECUTED AND PRE-PONR: ordem_compra_cutover =
+canonical_active / canonical, cutover_generation 20260801, reconciliation_status
+reconciled, final ACL closed and productive_receipt_started_at STILL NULL, so
+NO NATIVE RECEIPT COMMAND HAS BEEN EXECUTED and the PONR IS NOT CROSSED.
 BUSINESS STATE: pedidos/pedido_itens/ops/ordem_compra/ledger/receipts =
 5/36/1/2/0/0; the two protected Purchase Orders 105 and 106 remain
-emitida / nao_aplicavel / false; the five TD1 saldo_fios rows fingerprint to
-72c789986ce94c9edfe82fc9916acd76.
+emitida / nao_aplicavel / nao_recebido / legado=false; the five TD1 saldo_fios
+rows fingerprint to 72c789986ce94c9edfe82fc9916acd76.
 PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 REMAINS AWAITING SUPERVISOR
 REVIEW AND ACCEPTANCE; THIS DOCUMENT DOES NOT ACCEPT IT.
 
 LR-12 STATUS:
-DISCHARGED, AWAITING SUPERVISOR REVIEW. A fresh read-only production capture
-was taken at 2026-08-01T21:58:58Z and restored into a disposable local
-PostgreSQL 18.4 cluster, proved distinct from production by system_identifier
-before any local mutation. All ten fidelity probes MATCH the state measured
-immediately before the capture, including the cutover row, the PONR, the P4
-grant/fence authority, the protected Purchase Orders and the TD1 saldo_fios
-fingerprint; the six db/107 cutover-restoration owners and the ACL manifest
-table are present; and no receipt fact exists in the restored copy. The capture
-is held OUTSIDE the repository and is NOT committed. Evidence: section 9.9.U.
+DISCHARGED AND CONSUMED BY P5. The retained capture was re-hashed byte-exact
+(2afdc7f4...5952, 1,993,135 bytes) immediately before the cutover and every
+load-bearing production fact it recorded was remeasured with ZERO DRIFT, so no
+refresh capture was required. It was restored into a disposable PostgreSQL 18.4
+cluster to rehearse the whole P5 sequence and the pre-PONR recovery contract
+before production was touched. The capture is held OUTSIDE the repository, is
+NOT committed, and REMAINS RETAINED as the external recovery anchor through the
+pre-PONR boundary. Evidence: sections 9.9.U and 9.9.V.
 ```
 
 `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1` **must update this document**
@@ -2920,5 +3042,7 @@ correction.
 | 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C2` | 9.9.0 (F11), 9.9.H, 9.9.N, 9.9.P, 9.9.Q, 9.9.R | Applies binding supervisor ruling TD1, which CLOSES the historical-stock product decision: the existing saldo_fios balance of 2685.020 kg is PRESERVED HISTORICAL GLOBAL STOCK and NOT PRODUCTIVE OP AVAILABILITY. Section 9.9.H is rewritten from an open architect ruling into TD1 with its nine binding consequences mapped one-to-one onto their exact technical effect: the five rows are preserved unchanged and touched by no migration or writer; they are captured verbatim into ordem_compra_cutover_inventory_baseline and hashed; they receive no retroactive Pedido, need, allocation or OP assignment; they are excluded from every OP ceiling because the section 9.9.A predicate reaches only ordem_compra_fio_lancamentos rows carrying recebimento_id, an allocation id and kg_excesso = 0, which no saldo_fios row can satisfy; they are excluded from the native received-material pool; they stay visible as historical global stock reported in its own column; productive availability comes only from native ledger lines with valid allocation lineage; no automatic or silent allocation mechanism is designed or permitted; and any future audited allocation is explicitly separately authorized work outside this coordinated release. The accepted operational consequence is recorded: the first productive ceilings after cutover may begin at zero until native receipts are registered. Historical stock is removed from the blocker list, leaving LR-12 as the ONLY genuine blocker, now classified as a cutover-execution prerequisite rather than a design gap, with the explicit statement that this technical design may be accepted while LR-12 remains open provided no cutover runs until it is discharged. The acceptance plan gains a TD1 disposable-cluster proof that a non-zero saldo_fios row raises no OP ceiling and appears in no productive-receipt total, and a production preflight assertion that the five rows are unchanged and absent from every ceiling; the manifest cutover runbook gains the TD1 baseline-capture assertion; the recovery matrix gains a TD1-violation row keyed on a baseline hash mismatch. Sections 9.1-9.8 are byte-identical. No commit, no push, no database mutation, no implementation authorization. |
 | 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C3` | 9.9.A.5, 9.9.C, 9.9.D, 9.9.G, 9.9.L, 9.9.M, 9.9.N, 9.9.Q, 9.9.R | Closes the security, containment, rollback, PONR and phasing defects found on direct review. SECURITY: vw_disponibilidade_op is WITHDRAWN because a security_invoker view executing as the caller could never reach an owner-only helper; the sole client-facing read is one guarded SECURITY DEFINER wrapper, and every public mutation writer (salvar_ajuste_producao_op, iniciar_producao_op, alterar_status_pedido, cancelar_pedido, the supplier acceptance writers, the expedition and delivery writers) is SECURITY DEFINER with an explicit auth.uid plus role check, since the containment migration removes the very privileges an invoker function would need. A full function-security matrix and a call-graph invariant are added. CONTAINMENT: the GUC-based fence is withdrawn as spoofable and replaced by a trigger predicate on current_user being the owner role under which the granted definer writers execute; containment now covers pedidos.status and revisao, op_itens.metros_ajustados, ops.ajuste_revisao and status, and all saldo_fios_op DML, with the table-level REVOKE issued before the column re-grant because PostgreSQL unions the two. CUTOVER: option A selected and option B rejected as incompatible with the fixed PONR; a new ACL/policy manifest is captured before close_final_acl, which now refuses without it, and restore_acl_manifest replays grants, column grants and policies with an equality assertion; purge_generation removes generation-scoped snapshot, baseline, legacy_initial_balance_v1 headers, import_saldo_inicial ledger lines and their stock movements while never touching the five TD1 saldo_fios rows; resume_legacy now resets ALL ten fields the legacy_active branch of ordem_compra_cutover_c3c_state_check requires plus reconciliation_status and the six snapshot/baseline metrics, correcting a previous version that cleared four and would have violated the constraint. PONR: fixed as THE FIRST SUCCESSFUL NATIVE RECEIPT COMMAND including a surplus-only command, proved from the db/75 wrapper which stamps productive_receipt_started_at after any ok result with no allocation filter; the earlier first-productive-receipt wording is withdrawn. PHASES: P1 is now strictly additive with no body replacement, no grant revocation and no demotion trigger; the emission freeze and configuration demotion move to a new db/103b, and db/104 is reclassified to P4 because it replaces existing bodies; P3 is proved on a disposable cluster restored from backup, never against real production rows. CANCELLATION: live planning rows are no longer physically deleted, which contradicted D7; typed cancelado_em/por/motivo fields release the balance while preserving the supplier assignment and quantity for audit. Acceptance gains permission-denial tests for every owner-only helper, a GUC-spoofing rejection test, a surplus-only PONR test and a genuine legacy-restoration test. Sections 9.1-9.8, R1-R13, D1-D7 and TD1 are unchanged. No commit, no push, no database mutation, no implementation authorization. |
 | 2026-07-31 | `NATIVE-RECEIPT-COORDINATED-RELEASE-TECHNICAL-DESIGN-ACCEPTANCE-R1` | 9.9 (header), 9.9.G.2.2, 9.9.L.2, 9.9.L.4 (new), 9.9.N, 9.9.Q, 9.9.R, 13 (new 13.8), 14, 16 | SUPERVISOR ACCEPTANCE CLOSEOUT. The COORDINATED IMPLEMENTATION-READY TECHNICAL DESIGN of section 9.9 is CLOSED / ACCEPTED, on the accepted execution proof NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1 (T1-T12: PASS; FAILED MATERIAL CONTRACTS: NONE). New section 13.8 records the prototype environment (a disposable PostgreSQL 18.4 cluster, system_identifier 7668720358489816576, synthetic platform preamble, 64 fully synthetic legacy rows classified 27/12/13/12, clean apply of db/01..db/100, proved complete teardown - never production and never staging), the twelve-row T1-T12 matrix, and the decisive catalog/hash evidence: the ACL/policy hash was d231b4d5f3573323e24ba4f35fe918a0 before closure, 452d909c608fb142be8b29871f7d82bc when closed, and d231b4d5f3573323e24ba4f35fe918a0 again when restored, so the round trip is exact. Also recorded: a second cutover generation completed with no idempotency collision after the purge; a surplus-only successful receipt crossed the PONR; planning history survived cancellation as a release and not a deletion; and TD1 stock produced zero OP availability. BINDING RULING TD2 is added as new section 9.9.L.4 and CLOSES OBS-4: authenticated direct table-level INSERT and DELETE on public.pedidos, public.ops and public.op_itens is NOT accepted after the P4 authority switch. Where a canonical creation surface still inserts directly, P4 must revoke table-level INSERT, grant column-level INSERT for the exact creation fields only, exclude every lifecycle, revision, adjustment, completion and derived-status field, and assert the safe defaults first (pedidos.status not client-supplied and defaulting to rascunho; pedidos.revisao and the derived tracking/priority fields not client-supplied; ops.status not client-supplied with new weaving OPs beginning as simulada; ops.ajuste_revisao beginning at 0 and not client-supplied; completion and production timestamps not client-supplied; op_itens.metros_ajustados beginning NULL and not client-supplied). A creation path that cannot work under exact column-level grants must be repointed to a bounded SECURITY DEFINER creation writer before P4, and table-level INSERT may not be retained as a compatibility shortcut; three such paths are named. Direct DELETE is revoked from client roles on all three tables, operational removal is represented by validated cancellation preserving history or by the already-canonical server-owned deletion writers remover_pedido and remover_op, and any visible action without such a writer is disabled at P4 rather than keeping direct DELETE. saldo_fios_op receives no direct INSERT, UPDATE or DELETE for authenticated, anon or service_role, and only iniciar_producao_op owns its productive snapshot writes. Section 9.9.G.2.2 is corrected to the PROVEN purge contract (OBS-2, resolved): the owner-only generation-scoped purge validates the cutover generation and pre-PONR eligibility, disables exactly the five guards trg_lancamento_append_only_guard, trg_lancamento_estorno_guard, trg_recebimento_movimento_immutable_guard, trg_recebimento_header_immutable_guard and trg_c3c_command_state_guard inside its transaction, deletes only facts provably belonging to the target generation, re-enables every guard before returning, hard-fails if any guard remains with tgenabled = 'D', preserves all unrelated facts, and never modifies the five TD1 saldo_fios rows. The first attempt failed because the append-only guard correctly blocked an unspecified DELETE; the corrected bounded mechanism passed T6, T7 and T8 on a clean disposable clone. The bypass is explicitly NOT generalizable to any other function. OBS-3 is kept as an accepted harness limitation and is not a blocker. LR-12 is retained as the ONLY production-cutover execution prerequisite and did not block acceptance. IMPLEMENTATION REMAINS NOT AUTHORIZED and the NATIVE RECEIPT CUTOVER REMAINS NOT AUTHORIZED. Sections 9.1-9.8, rulings R1-R13, D1-D7 and TD1 are unchanged. Documentation-only; no product, migration, test, UI, configuration or database change. |
+
+| 2026-08-01 | `NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1` | 9.9.V (new), 14, 16 | P5 CUTOVER EXECUTED AGAINST PRODUCTION, PRE-PONR, NOT SELF-ACCEPTED. The freshness gate was re-proved rather than assumed: production identity re-measured through the mutating connection (system_identifier 7642734024280108049, PostgreSQL 17.6, current_user postgres), the retained LR-12 artifact re-hashed byte-exact to 2afdc7f4...5952 at 1,993,135 bytes, and every load-bearing fact LR-12 captured remeasured against live production with ZERO DRIFT, so no refresh capture was taken. A focused rehearsal (`tests/p5-cutover-rehearsal.integration.mjs`, new) restored that exact artifact into a disposable PostgreSQL 18.4 cluster proved distinct from production, applied db/112, drove the whole P5 sequence and then drove the pre-PONR recovery contract from the activated state: 35 assertions, 0 failures. It also proved the db/112 defect is real on that image — without db/112 `fence_and_snapshot` refuses the empty-but-complete source set with `snapshot_mapping_count_mismatch`, leaving the only canonical transition into `maintenance_fenced` unreachable. db/112 was then applied to production EXACTLY ONCE as `supabase_migrations` version 20260801225433 (66 applied migrations) and verified after application: both replaced bodies are BYTE-IDENTICAL to the committed file (md5(prosrc) 5015ec66c027798a1cc6f1d00ffe003a / 8728 bytes and 3781eec3c25577e5da2ad3e5798cec40 / 4753 bytes), the frozen 51 is gone, both remain postgres-owned SECURITY DEFINER with a pinned search_path, no client role reached either, and the cutover row was left untouched. The eight-step state machine ran under cutover generation 20260801 in ONE session — forced by the session-held advisory lock, and therefore also ONE transaction, so any failed assertion would have rolled production back to legacy_active with no residue. Each transition asserted its expected predecessor, the generation identity and a NULL PONR: fence_and_snapshot (mapping_count 0, inventory_count 5, inventory_total_kg 2685.020), lock_import_resources + assert_snapshot_and_live, import_and_reconcile (0 headers, 0 ledger lines, 0.000 kg, 0 inventory movements), set_canonical_read, capture_acl_manifest (201 rows: 168 table + 20 column + 11 policy + 2 function grants), close_final_acl (flat client grants 0) and activate (canonical_active/canonical at 2026-08-01T22:57:32.467248Z). The zero-row import is a REAL transition, not a skipped one: the flat corpus is legitimately empty so the snapshot is empty AND complete, which is exactly what db/112's C5 completeness rule makes enforceable, while the inventory baseline captured all five TD1 rows. TD1 held — the saldo_fios fingerprint is unchanged at 72c789986ce94c9edfe82fc9916acd76, the native ledger holds 0 rows, and the productive predicate `_oc_material_recebido_liquido` does not reference saldo_fios at all, so historical stock became no OP availability. Independently verified afterwards in a fresh session: business rows unchanged at 5/36/1/2/0/0, both protected Purchase Orders intact as emitida/nao_aplicavel/nao_recebido/legado=false, ZERO native receipt commands, P4 containment intact (OBS-4 = 0, four fences, 84-row baseline), zero disabled receipt-writer guards, canonical application authorities still reachable by authenticated, and no unrelated privilege moved (77 policies remain overall, 0 on the protected set). Native receipt reachability was proved WITHOUT executing one: the db/100 `acoes.receber` predicate now evaluates true for both protected orders where it was false before. Pre-PONR recovery remains reachable with its preconditions re-proved, and the LR-12 capture remains RETAINED as the external anchor. productive_receipt_started_at IS STILL NULL; db/110 was NOT created; the flat model was NOT retired. P5 is NOT self-accepted and P6 REMAINS NOT AUTHORIZED. |
 
 **Every future executor report must identify the exact sections changed here.**

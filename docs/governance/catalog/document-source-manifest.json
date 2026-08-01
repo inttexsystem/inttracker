@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "5bf46ba99f0cba6316adc9b7b9ba514b5b098330",
-      "sha256": "4305d5a81376aaf41811cda722e9244660dea83f8911f2f2dcc452e824241e7b",
+      "git_object_id": "fb6f6add816a59d8816e399692e8f770f14fa7bc",
+      "sha256": "1d5f84b9d04b6bc8ea6c2fbe8a67f877f81c0636a8f067d6ad58d116a0d60285",
       "line_count": 45,
-      "byte_count": 12361,
+      "byte_count": 12930,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -1265,7 +1265,7 @@
         },
         {
           "source_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-          "source_line": 2903,
+          "source_line": 3025,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -4890,6 +4890,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11024,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "source_line": 19,
           "kind": "ROOT_REFERENCE",
@@ -6726,7 +6733,7 @@
         },
         {
           "source_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-          "source_line": 2902,
+          "source_line": 3024,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -32557,7 +32564,7 @@
         },
         {
           "source_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-          "source_line": 2604,
+          "source_line": 2720,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -34162,10 +34169,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-      "git_object_id": "1eea9bf214320b975723a7a462d9b0fcf9a67b42",
-      "sha256": "d975de1136828b7fdae2ae1685be2ee117885a9572e3ba45ce6675eb6cbc60e4",
-      "line_count": 2924,
-      "byte_count": 202561,
+      "git_object_id": "187896c74077406258b7289749c8ff7496411723",
+      "sha256": "79695d6ddbafe80f98c2229176093a5a6692e10b5809f1f02cdbd74b9cc691bd",
+      "line_count": 3048,
+      "byte_count": 214361,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -34222,7 +34229,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 2604
+          "source_line": 2720
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -34230,7 +34237,7 @@
           "target_path": "PROJECT_STATE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 2902
+          "source_line": 3024
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -34238,7 +34245,7 @@
           "target_path": "AGENT_HANDOFF.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 2903
+          "source_line": 3025
         }
       ],
       "inbound_references": [
@@ -34266,6 +34273,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11003,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11024,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -34933,100 +34947,106 @@
           "line": 2489
         },
         {
+          "level": 3,
+          "text": "9.9.V P5 implementation evidence — the cutover was executed",
+          "anchor": "99v-p5-implementation-evidence-the-cutover-was-executed",
+          "line": 2557
+        },
+        {
           "level": 2,
           "text": "11. Acceptance model",
           "anchor": "11-acceptance-model",
-          "line": 2557
+          "line": 2673
         },
         {
           "level": 3,
           "text": "11.1 Mandatory authenticated scenarios (current, from the accepted R2 direction)",
           "anchor": "111-mandatory-authenticated-scenarios-current-from-the-accepted-r2-direction",
-          "line": 2578
+          "line": 2694
         },
         {
           "level": 2,
           "text": "12. Decision ledger",
           "anchor": "12-decision-ledger",
-          "line": 2600
+          "line": 2716
         },
         {
           "level": 2,
           "text": "13. Evidence ledger",
           "anchor": "13-evidence-ledger",
-          "line": 2617
+          "line": 2733
         },
         {
           "level": 3,
           "text": "13.1 Migrations read",
           "anchor": "131-migrations-read",
-          "line": 2622
+          "line": 2738
         },
         {
           "level": 3,
           "text": "13.2 Application files read",
           "anchor": "132-application-files-read",
-          "line": 2640
+          "line": 2756
         },
         {
           "level": 3,
           "text": "13.3 RPCs inspected",
           "anchor": "133-rpcs-inspected",
-          "line": 2652
+          "line": 2768
         },
         {
           "level": 3,
           "text": "13.4 Routes and components inspected",
           "anchor": "134-routes-and-components-inspected",
-          "line": 2661
+          "line": 2777
         },
         {
           "level": 3,
           "text": "13.5 Git evidence",
           "anchor": "135-git-evidence",
-          "line": 2667
+          "line": 2783
         },
         {
           "level": 3,
           "text": "13.6 Production SELECT evidence (read-only, at the db/100 preflight)",
           "anchor": "136-production-select-evidence-read-only-at-the-db100-preflight",
-          "line": 2675
+          "line": 2791
         },
         {
           "level": 3,
           "text": "13.6.1 Production SELECT evidence (read-only, current, 2026-07-31)",
           "anchor": "1361-production-select-evidence-read-only-current-2026-07-31",
-          "line": 2687
+          "line": 2803
         },
         {
           "level": 3,
           "text": "13.7 Unresolved evidence",
           "anchor": "137-unresolved-evidence",
-          "line": 2707
+          "line": 2823
         },
         {
           "level": 3,
           "text": "13.8 Coordinated-release SQL prototype — accepted execution proof (T1–T12)",
           "anchor": "138-coordinated-release-sql-prototype-accepted-execution-proof-t1t12",
-          "line": 2719
+          "line": 2835
         },
         {
           "level": 2,
           "text": "14. Current checkpoint",
           "anchor": "14-current-checkpoint",
-          "line": 2799
+          "line": 2915
         },
         {
           "level": 2,
           "text": "15. Future update protocol",
           "anchor": "15-future-update-protocol",
-          "line": 2889
+          "line": 3011
         },
         {
           "level": 2,
           "text": "16. Change log (append-only)",
           "anchor": "16-change-log-append-only",
-          "line": 2909
+          "line": 3031
         }
       ]
     },
@@ -79219,10 +79239,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "bce7fbe68e394c273a40cb8f207e49adace1eaff",
-      "sha256": "5a5eb58bd0361ecca76ca9f13ceb5b915b4d46ca4359ea2eefb05a0cc69841a8",
-      "line_count": 11004,
-      "byte_count": 1607974,
+      "git_object_id": "c9fe338fff7275193d6d01e11f467894630fef44",
+      "sha256": "1430c2dc6bbf3f2416589de7e83beebecb7724b8b5e85add67cc4ae95e6844d6",
+      "line_count": 11025,
+      "byte_count": 1617370,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86312,6 +86332,30 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 11003
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11024
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md`",
+          "target_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11024
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11024
         }
       ],
       "inbound_references": [
@@ -88297,6 +88341,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11024,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "source_line": 8,
           "kind": "ROOT_REFERENCE",
@@ -90001,6 +90052,12 @@
           "text": "2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1 — SUPERVISOR ACCEPTANCE — docs: accept P4 authority switch and discharge LR-12",
           "anchor": "2026-08-01-native-receipt-coordinated-release-p4-authority-switch-r1-supervisor-acceptance-docs-accept-p4-authority-switch-and-discharge-lr-12",
           "line": 10986
+        },
+        {
+          "level": 2,
+          "text": "2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1 — PRODUCTION CUTOVER EXECUTED / PRE-PONR — feat(p5): execute the native receipt production cutover",
+          "anchor": "2026-08-01-native-receipt-coordinated-release-p5-cutover-r1-production-cutover-executed-pre-ponr-featp5-execute-the-native-receipt-production-cutover",
+          "line": 11006
         }
       ]
     },
