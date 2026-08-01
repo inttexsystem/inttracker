@@ -3297,6 +3297,27 @@
       "role": "derived",
       "status": "GENERATED",
       "survival_destination": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md"
+    },
+    {
+      "artifact_id": "DOC-DOCS_ARCHITECTURE_NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT_MD",
+      "authority": "NORMATIVE",
+      "bootstrap_tier": "TIER_3_REFERENCE",
+      "byte_count": 30917,
+      "classification": "CONTRACT",
+      "compatibility_pointer": null,
+      "content_hash": "1a87dafa439db815dbd89ec41f4cb7afbd695e67fccec57244649a037b9cf08f",
+      "disposition": "KEEP_NORMATIVE",
+      "generated_status": "MANUAL",
+      "inbound_references": 3,
+      "line_count": 489,
+      "outbound_references": 2,
+      "owner": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
+      "path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
+      "review_basis": "Explicit R1 review against DOCUMENTATION_INDEX classification, DOCUMENTATION_MODEL ownership, source heading, and governed path category.",
+      "review_status": "REVIEWED",
+      "role": "normative",
+      "status": "OPEN",
+      "survival_destination": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md"
     }
   ],
   "authority": "CANONICAL_DOCUMENT_CLASSIFICATION_OWNER",

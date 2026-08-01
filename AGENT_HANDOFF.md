@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `NO ACTIVE PRODUCT PHASE`
-- Objective: NATIVE-RECEIPT-COORDINATED-RELEASE-P2-FRONTEND-R1 is CLOSED / ACCEPTED at checkpoint bbc7941efa3ec5ec72d9da457989a0a317869018 and is no longer awaiting review. No product phase is active. P3 NOT AUTHORIZED; P4 NOT AUTHORIZED; P5 NOT AUTHORIZED; NATIVE RECEIPT REMAINS INACTIVE (ordem_compra_cutover legacy_active, read_authority flat, productive_receipt_started_at NULL, ponr NULL). The next action is a SUPERVISOR SELECTION between a separate P3 diagnosis/planning order and one of the three outstanding independent reviews; nothing chains from the P2 acceptance.
-- Next authorizable action: `SELECT NEXT PRODUCT PHASE` / `AWAITING PRODUCT DIRECTION; NO PHASE IS CHAINED`
+- Status: `AUTHORIZED / AWAITING EXECUTION`
+- Objective: P3 IS THE ACTIVE, EXPLICITLY AUTHORIZED PHASE: the authenticated mutation proof of the coordinated native-receipt release, executed against a disposable database restored from a production dump and never against production rows. PREDECESSOR STATE. PHASE 1 (production read-only dump) is ACCEPTED FOR P3 ENTRY and PHASE 2 (restore fidelity) is ACCEPTED FOR P3 ENTRY, both reconciled from external evidence under NATIVE-RECEIPT-COORDINATED-RELEASE-P3-CANONICAL-ACTIVATION-R1. EXTERNAL EXECUTION ROOT: D:\p3-work\runs\p3-a0e2331-20260801T030008Z (run id p3-a0e2331-20260801T030008Z); external evidence root D:\p3-work\evidence\p3\p3-a0e2331-20260801T030008Z; cluster pointer D:\p3-work\runs\p3-a0e2331-20260801T030008Z\scratch\cluster.json. The restored clone must be re-verified by systemIdentifier 7668905723812930636, never by port alone; the superseded rehearsal cluster D:\p3-work\rehearsal-JhFKAI (systemIdentifier 7668897191668365016) has been observed still listening and is NOT a valid P3 target. CANONICAL P3 CONTRACT: docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md. It owns the 14-RPC inventory, the A/B/B-prime/C/D/E/F identity model, the P3F synthetic namespace, the P3F_FIXTURE_PRODUCTIVE_RECEIPT_SEED, the complete S01-S47 scenario matrix, the P3/P4 classification boundary, the data-only S34 failure-injection rule, the required invariants and the evidence schema. THIS ACTIVATION DOES NOT AUTHORIZE SCENARIO MUTATION. P3 mutation is allowed only after a separate P3 EXECUTION order naming the environment and the permitted operation. P4 NOT AUTHORIZED. P5 NOT AUTHORIZED. db/103b, db/104, db/106 and db/110 remain reserved, uncreated migration numbers and the production terminal applied migration remains db/111 (supabase_migrations 20260731204800). NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover is legacy_active with read_authority flat and productive_receipt_started_at NULL, and the db/75/db/76 writer fence is unchanged.
+- Next authorizable action: `ISSUE NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF-EXECUTION ORDER` / `SEPARATE EXECUTION AUTHORIZATION REQUIRED; THIS ACTIVATION DOES NOT AUTHORIZE SCENARIO MUTATION`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/governance/AGENT_INSTRUCTIONS.md::## 4. Authorization and roles`
+- `docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md::## 7. Scenario matrix S01-S47`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

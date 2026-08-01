@@ -23591,6 +23591,189 @@
       ]
     },
     {
+      "path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
+      "git_object_id": "fa5498be0c87f3d874d259e6fc77f9e39a40f4b0",
+      "sha256": "1a87dafa439db815dbd89ec41f4cb7afbd695e67fccec57244649a037b9cf08f",
+      "line_count": 489,
+      "byte_count": 30917,
+      "generated_status": "MANUAL",
+      "outbound_references": [
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md`",
+          "target_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 13
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md`",
+          "target_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 487
+        }
+      ],
+      "inbound_references": [
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 166,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10940,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10944,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "text": "Native receipt — P3 authenticated proof contract",
+          "anchor": "native-receipt-p3-authenticated-proof-contract",
+          "line": 1
+        },
+        {
+          "level": 2,
+          "text": "1. P3 purpose",
+          "anchor": "1-p3-purpose",
+          "line": 30
+        },
+        {
+          "level": 2,
+          "text": "2. Environment boundary",
+          "anchor": "2-environment-boundary",
+          "line": 43
+        },
+        {
+          "level": 2,
+          "text": "3. Exact 14-RPC inventory",
+          "anchor": "3-exact-14-rpc-inventory",
+          "line": 56
+        },
+        {
+          "level": 3,
+          "text": "3.1 Read RPCs (4)",
+          "anchor": "31-read-rpcs-4",
+          "line": 65
+        },
+        {
+          "level": 3,
+          "text": "3.2 Mutation RPCs (10)",
+          "anchor": "32-mutation-rpcs-10",
+          "line": 74
+        },
+        {
+          "level": 2,
+          "text": "4. Identity model",
+          "anchor": "4-identity-model",
+          "line": 94
+        },
+        {
+          "level": 2,
+          "text": "5. Synthetic namespace",
+          "anchor": "5-synthetic-namespace",
+          "line": 151
+        },
+        {
+          "level": 2,
+          "text": "6. Productive availability seed",
+          "anchor": "6-productive-availability-seed",
+          "line": 190
+        },
+        {
+          "level": 2,
+          "text": "7. Scenario matrix S01-S47",
+          "anchor": "7-scenario-matrix-s01-s47",
+          "line": 218
+        },
+        {
+          "level": 3,
+          "text": "7.1 Group 1 — availability and production (S01–S12)",
+          "anchor": "71-group-1-availability-and-production-s01s12",
+          "line": 229
+        },
+        {
+          "level": 3,
+          "text": "7.2 Group 2 — supplier acceptance (S13–S20)",
+          "anchor": "72-group-2-supplier-acceptance-s13s20",
+          "line": 246
+        },
+        {
+          "level": 3,
+          "text": "7.3 Group 3 — Pedido lifecycle (S21–S29)",
+          "anchor": "73-group-3-pedido-lifecycle-s21s29",
+          "line": 259
+        },
+        {
+          "level": 3,
+          "text": "7.4 Group 4 — delivery and finishing (S30–S38)",
+          "anchor": "74-group-4-delivery-and-finishing-s30s38",
+          "line": 273
+        },
+        {
+          "level": 3,
+          "text": "7.5 Group 5 — expedition (S39–S44)",
+          "anchor": "75-group-5-expedition-s39s44",
+          "line": 287
+        },
+        {
+          "level": 3,
+          "text": "7.6 Group 6 — permission and security (S45–S47, each a sweep over all 14)",
+          "anchor": "76-group-6-permission-and-security-s45s47-each-a-sweep-over-all-14",
+          "line": 298
+        },
+        {
+          "level": 2,
+          "text": "8. P3/P4 boundary",
+          "anchor": "8-p3p4-boundary",
+          "line": 316
+        },
+        {
+          "level": 2,
+          "text": "9. S34 failure-injection rule",
+          "anchor": "9-s34-failure-injection-rule",
+          "line": 345
+        },
+        {
+          "level": 2,
+          "text": "10. Required invariants",
+          "anchor": "10-required-invariants",
+          "line": 362
+        },
+        {
+          "level": 2,
+          "text": "11. Evidence schema",
+          "anchor": "11-evidence-schema",
+          "line": 400
+        },
+        {
+          "level": 2,
+          "text": "12. External execution root and predecessor state",
+          "anchor": "12-external-execution-root-and-predecessor-state",
+          "line": 423
+        },
+        {
+          "level": 2,
+          "text": "13. Provenance",
+          "anchor": "13-provenance",
+          "line": 481
+        }
+      ]
+    },
+    {
       "path": "docs/architecture/ORDEM_COMPRA_C3C_B_DB_PREREQUISITES_PHASE_CONTRACT.md",
       "git_object_id": "ca311b3aafc10ae4cc78be480f93f8d003f78697",
       "sha256": "fa78f59f3fa210b5fa06641228fc8357191500cb5868482ff7f5907bec8dda6b",
@@ -58571,10 +58754,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-      "git_object_id": "403591f68112b713101434ab746ecebbe1ccbaad",
-      "sha256": "0f1b5032c7ebcdaa8add6f80f72ce0b0b224688d1e71a45b3a17986359c961ab",
-      "line_count": 167,
-      "byte_count": 29096,
+      "git_object_id": "af9cad3a150f8f473171be818b531f446ee3c757",
+      "sha256": "bce21131dd5a185a09a54d32d8742649a945c38097795f5b41d5cab93db6cde3",
+      "line_count": 168,
+      "byte_count": 29303,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -59720,6 +59903,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 165
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md`",
+          "target_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 166
         }
       ],
       "inbound_references": [
@@ -59733,6 +59924,13 @@
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
           "source_line": 79,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10944,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
