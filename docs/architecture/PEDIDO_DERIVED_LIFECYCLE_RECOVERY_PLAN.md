@@ -2486,6 +2486,74 @@ unauthorized.
 
 ---
 
+### 9.9.U LR-12 discharge — fresh backup and restore rehearsal
+
+`NATIVE-RECEIPT-P4-ACCEPTANCE-CLOSEOUT-AND-LR12-P5-ENTRY-R1` discharged LR-12,
+the sole remaining P5 cutover-entry prerequisite (section 9.9.R). This
+subsection records that operational fact; it does not modify the accepted
+design above and it does not authorize P5.
+
+**Capture technique, and why the canonical exporter was NOT used.**
+`scripts/backup/export-db.mjs` is the project's canonical exporter, but it
+RECORDS EACH RUN IN PRODUCTION through the db/64 writer RPCs
+`iniciar_backup_run` / `finalizar_backup_run`, and it uploads to an external
+destination. This order authorized production access as **READ-ONLY ONLY** with
+no production write, so the canonical exporter was structurally unusable under
+it. The minimum valid read-only technique is a direct `pg_dump`, which is what
+was used. That production remained unwritten is proved rather than asserted:
+`public.backup_runs` still holds the same 2 rows after the capture, so no
+backup-run record was created.
+
+**Capture.** `pg_dump --format=custom` over the libpq connection, taken
+2026-08-01T21:58:58Z. Identity was proved THROUGH THAT SAME CONNECTION before
+the capture — `system_identifier` 7642734024280108049 on PostgreSQL 17.6 with
+terminal migration 20260801213507 — so the artifact is tied to the measured
+production identity and not to a connector label. Artifact: 1,993,135 bytes,
+sha256 `2afdc7f4eb5bc7e68c0201abda6d20ecf181a9e04abf2278d3e720e8e0bf5952`,
+2396 TOC entries. It is held OUTSIDE the repository and is NOT committed; no
+dump, credential or production datum enters a repository artifact.
+
+**The restore target is proved NOT to be production before any local mutation.**
+A fresh `initdb` cluster has its own `system_identifier`; the rehearsal reads it
+first and refuses to continue if it ever equals the production value. Measured
+distinct on every run.
+
+**Fidelity.** `tests/lr12-restore-rehearsal.integration.mjs` restores the
+capture into that disposable cluster and probes exactly the facts that can make
+P5 unsafe or unrecoverable. All ten MATCH the state measured immediately before
+the capture: terminal migration 20260801213507; 65 applied migrations; cutover
+`legacy_active/flat` with generation NULL, reconciliation `not_started` and the
+PONR NULL; the TD2 OBS-4 grant count 0; the four protected-fact fences; the
+84-row recovery baseline; business rows 5/36/1/2/0/0; the five TD1 `saldo_fios`
+rows and their fingerprint `72c789986ce94c9edfe82fc9916acd76`; and the two
+protected Purchase Orders as `emitida / nao_aplicavel / false`. The six db/107
+cutover-restoration owners and `ordem_compra_cutover_acl_manifest` are present,
+so the infrastructure P5's recovery position depends on survives the restore.
+No receipt fact exists in the restored copy (ledger / headers / flat = 0/0/0).
+215 SECURITY DEFINER functions restored.
+
+**One probe defect was found and corrected, and it is worth recording.** The
+`saldo_fios` fingerprint first reported DRIFT. The data was faithful: the
+fingerprint casts whole rows to text, a `timestamptz` renders through the
+session `TimeZone`, and the reference had been measured under UTC while the
+local cluster ran at UTC−03. A TZ-sensitive fingerprint would either
+manufacture a false failure or, with the reference measured the other way
+round, mask a real one. The probes now pin `PGTZ=UTC`. This is a defect in the
+probe, never in the restore.
+
+**Restore errors.** `pg_restore` reported exactly 8 errors, matching exactly
+the 8 `EXTENSION` entries in the dump's TOC — Supabase-managed extensions that
+cannot exist in a vanilla cluster. Zero errors touch the public schema, the
+migration ledger or any ACL.
+
+**Recoverability.** The capture is `EVIDENCE_LOAD_BEARING` for the cutover and
+is deliberately RETAINED. It is not destroyed after the rehearsal, and it must
+remain available through the supervisor's LR-12 review and, if P5 is
+subsequently authorized, through the cutover recovery boundary the accepted
+design requires.
+
+---
+
 ## 11. Acceptance model
 
 Migrations, tests, hashes, commits, pushes and deployments are **necessary but
@@ -2741,7 +2809,10 @@ COORDINATED IMPLEMENTATION-READY TECHNICAL DESIGN:
 CLOSED / ACCEPTED
 
 IMPLEMENTATION:
-NOT AUTHORIZED
+P1 (additive backend), P2 (frontend), P3 (authenticated proof) and P4
+(coordinated authority switch) are all CLOSED / ACCEPTED. P4 is accepted at
+checkpoint 5d1adb495e4b52bff333d069947a174d54d36d64; its implementation
+evidence is section 9.9.T.
 
 NATIVE RECEIPT CUTOVER:
 NOT AUTHORIZED
@@ -2753,15 +2824,18 @@ CURRENT BLOCKING WORK:
 NONE IN THIS TRACK. The technical design of section 9.9 is closed and accepted
 under NATIVE-RECEIPT-COORDINATED-RELEASE-TECHNICAL-DESIGN-ACCEPTANCE-R1, on the
 accepted execution proof NATIVE-RECEIPT-COORDINATED-RELEASE-SQL-PROTOTYPE-R1
-(T1-T12: PASS; FAILED MATERIAL CONTRACTS: NONE, section 13.8).
+(T1-T12: PASS; FAILED MATERIAL CONTRACTS: NONE, section 13.8), and its P1-P4
+implementation is accepted.
 
 NEXT AUTHORIZABLE PHASE:
-Implementation planning and execution of the coordinated release, SUBJECT TO A
-SEPARATE ORDER. No phase is chained to this acceptance.
+P5 (cutover), SUBJECT TO A SEPARATE ORDER AND TO LR-12 BEING DISCHARGED. No
+phase is chained to the P4 acceptance, and P6 (the first successful native
+receipt command, which crosses the PONR) is a further separate authorization.
 
 ONLY REMAINING PRODUCTION-CUTOVER EXECUTION PREREQUISITE:
-LR-12 - no fresh verified production backup exists. It did not block acceptance
-of the technical design and must be discharged before the phase P5 cutover run.
+LR-12 - a fresh verified production backup and a proved restore rehearsal. It
+did not block acceptance of the technical design or of P4, and must be
+discharged before the phase P5 cutover run.
 
 BINDING RULINGS CARRIED BY THE ACCEPTED TECHNICAL DESIGN:
 TD1 (section 9.9.H) - preserved historical global stock, never productive OP
@@ -2776,11 +2850,33 @@ PEDIDO-DERIVED-LIFECYCLE-TARGET-FUNCTIONAL-DESIGN-ACCEPTANCE-R1.
 Rulings R1-R13 and D1-D7 are accepted and are NOT rewritten or compacted.
 The acceptance covers the FUNCTIONAL specification only.
 
-PRODUCTION POSITION (verified read-only 2026-07-31):
-db/100 APPLIED (20260731033711) AND TERMINAL; PUBLISHED THROUGH staging/dev.
-NATIVE RECEIPT STILL INACTIVE (ordem_compra_cutover = legacy_active / flat).
+PRODUCTION POSITION (verified read-only 2026-08-01, cluster system_identifier
+7642734024280108049 on PostgreSQL 17.6):
+TERMINAL APPLIED MIGRATION IS 20260801213507 (106b_contencao_dml), 65 applied
+migrations. THE P4 AUTHORITY SWITCH IS THE CURRENT PRODUCTION AUTHORITY STATE:
+the TD2 OBS-4 measurement is 0 table-level INSERT/UPDATE/DELETE grants for anon
+and authenticated on pedidos/ops/op_itens, the four protected-fact fences are
+installed, and the 84-row recovery baseline is captured.
+NATIVE RECEIPT STILL INACTIVE: ordem_compra_cutover = legacy_active / flat,
+cutover_generation NULL, reconciliation_status not_started and
+productive_receipt_started_at NULL, so NO P5 CUTOVER HAS BEGUN.
+BUSINESS STATE: pedidos/pedido_itens/ops/ordem_compra/ledger/receipts =
+5/36/1/2/0/0; the two protected Purchase Orders 105 and 106 remain
+emitida / nao_aplicavel / false; the five TD1 saldo_fios rows fingerprint to
+72c789986ce94c9edfe82fc9916acd76.
 PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 REMAINS AWAITING SUPERVISOR
 REVIEW AND ACCEPTANCE; THIS DOCUMENT DOES NOT ACCEPT IT.
+
+LR-12 STATUS:
+DISCHARGED, AWAITING SUPERVISOR REVIEW. A fresh read-only production capture
+was taken at 2026-08-01T21:58:58Z and restored into a disposable local
+PostgreSQL 18.4 cluster, proved distinct from production by system_identifier
+before any local mutation. All ten fidelity probes MATCH the state measured
+immediately before the capture, including the cutover row, the PONR, the P4
+grant/fence authority, the protected Purchase Orders and the TD1 saldo_fios
+fingerprint; the six db/107 cutover-restoration owners and the ACL manifest
+table are present; and no receipt fact exists in the restored copy. The capture
+is held OUTSIDE the repository and is NOT committed. Evidence: section 9.9.U.
 ```
 
 `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1` **must update this document**

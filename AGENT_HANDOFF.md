@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / APPLIED TO PRODUCTION / PUBLISHED THROUGH THE SINGLE AUTHORIZED staging/dev PUSH / AWAITING SUPERVISOR REVIEW AND ACCEPTANCE. SELF-ACCEPTANCE IS NOT CLAIMED AND NO ACCEPTED CHECKPOINT IS APPENDED FOR THIS PHASE. NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover IS legacy_active/flat WITH productive_receipt_started_at NULL AND THE db/75/db/76 WRITER FENCE IS UNCHANGED`
-- Objective: P4, the coordinated authority switch, is implemented and applied. Emission now freezes the SUPPLIER-level fornecedores.exige_aceite and the global ordem_compra_config.exige_aceite is demoted (db/103b); the 9.9.B lock protocol and the 9.9.F acceptance gate are installed and alterar_status_op, cancelar_ordem_compra and excluir_ordem_compra are joined to them without retyping their proven bodies (db/104); and the TD2 direct-DML containment plus the five bounded canonical writers are in place (db/106a + db/106b). The full evidence is owned by docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md section 9.9.T and is not restated here. THE NEXT STEP IS SUPERVISOR REVIEW OF THAT EVIDENCE. P5 (cutover) and P6 (first native receipt) REMAIN NOT AUTHORIZED and neither is reachable without a new explicit order.
-- Next authorizable action: `SUPERVISOR REVIEW OF NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
+- Status: `P4 DOCUMENTARY CLOSEOUT COMPLETE / LR-12 DISCHARGED / AWAITING SUPERVISOR REVIEW OF THE LR-12 EVIDENCE. SELF-AUTHORIZATION OF P5 IS NOT CLAIMED. NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover IS legacy_active/flat WITH cutover_generation NULL, reconciliation_status not_started AND productive_receipt_started_at NULL, SO NO P5 CUTOVER HAS BEGUN`
+- Objective: P4 is CLOSED / ACCEPTED at 5d1adb495e4b52bff333d069947a174d54d36d64 and is recorded in accepted_checkpoints, which owns its acceptance scope. LR-12, the sole remaining P5 cutover-entry prerequisite, is DISCHARGED: a fresh read-only production capture was taken 2026-08-01T21:58:58Z by direct pg_dump (the canonical exporter was NOT used because it records each run IN production through the db/64 writer RPCs, which this read-only order did not authorize), and it was restored into a disposable local PostgreSQL 18.4 cluster proved distinct from production by system_identifier before any local mutation. All ten fidelity probes MATCH the pre-capture production measurement, the db/107 cutover-restoration infrastructure survives the restore, and no receipt fact exists in the restored copy. The evidence is owned by docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md section 9.9.U. THE NEXT STEP IS SUPERVISOR REVIEW OF THAT LR-12 EVIDENCE. P5 (cutover) and P6 (first native receipt) REMAIN NOT AUTHORIZED and neither is reachable without a new explicit order.
+- Next authorizable action: `SUPERVISOR REVIEW OF NATIVE-RECEIPT-P4-ACCEPTANCE-CLOSEOUT-AND-LR12-P5-ENTRY-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md::### 9.9.T P4 implementation evidence`
+- `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md::### 9.9.U LR-12 discharge — fresh backup and restore rehearsal`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

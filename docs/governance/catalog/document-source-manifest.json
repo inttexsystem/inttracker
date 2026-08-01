@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "be5557557c295fc91eb67c45aef6eab27296a742",
-      "sha256": "9d7a3c959af863359b2230c6bb238d68a6d6ad2986dc3c6f1c975b1ebd23bc5f",
+      "git_object_id": "5bf46ba99f0cba6316adc9b7b9ba514b5b098330",
+      "sha256": "4305d5a81376aaf41811cda722e9244660dea83f8911f2f2dcc452e824241e7b",
       "line_count": 45,
-      "byte_count": 11627,
+      "byte_count": 12361,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -1265,7 +1265,7 @@
         },
         {
           "source_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-          "source_line": 2688,
+          "source_line": 2903,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -4883,6 +4883,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11003,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "source_line": 19,
           "kind": "ROOT_REFERENCE",
@@ -6719,7 +6726,7 @@
         },
         {
           "source_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-          "source_line": 2687,
+          "source_line": 2902,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -32550,7 +32557,7 @@
         },
         {
           "source_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-          "source_line": 2417,
+          "source_line": 2604,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -34155,10 +34162,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
-      "git_object_id": "be65842df8621e4a86336258bb16a72689f637b0",
-      "sha256": "43b410f16df835999efa86fd2fb0b6bea3d0c6f20508f58d467a26e2f2734dc5",
-      "line_count": 2709,
-      "byte_count": 189084,
+      "git_object_id": "1eea9bf214320b975723a7a462d9b0fcf9a67b42",
+      "sha256": "d975de1136828b7fdae2ae1685be2ee117885a9572e3ba45ce6675eb6cbc60e4",
+      "line_count": 2924,
+      "byte_count": 202561,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -34215,7 +34222,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 2417
+          "source_line": 2604
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -34223,7 +34230,7 @@
           "target_path": "PROJECT_STATE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 2687
+          "source_line": 2902
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -34231,7 +34238,7 @@
           "target_path": "AGENT_HANDOFF.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 2688
+          "source_line": 2903
         }
       ],
       "inbound_references": [
@@ -34252,6 +34259,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 10871,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11003,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -34907,100 +34921,112 @@
           "line": 2339
         },
         {
+          "level": 3,
+          "text": "9.9.T P4 implementation evidence",
+          "anchor": "99t-p4-implementation-evidence",
+          "line": 2370
+        },
+        {
+          "level": 3,
+          "text": "9.9.U LR-12 discharge — fresh backup and restore rehearsal",
+          "anchor": "99u-lr-12-discharge-fresh-backup-and-restore-rehearsal",
+          "line": 2489
+        },
+        {
           "level": 2,
           "text": "11. Acceptance model",
           "anchor": "11-acceptance-model",
-          "line": 2370
+          "line": 2557
         },
         {
           "level": 3,
           "text": "11.1 Mandatory authenticated scenarios (current, from the accepted R2 direction)",
           "anchor": "111-mandatory-authenticated-scenarios-current-from-the-accepted-r2-direction",
-          "line": 2391
+          "line": 2578
         },
         {
           "level": 2,
           "text": "12. Decision ledger",
           "anchor": "12-decision-ledger",
-          "line": 2413
+          "line": 2600
         },
         {
           "level": 2,
           "text": "13. Evidence ledger",
           "anchor": "13-evidence-ledger",
-          "line": 2430
+          "line": 2617
         },
         {
           "level": 3,
           "text": "13.1 Migrations read",
           "anchor": "131-migrations-read",
-          "line": 2435
+          "line": 2622
         },
         {
           "level": 3,
           "text": "13.2 Application files read",
           "anchor": "132-application-files-read",
-          "line": 2453
+          "line": 2640
         },
         {
           "level": 3,
           "text": "13.3 RPCs inspected",
           "anchor": "133-rpcs-inspected",
-          "line": 2465
+          "line": 2652
         },
         {
           "level": 3,
           "text": "13.4 Routes and components inspected",
           "anchor": "134-routes-and-components-inspected",
-          "line": 2474
+          "line": 2661
         },
         {
           "level": 3,
           "text": "13.5 Git evidence",
           "anchor": "135-git-evidence",
-          "line": 2480
+          "line": 2667
         },
         {
           "level": 3,
           "text": "13.6 Production SELECT evidence (read-only, at the db/100 preflight)",
           "anchor": "136-production-select-evidence-read-only-at-the-db100-preflight",
-          "line": 2488
+          "line": 2675
         },
         {
           "level": 3,
           "text": "13.6.1 Production SELECT evidence (read-only, current, 2026-07-31)",
           "anchor": "1361-production-select-evidence-read-only-current-2026-07-31",
-          "line": 2500
+          "line": 2687
         },
         {
           "level": 3,
           "text": "13.7 Unresolved evidence",
           "anchor": "137-unresolved-evidence",
-          "line": 2520
+          "line": 2707
         },
         {
           "level": 3,
           "text": "13.8 Coordinated-release SQL prototype — accepted execution proof (T1–T12)",
           "anchor": "138-coordinated-release-sql-prototype-accepted-execution-proof-t1t12",
-          "line": 2532
+          "line": 2719
         },
         {
           "level": 2,
           "text": "14. Current checkpoint",
           "anchor": "14-current-checkpoint",
-          "line": 2612
+          "line": 2799
         },
         {
           "level": 2,
           "text": "15. Future update protocol",
           "anchor": "15-future-update-protocol",
-          "line": 2674
+          "line": 2889
         },
         {
           "level": 2,
           "text": "16. Change log (append-only)",
           "anchor": "16-change-log-append-only",
-          "line": 2694
+          "line": 2909
         }
       ]
     },
@@ -79193,10 +79219,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "abdfa2dd020ed133aa1a48ac48873fcfea45ec76",
-      "sha256": "3adf2c278c57b5e036880a4a04480dd59c1bf7bb2a3e0f242cf43a0372938f9d",
-      "line_count": 10984,
-      "byte_count": 1600149,
+      "git_object_id": "bce7fbe68e394c273a40cb8f207e49adace1eaff",
+      "sha256": "5a5eb58bd0361ecca76ca9f13ceb5b915b4d46ca4359ea2eefb05a0cc69841a8",
+      "line_count": 11004,
+      "byte_count": 1607974,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86262,6 +86288,30 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10980
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11003
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md`",
+          "target_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11003
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11003
         }
       ],
       "inbound_references": [
@@ -88240,6 +88290,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11003,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "source_line": 8,
           "kind": "ROOT_REFERENCE",
@@ -89938,6 +89995,12 @@
           "text": "2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF — SUPERVISOR ACCEPTANCE — docs: accept P3 authenticated proof closeout",
           "anchor": "2026-08-01-native-receipt-coordinated-release-p3-authenticated-proof-supervisor-acceptance-docs-accept-p3-authenticated-proof-closeout",
           "line": 10974
+        },
+        {
+          "level": 2,
+          "text": "2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1 — SUPERVISOR ACCEPTANCE — docs: accept P4 authority switch and discharge LR-12",
+          "anchor": "2026-08-01-native-receipt-coordinated-release-p4-authority-switch-r1-supervisor-acceptance-docs-accept-p4-authority-switch-and-discharge-lr-12",
+          "line": 10986
         }
       ]
     },
