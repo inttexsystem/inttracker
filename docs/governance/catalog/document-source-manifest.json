@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "a05e5839b8ba5f2a7f36a69eb73104561aed05cb",
-      "sha256": "6d777298b5249aa9e12683c0bf6afb53321b599e6f92381c46cd8d5ea238ade3",
+      "git_object_id": "328d5e3e00cd3a132e95d56391d077974b7be9a7",
+      "sha256": "713b37a196b267a277de99238293009c8db14d61b7b25cef9e3e78fee938cb4d",
       "line_count": 45,
-      "byte_count": 19031,
+      "byte_count": 13331,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -23713,10 +23713,10 @@
     },
     {
       "path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-      "git_object_id": "a86dba3eb3fdcfaa21d5bafe398478893db4cc7d",
-      "sha256": "bc908024dd3fd857e0dbd1c545bc67818e8ed7dd88b0d15ddab1f9cfe0eaf570",
-      "line_count": 737,
-      "byte_count": 42067,
+      "git_object_id": "7519275dd17dbb89c97c74995e3af7720c46c1d0",
+      "sha256": "0bc1c106068d89c0307d720abff7ec42cb2decab251c9533c2beca14281d7823",
+      "line_count": 785,
+      "byte_count": 45301,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -23741,7 +23741,7 @@
           "target_path": "docs/governance/AGENT_INSTRUCTIONS.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 599
+          "source_line": 629
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -23749,7 +23749,7 @@
           "target_path": "docs/ledgers/G28_LEDGER.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 722
+          "source_line": 770
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -23757,7 +23757,7 @@
           "target_path": "docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 735
+          "source_line": 783
         }
       ],
       "inbound_references": [
@@ -23813,199 +23813,199 @@
           "level": 2,
           "text": "3. RPC inventory under proof",
           "anchor": "3-rpc-inventory-under-proof",
-          "line": 79
+          "line": 80
         },
         {
           "level": 2,
           "text": "4. Identity and authorization intent",
           "anchor": "4-identity-and-authorization-intent",
-          "line": 106
+          "line": 107
         },
         {
           "level": 2,
           "text": "5. Synthetic namespace and protected data",
           "anchor": "5-synthetic-namespace-and-protected-data",
-          "line": 147
+          "line": 148
         },
         {
           "level": 2,
           "text": "6. Productive availability seed",
           "anchor": "6-productive-availability-seed",
-          "line": 181
+          "line": 184
         },
         {
           "level": 3,
           "text": "6.1 Why a bounded maintenance excursion is authorized",
           "anchor": "61-why-a-bounded-maintenance-excursion-is-authorized",
-          "line": 198
+          "line": 201
         },
         {
           "level": 3,
           "text": "6.2 Boundary of the excursion — binding",
           "anchor": "62-boundary-of-the-excursion-binding",
-          "line": 214
+          "line": 217
         },
         {
           "level": 3,
           "text": "6.3 Required ordering intent",
           "anchor": "63-required-ordering-intent",
-          "line": 227
+          "line": 230
         },
         {
           "level": 3,
           "text": "6.4 Prohibited in every case",
           "anchor": "64-prohibited-in-every-case",
-          "line": 249
+          "line": 261
         },
         {
           "level": 3,
           "text": "6.5 Availability proof",
           "anchor": "65-availability-proof",
-          "line": 259
+          "line": 271
         },
         {
           "level": 2,
           "text": "7. Scenario intent — S01–S47",
           "anchor": "7-scenario-intent-s01s47",
-          "line": 266
+          "line": 278
         },
         {
           "level": 3,
           "text": "7.1 Group 1 — availability and production (S01–S12), identity `A`",
           "anchor": "71-group-1-availability-and-production-s01s12-identity-a",
-          "line": 287
+          "line": 299
         },
         {
           "level": 3,
           "text": "7.2 Group 2 — supplier acceptance (S13–S20)",
           "anchor": "72-group-2-supplier-acceptance-s13s20",
-          "line": 304
+          "line": 316
         },
         {
           "level": 3,
           "text": "7.3 Group 3 — Pedido lifecycle (S21–S29)",
           "anchor": "73-group-3-pedido-lifecycle-s21s29",
-          "line": 317
+          "line": 329
         },
         {
           "level": 3,
           "text": "7.4 Group 4 — delivery and finishing (S30–S38), identity `A`",
           "anchor": "74-group-4-delivery-and-finishing-s30s38-identity-a",
-          "line": 331
+          "line": 343
         },
         {
           "level": 3,
           "text": "7.5 Group 5 — expedition (S39–S44), identity `A`",
           "anchor": "75-group-5-expedition-s39s44-identity-a",
-          "line": 345
+          "line": 357
         },
         {
           "level": 3,
           "text": "7.6 Group 6 — permission and security (S45–S47), each a sweep over all 14",
           "anchor": "76-group-6-permission-and-security-s45s47-each-a-sweep-over-all-14",
-          "line": 356
+          "line": 368
         },
         {
           "level": 2,
           "text": "8. P3/P4 boundary",
           "anchor": "8-p3p4-boundary",
-          "line": 379
+          "line": 391
         },
         {
           "level": 2,
           "text": "9. S34 failure-injection constraint",
           "anchor": "9-s34-failure-injection-constraint",
-          "line": 408
+          "line": 420
         },
         {
           "level": 2,
           "text": "10. Isolation and required invariants",
           "anchor": "10-isolation-and-required-invariants",
-          "line": 426
+          "line": 438
         },
         {
           "level": 3,
           "text": "10.1 Cutover invariant timing",
           "anchor": "101-cutover-invariant-timing",
-          "line": 428
+          "line": 440
         },
         {
           "level": 3,
           "text": "10.2 Preserved across the whole run",
           "anchor": "102-preserved-across-the-whole-run",
-          "line": 446
+          "line": 458
         },
         {
           "level": 3,
           "text": "10.3 TD1 fingerprints — projections, not invariants",
           "anchor": "103-td1-fingerprints-projections-not-invariants",
-          "line": 474
+          "line": 490
         },
         {
           "level": 3,
           "text": "10.4 Migration identity — three distinct facts",
           "anchor": "104-migration-identity-three-distinct-facts",
-          "line": 492
+          "line": 508
         },
         {
           "level": 3,
           "text": "10.5 The authorized `db/112` catalogue delta",
           "anchor": "105-the-authorized-db112-catalogue-delta",
-          "line": 511
+          "line": 527
         },
         {
           "level": 3,
           "text": "10.6 The one narrow counter exception",
           "anchor": "106-the-one-narrow-counter-exception",
-          "line": 535
+          "line": 553
         },
         {
           "level": 3,
           "text": "10.7 Isolation reporting — three separated classes",
           "anchor": "107-isolation-reporting-three-separated-classes",
-          "line": 550
+          "line": 568
         },
         {
           "level": 2,
           "text": "11. Evidence requirements and classification",
           "anchor": "11-evidence-requirements-and-classification",
-          "line": 562
+          "line": 583
         },
         {
           "level": 3,
-          "text": "11.1 Production-untouched intent and its evidence class",
-          "anchor": "111-production-untouched-intent-and-its-evidence-class",
-          "line": 583
+          "text": "11.1 Production-untouched — intent and its two evidence classes",
+          "anchor": "111-production-untouched-intent-and-its-two-evidence-classes",
+          "line": 604
         },
         {
           "level": 3,
           "text": "11.2 Teardown",
           "anchor": "112-teardown",
-          "line": 604
+          "line": 639
         },
         {
           "level": 2,
           "text": "12. Preserved execution state",
           "anchor": "12-preserved-execution-state",
-          "line": 611
+          "line": 647
         },
         {
           "level": 2,
           "text": "13. Acceptance and hard stops",
           "anchor": "13-acceptance-and-hard-stops",
-          "line": 672
+          "line": 717
         },
         {
           "level": 2,
           "text": "14. Historical record — non-normative",
           "anchor": "14-historical-record-non-normative",
-          "line": 709
+          "line": 757
         },
         {
           "level": 2,
           "text": "15. Provenance",
           "anchor": "15-provenance",
-          "line": 729
+          "line": 777
         }
       ]
     },
@@ -34237,7 +34237,7 @@
         },
         {
           "source_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-          "source_line": 735,
+          "source_line": 783,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -56280,7 +56280,7 @@
         },
         {
           "source_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-          "source_line": 599,
+          "source_line": 629,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -86287,7 +86287,7 @@
         },
         {
           "source_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
-          "source_line": 722,
+          "source_line": 770,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

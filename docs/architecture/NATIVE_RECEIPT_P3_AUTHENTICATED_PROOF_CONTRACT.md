@@ -70,10 +70,11 @@ remains inactive.
 - P3 does **not** activate the receipt and does **not** perform the cutover.
 - `db/103b`, `db/104`, `db/106` and `db/110` are RESERVED, uncreated numbers.
   P3 applies none of them.
-- The only migration P3 applies is the forward patch
+- The only migration P3 may apply is the forward patch
   `db/112_cutover_snapshot_completeness_invariant.sql`, to the disposable clone
-  **only**, under section 6. Applying it to production is a separate future
-  cutover/P5 authorization and is explicitly not part of P3.
+  **only**, and only when measurement shows it absent (section 6.3 step 1).
+  Applying it to production is a separate future cutover/P5 authorization and
+  is explicitly not part of P3.
 - No repository product, test or `db/*.sql` file is modified by a P3 execution.
 
 ## 3. RPC inventory under proof
@@ -152,8 +153,10 @@ One namespace, **`P3F`**, entirely synthetic.
 - BIGINT surrogate keys occupy the reserved band **`950000000`–`950999999`**,
   disjoint from the C3D `930…` band, the P1 `940…` band and every production
   id.
-- UUIDs are syntactically valid inside the reserved band
-  `9d1f0000-0000-4000-8000-0000000P3F##`.
+- UUID surrogate keys are syntactically valid UUIDs taken from a reserved
+  synthetic band that cannot collide with any production value. The band and
+  the ids actually used are fixture mechanics: they are owned by
+  `04-fixtures.json` and derived from it, never restated or re-invented here.
 - Idempotency keys are deterministic and literal — `p3f:<scenario-id>:<attempt>`
   — never `Date.now()` and never a random source, so replay and conflict
   scenarios reproduce.
@@ -226,8 +229,17 @@ owned by `db/75`, `db/76`, `db/107` and `db/112` and are derived from them.
 
 ### 6.3 Required ordering intent
 
-1. apply `db/112` to the preserved clone and record the application by
-   repository identity (section 10.4);
+1. **derive the current patch state of the identified disposable clone by
+   direct measurement, and prove the authorized `db/112` patch is PRESENT
+   before any dependent step proceeds.** Whether it is already applied is a
+   DYNAMIC fact: a resumed run may inherit a clone that already carries it.
+   Measure first; apply only if measurement shows it absent; never reapply
+   blindly and never apply more than the authorized patch. Record the measured
+   pre-state, whether an application occurred, and the resulting state, by
+   repository identity (section 10.4). **Do not invent or insert a
+   migration-ledger version.** If the measured state is neither cleanly absent
+   nor exactly the authorized patch, that is
+   `HARD STOP — UNAUTHORIZED DB112 CATALOGUE DRIFT` (section 10.5);
 2. prove the starting cutover state before entering the excursion;
 3. enter the bounded maintenance path through the canonical function;
 4. **run the canonical generation cleanup BEFORE the persistent P3 seed
@@ -458,7 +470,11 @@ and is asserted alongside every check above.
   applies **no** DDL after restore, and any other catalogue movement is
   `UNAUTHORIZED CATALOGUE DRIFT` and a hard stop;
 - the `db/75`/`db/76` receipt-writer fence unchanged;
-- production `ucrjtfswnfdlxwtmxnoo`: zero row delta, zero catalogue delta.
+- production `ucrjtfswnfdlxwtmxnoo`: **no mutation-capable P3 path**, proved
+  structurally. Section 10 does **not** independently mandate a literal final
+  production row, catalogue or ledger equality; that measurement is the
+  corroborative artifact classified in section 11.1, which is the sole owner of
+  the production-untouched evidence split.
 
 **Permitted delta surface (synthetic `P3F` rows only).** The Pedido, OP,
 delivery, expedition, purchase-order, need and planning tables together with
@@ -498,7 +514,7 @@ never conflate them:
 |---|---|---|
 | 1 | the production migration ledger | the Supabase apply tooling |
 | 2 | the restored clone's inherited ledger — a copy of (1); P3 asserts it stays exactly that | inherited by `pg_restore` |
-| 3 | the P3-only forward patch `db/112`, applied post-restore outside that tooling | this contract |
+| 3 | the P3-only forward patch `db/112`, present on the clone post-restore outside that tooling — its presence is MEASURED per section 6.3 step 1, and applied only if measurement shows it absent | this contract |
 
 `db/112` writes no migration-ledger row, so applying it does **not** advance
 (2). **No ledger insertion is performed or permitted**: the ledger version is
@@ -528,9 +544,11 @@ Anything else is:
 HARD STOP — UNAUTHORIZED DB112 CATALOGUE DRIFT
 ```
 
-**Production is out of scope of this delta.** Production carries no `db/112`
-and is compared against its own restore baseline, where the catalogue must show
-ZERO delta in every dimension.
+**Production is out of scope of this delta.** P3 applies `db/112` to the clone
+only and never to production, so production carries no `db/112`. That is a
+boundary of section 2 and holds structurally. Any comparison of the production
+catalogue against its own restore baseline is the corroborative remeasurement
+owned by section 11.1, not an independent requirement of this section.
 
 ### 10.6 The one narrow counter exception
 
@@ -559,6 +577,9 @@ and call the intentional change drift:
 | **B** | the clone-only `db/112` catalogue delta | EXACTLY the section 10.5 authorized set and nothing else |
 | **C** | synthetic `P3F` scenario delta | confined to the section 10.2 permitted delta surface |
 
+All three classes are measured **on the disposable clone**. Production is not
+one of them: its treatment is owned entirely by section 11.1.
+
 ## 11. Evidence requirements and classification
 
 Evidence **may live outside the repository** and currently does (section 12).
@@ -577,36 +598,51 @@ Evidence **may live outside the repository** and currently does (section 12).
 | `05-scenarios/S01.json` … `S47.json` | per scenario: identity assertion, the derived oracle, command, verbatim result, delta and non-delta assertions, pass/fail | LOAD_BEARING |
 | `06-isolation.json` | before/after count and hash for every copied production table with the `P3F` exclusion applied, in the three classes of section 10.7 | LOAD_BEARING |
 | `07-teardown.json` | stop result, port closed, pid absent, directory absent, plus independent filesystem checks for data dir and dump path | LOAD_BEARING |
-| `08-production-untouched.json` | post-run read-only re-measurement of `00`, diffed to zero | **CORROBORATIVE** |
+| `08-production-untouched.json` | post-run read-only re-measurement of `00`, diffed to zero; collected when reachable, otherwise declared `WITHHELD` — see section 11.1 | **CORROBORATIVE** |
 | `P3-REPORT.md` | human-readable roll-up, scenario table, failures, stop conditions hit | LOAD_BEARING |
 
-### 11.1 Production-untouched intent and its evidence class
+### 11.1 Production-untouched — intent and its two evidence classes
 
 **Intent, unchanged and binding:** this P3 execution must have no
 mutation-capable path to production. Production is contacted only by separately
-authorized read-only work, every mutation is confined to the disposable clone
-verified by `systemIdentifier`, and production authority, rows and catalogue
-are unchanged at the end of the run.
+authorized read-only work, and every mutation is confined to the disposable
+clone verified by `systemIdentifier`.
 
-**Supervisor decision.** `08-production-untouched.json` is
-`EVIDENCE_CORROBORATIVE`. Its absence alone does not block P3 acceptance when
-independent structural evidence sufficiently proves that the execution held no
-mutation-capable production path — the read-only session proof of
-`01-dump-manifest.json` with its negative controls, the distinct-cluster
-assertion of `02-cluster-boot.json`, and the clone-confined mutation surface of
-`06-isolation.json`. A `WITHHELD` corroborative artifact must be declared, with
-its reason and the independent evidence relied on instead, per
-`docs/governance/AGENT_INSTRUCTIONS.md` section 13.5.
+**Supervisor decision — the evidence for that intent splits in two.** This
+section is the SOLE owner of the split; section 10 defers to it and mandates no
+literal production equality of its own.
 
-**This decision does NOT authorize production access or mutation**, and does not
-relax any boundary in section 2. It classifies one artifact; it grants nothing.
+- `EVIDENCE_LOAD_BEARING` — the **structural** proof that the execution held no
+  mutation-capable production path: the read-only session proof of
+  `01-dump-manifest.json` with its negative controls, the distinct-cluster
+  assertion of `02-cluster-boot.json` proving the mutation target is not
+  production, and the clone-confined mutation surface of `06-isolation.json`.
+  This may not be waived; its absence blocks acceptance.
+- `EVIDENCE_CORROBORATIVE` — `08-production-untouched.json`, the final
+  read-only remeasurement showing literal zero production row, catalogue and
+  ledger delta.
+
+**Literal final production equality is therefore NOT independently mandatory
+when `08` is WITHHELD.** If `08` is obtainable under a separately authorized
+read-only operation, collect it and report it. If it is not, declare it
+`WITHHELD` with its reason and rely only on the load-bearing structural
+evidence named above, per `docs/governance/AGENT_INSTRUCTIONS.md` section 13.5.
+A withheld corroborative artifact does not by itself block acceptance; a
+missing load-bearing structural proof does.
+
+`08` **present and showing a non-zero delta** is a different matter: that is a
+P3 failure and a hard stop, not a withheld artifact.
+
+**This grants no production access and no production mutation** and relaxes no
+boundary of section 2. It classifies evidence; it authorizes nothing.
 
 ### 11.2 Teardown
 
 **Teardown is an acceptance criterion, not housekeeping.** If any teardown step
 fails, the run is reported FAILED even if all 47 scenarios passed. Teardown
-covers the P3 clone and the superseded rehearsal cluster of section 12, and
-both remain OUTSTANDING.
+covers the P3 clone and the superseded rehearsal cluster of section 12. Whether
+either still exists is remeasured at run time, not assumed from this file; both
+must be proved ABSENT when the run reports.
 
 ## 12. Preserved execution state
 
@@ -622,10 +658,19 @@ run_id:
 ```
 
 **Preserved clone — do NOT rebuild.** `systemIdentifier 7668905723812930636`.
-Verify by `systemIdentifier`, never by port. A superseded rehearsal cluster
-(`D:\p3-work\rehearsal-JhFKAI`, `systemIdentifier 7668897191668365016`) has been
-observed still listening; it is **not** a valid P3 target, must not be used,
-and its teardown is outstanding.
+Verify by `systemIdentifier`, never by port.
+
+**Superseded rehearsal cluster.** `D:\p3-work\rehearsal-JhFKAI`,
+`systemIdentifier 7668897191668365016`. It is **never** a valid P3 target and
+must never be used for any P3 step.
+
+**Liveness is a dynamic fact and this file asserts none.** Whether either
+cluster is currently running, listening, stopped or already gone is not stated
+here and must not be inferred from here. The resumption run REMEASURES the
+liveness and identity of both, by `systemIdentifier` and never by port, before
+any mutation, and records the measurement in evidence. The rehearsal cluster
+must be **absent at final teardown**, and the P3 clone must be absent once its
+own teardown completes.
 
 **Fixture state.** The clone already holds the complete validated `P3F`
 namespace, recorded in `04-fixtures.json`. A resumption order starts at
@@ -678,9 +723,12 @@ from a P3 result.
 
 **Acceptance requires** every `EVIDENCE_LOAD_BEARING` artifact of section 11
 present and directly proved; the 47 scenarios executed in order with derived
-oracles recorded; the section 10 invariants held at every asserted point; the
-isolation report in its three separated classes; teardown complete; and the
-production-untouched intent of section 11.1 satisfied.
+oracles recorded; the section 10 invariants held on the clone at every asserted
+point; the isolation report in its three separated classes; teardown complete
+and both clusters proved absent; and the production-untouched intent of
+section 11.1 satisfied **at its declared evidence classes** — the structural
+load-bearing proof present, with `08` collected when reachable and declared
+`WITHHELD` when not. A withheld `08` alone does not block acceptance.
 
 **Hard stop, report and do not continue, when:**
 
