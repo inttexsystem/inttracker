@@ -106,6 +106,16 @@ already closes. Proved by
 which cites the constraint and exercises the refusal rather than inferring
 uniqueness from the historical 51/51 shape.
 
+**Amendment R4 (2026-08-01) — SCENARIO ORACLE RECONCILIATION.** The first
+execution of the §7 matrix produced 21 PASS / 13 FAIL and proved **no product
+defect**. Diagnosis showed that some failures were executor errors but others
+were **defects in this contract's own scenario oracles**: §7 asserted outcomes
+the canonical product does not and should not produce. The product is not
+changed to match the tests; the oracles are corrected to match the product.
+The reconciled oracles are §7.7 below, which **overrides** the corresponding
+rows of §7.1–§7.6. Scenario intent, identity model, evidence schema and the
+S24/S34/`op_numeros`/TD1/P3-P4 rulings are unchanged.
+
 ---
 
 ## 1. P3 purpose
@@ -506,6 +516,43 @@ forged `sub` for a non-admin must not confer admin and a forged `"role":"admin"`
 claim must be inert. (4) `_READ_ONLY_RPCS` must be asserted disjoint from
 `_P2_RPC_INVENTORY.escrita` as a static source assertion, since a future union
 there would open a production write path from localhost/preview.
+
+### 7.7 Reconciled scenario oracles (Amendment R4)
+
+Each entry below **overrides** the same scenario in §7.1–§7.6. Every correction
+is justified by measured canonical behaviour, cited inline.
+
+| ID | Corrected oracle | Why the old oracle was wrong |
+|---|---|---|
+| S01 | On an OP with no productive receipt **on its own axis**, every **OP-origin** line reads `kg_recebido_liquido = 0` and `kg_disponivel = 0`. Pedido-origin lines are a **shared pool** and are reported, not required to be zero. | `_oc_disponibilidade_linhas` scopes `origem_tipo='op'` to the OP but `origem_tipo='pedido'` to the whole Pedido, so the §6 seed legitimately shows on a sibling OP. "every line zero" was never a valid implication. |
+| S02 | TD1 by **attributable component**: the synthetic `saldo_fios` row sits on the *same* axis as an OP-origin need whose ceiling stays `0`, and the five real TD1 rows re-hash exactly. | An absolute-zero assertion over all lines is invalid for the same pooling reason. |
+| S13/S14/S15 | Project the real return column **`ordem_compra_id`**. | `listar_fila_aceite_fornecedor` returns `TABLE(ordem_compra_id, codigo, identidade_operacional, fornecedor_id, emitida_em, status_aceite, kg_total, itens)`. `ordem_id` never existed — harness-only defect. |
+| S21 | Permitted operator transition is **`rascunho → recebido`**; `ok`, `revisao` +1, `pedido_eventos` row written. | `alterar_status_pedido` accepts exactly `rascunho→recebido` and `recebido→confirmado`. `rascunho→confirmado` is not an operator transition. |
+| S22 | Forbidden derived transition is **`recebido → produzindo`**, verified against that same graph. | Must be forbidden *by the transition graph*, not by a stale revision. |
+| S24 | Put the Pedido in **`recebido`**, add the pending priority request, then invoke **`recebido → confirmado`**. Expect `PEDIDO_PRIORITY_ADMIN_REVIEW_REQUIRED`, **SQLSTATE 23514**, zero business delta. | The gate is `BEFORE UPDATE ON pedidos WHEN new.status='confirmado' AND old.status IS DISTINCT FROM 'confirmado'`. The old oracle used a transition that is refused *before* the gate, so the gate was never reached. |
+| S29 | Prove **both**: (a) `alterar_status_pedido` under `C` is refused; (b) the direct-table authority on `public.pedidos` is **measured exactly** and classified `EXPECTED PRE-P4 LEGACY AUTHORITY — UNCHANGED BY P3`, with the live grant/RLS posture as the proof. | §8 defers direct-DML revocation to P4. Requiring denial in P3 contradicted §8. |
+| S30–S33 | Use a **Tapete** lineage: `modelos.tipo_produto = 'tapete'` (modelo 4), on an OP in a deliverable state. | Modelo 27 is `manta`; the Tapete-only writer correctly refuses it. That refusal is S38's expectation, not S30's. |
+| S34 | Data-only injection: a **pending priority request on the OP's Pedido**, which makes the finishing-OP INSERT raise via `ops_prioridade_op_gate → assert_pedido_prioridade_revisada`. Delivery persists, `falha` attempt row written, no finishing OP. | The contract left the mechanism to discovery (§9). Recorded here as the discovered one. A non-finishing destination is **not** valid: `ops_latex_origem_destino_uidx` would be the real cause. |
+| S35/S37 | `pode_recuperar_op_acabamento` returns SQL `boolean` rendered `true`/`false`. | Harness-only literal defect. |
+| S39–S41 | The Tapete reversal requires an expedition whose **source is a finishing (latex) OP**, and `expedicoes_source_validation_guard_fn` makes that source **immutable after creation**, while `expedicao_itens_membership_guard_fn` requires each item's `op_item` to belong to that source OP and its `pedido_item_id` to match the source item's. A dedicated P3F expedition is therefore **created** with a latex source. | The original fixture is tecelagem-sourced and cannot be re-pointed. |
+| S47 | Classify **each** DML surface as `MUST BE DENIED IN P3` or `EXPECTED PRE-P4 LEGACY AUTHORITY — UNCHANGED BY P3`, from the live grants/RLS (§7.8). Fail on new/broadened/unexpected authority, claim elevation, owner-helper reachability, role escalation, or a writer in `_READ_ONLY_RPCS`. Do **not** fail on an unchanged deferred permission. | A blanket "all direct DML denied" contradicts §8. |
+
+**Role escalation.** `SET ROLE postgres` cannot be tested through a
+postgres-owned harness session, because the session user is already `postgres`.
+The load-bearing fact is proved instead: no client role holds `MEMBER` on
+`postgres` (`pg_has_role(...) = false` for `authenticated`, `anon`,
+`service_role`), so escalation is structurally impossible.
+
+### 7.8 S47 direct-DML classification (measured)
+
+| Surface | `authenticated` grants | Classification |
+|---|---|---|
+| `ordem_compra_aceite_comandos`, `entrega_cima_comandos`, `op_acabamento_comandos`, `expedicao_comandos` | `SELECT` only (RLS on) | **MUST BE DENIED IN P3** — no client write path to a command store |
+| `pedidos`, `ops`, `op_itens`, `expedicoes`, `entregas`, `saldo_fios_op` | `SELECT, INSERT, UPDATE, DELETE` behind RLS | **EXPECTED PRE-P4 LEGACY AUTHORITY — UNCHANGED BY P3** (P4 `db/106` direct-DML containment) |
+
+P3 asserts these are **unchanged**, never that they are absent. A grant present
+here but absent from the accepted baseline is a P3 failure; an unchanged
+deferred grant is not.
 
 ## 8. P3/P4 boundary
 
