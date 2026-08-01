@@ -16,14 +16,27 @@ canonicalises the reviewed enumeration of it and never contradicts it.
 
 ```
 P2 CLOSED / ACCEPTED
-P3 AUTHORIZED / AWAITING AUTHENTICATED PROOF EXECUTION
+P3 AUTHORIZED / AWAITING RESUMPTION EXECUTION
 P4 NOT AUTHORIZED
 P5 NOT AUTHORIZED
 NATIVE RECEIPT INACTIVE
 ```
 
 **Authorising this contract does not authorise scenario mutation.** Executing
-any part of section 7 requires a separate explicit P3 EXECUTION order.
+any part of section 6 or section 7 requires a separate explicit P3 RESUMPTION
+order.
+
+**Amendment R1 (2026-08-01).** A first execution attempt completed the `P3F`
+fixture namespace and then correctly hard-stopped: the productive receipt seed
+of §6 was unreachable under a continuous `legacy_active` reading, because the
+`db/75`/`db/76` fence refuses every receipt-header insert — for the owner role
+too — outside a canonical or maintenance state. No product defect was found and
+restore fidelity is intact. `NATIVE-RECEIPT-P3-PROOF-CONTRACT-AMENDMENT-R1`
+repairs four contract-level contradictions and nothing else: §6 gains the
+bounded pre-PONR maintenance excursion and its seed provenance, §7 records the
+observed `S24` refusal shape, §10.1 fixes the invariant timing, §10.2 names each
+TD1 fingerprint's algorithm, and §10.3 bounds the `op_numeros` exception. No
+product, database or test file changed.
 
 ---
 
@@ -205,15 +218,116 @@ The seed:
 - uses synthetic `P3F` rows only;
 - exists only in the disposable clone;
 - must **never** invoke the public native receipt writer;
-- must **not** alter `ordem_compra_cutover`;
 - must **not** set `productive_receipt_started_at`;
 - must **not** touch the five real TD1 `saldo_fios` rows;
 - must **not** touch `OC-001-3-26` or `OC-001-4-26`;
 - must **not** touch any copied non-`P3F` production row.
 
-Before the matrix runs, the executor must prove that `oc_disponibilidade_op`
-returns the exact expected positive native availability derived from this
-synthetic lineage, and must record that proof as `04b-productive-receipt-seed.json`.
+### 6.1 Why a bounded maintenance excursion is required
+
+A first execution attempt proved the lineage unreachable under a *continuous*
+no-cutover-mutation reading, and the proof is structural, not a product defect:
+
+1. `db/101._oc_material_recebido_liquido` counts a ledger line only when
+   `recebimento_id IS NOT NULL`.
+2. `ordem_compra_fio_lancamentos.recebimento_id` is a FOREIGN KEY to
+   `ordem_compra_recebimentos`, so a productive line needs a receipt header.
+3. `ordem_compra_recebimentos` carries `BEFORE INSERT`
+   `trg_c3c_command_state_guard` — the `db/75`/`db/76` writer fence. For
+   `comando_tipo <> 'import_saldo_inicial'` it raises `recebimento_canonico_inativo`
+   (`55000`) unless the cutover is `canonical_active`/`canonical`; the
+   `import_saldo_inicial` branch requires `maintenance_fenced`/`flat` with the
+   PONR marker NULL.
+4. The trigger is `tgenabled = 'O'`, so it fires for **every** role including the
+   table owner. The clone holds zero reusable headers.
+
+The approved harness mechanism is therefore a **bounded pre-PONR maintenance
+excursion on the disposable clone only**, through the canonical `db/107` cutover
+functions. It is fixture preparation, never a caller-proof scenario.
+
+### 6.2 Boundary of the excursion
+
+- Production is **never** involved.
+- Only clone `system_identifier 7668905723812930636` may be mutated.
+- `canonical_active` and `read_authority = 'canonical'` remain **forbidden**.
+- `productive_receipt_started_at` must remain **NULL at every instant**,
+  including throughout the maintenance preparation.
+- The only temporary state permitted is `maintenance_fenced` with
+  `read_authority = 'flat'`.
+- Only owner/setup identity `F` (`postgres`) may perform it. Identity `F` still
+  may never satisfy a caller-proof scenario.
+- Every step runs under the canonical owner/session lock the existing `db/107`
+  functions require (`ordem_compra_c3c_acquire_session_lock` /
+  `ordem_compra_c3c_release_session_lock`); those functions refuse when
+  `current_user <> 'postgres'` or the lock is not held.
+
+### 6.3 Mandatory ordering
+
+1. prove the starting state is `legacy_active` / `flat` /
+   `productive_receipt_started_at IS NULL`;
+2. acquire the canonical owner/session lock and enter the bounded pre-PONR
+   maintenance path (`ordem_compra_c3c_fence_and_snapshot`);
+3. run the canonical generation cleanup
+   (`ordem_compra_c3c_purge_generation`) **BEFORE the persistent P3 seed
+   exists**, so the temporary cutover snapshot and inventory-baseline state is
+   removed while it is still safe to remove;
+4. create the P3F synthetic productive lineage as an `import_saldo_inicial`
+   receipt header plus its allocation-bearing ledger lines (see §6.4);
+5. prove the seed touched only `P3F` business rows;
+6. call `ordem_compra_c3c_resume_legacy(...)`;
+7. prove exact restoration to `legacy_active` / `flat` /
+   `productive_receipt_started_at IS NULL`;
+8. only then generate a successful `04b-productive-receipt-seed.json`;
+9. only then begin `S01`.
+
+Step 3 must precede step 4. `purge_generation` deletes every
+`ordem_compra_cutover_source_snapshot` and
+`ordem_compra_cutover_inventory_baseline` row, and it deletes the receipt
+headers and ledger lines whose `idempotency_namespace` is
+`legacy_initial_balance_v1`. Running it after the seed in that namespace would
+destroy the seed; running it before is safe and leaves both staging tables at
+their copied baseline of zero rows.
+
+### 6.4 Seed provenance namespace
+
+The persistent P3 seed must **not** be placed in the namespace owned by
+`purge_generation`. For this disposable proof harness only, the authorized
+fixture provenance is:
+
+```
+idempotency_namespace = legacy_compat_receipt_v1
+comando_tipo          = import_saldo_inicial
+```
+
+`ordem_compra_recebimentos_c3a_namespace_check` admits that namespace and no
+constraint couples `comando_tipo` to `idempotency_namespace`;
+`ordem_compra_recebimentos_c3c_hash_check` requires a 32-hex `comando_hash` for
+it. The header must carry `ator_tipo = 'sistema'` with `ator_id` NULL, and each
+ledger line `tipo = 'import_saldo_inicial'`, `criado_por` NULL,
+`data_recebimento` NULL, `kg_recebido > 0`, `kg_excesso = 0` and a non-null
+`ordem_compra_item_alocacao_id` whose provenance satisfies
+`trg_native_lancamento_shape_guard`.
+
+**This is fixture provenance only.** It does not redefine production semantics
+and does not authorize that combination anywhere outside the disposable P3 proof
+clone.
+
+### 6.5 Prohibited in every case
+
+- the public native receipt writer;
+- disabling a trigger outside an already-owned canonical cleanup function;
+- `session_replication_role` bypass;
+- direct ad-hoc manipulation of the `ordem_compra_cutover` row;
+- `canonical_active`;
+- `read_authority = 'canonical'`;
+- setting `productive_receipt_started_at`.
+
+### 6.6 Availability proof
+
+After step 7 the executor must prove that `oc_disponibilidade_op` returns the
+exact expected **positive** native availability derived from this synthetic
+lineage, and record that proof as `04b-productive-receipt-seed.json`. A seed
+that cannot reach a positive ceiling is a failed seed, not a passed one.
 
 ## 7. Scenario matrix S01-S47
 
@@ -263,7 +377,7 @@ silence.
 | S21 | A | Permitted operator transition (`rascunho → confirmado`) | `ok`; `revisao` +1; event row written |
 | S22 | A | Forbidden derived transition (e.g. → `produzindo` by hand) | `PEDIDO_TRANSICAO_NAO_PERMITIDA`; zero delta |
 | S23 | A | Stale `p_base_revisao` | `PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA`; zero delta |
-| S24 | A | Confirm with a pending client priority request | `ADMIN_REVIEW_REQUIRED`; zero delta |
+| S24 | A | Confirm with a pending client priority request | refusal carrying `ADMIN_REVIEW_REQUIRED`; **zero business delta**. Observed canonical shape, proved by direct evidence: the gate lives in table trigger `pedidos_prioridade_acceptance_gate_fn`, which RAISEs `PEDIDO_PRIORITY_ADMIN_REVIEW_REQUIRED` with **SQLSTATE `23514`** — it is an exception, not the `{ok:false, codigo}` return shape the other refusals use. Assert the raised form. The RPC must NOT be changed to normalize it. |
 | S25 | A | `pedido_elegivel_cancelamento` on an eligible Pedido | `elegivel: true` |
 | S26 | A | Cancel eligible Pedido | `ok`; Pedido `cancelado`; related OPs cancelled; purchase planning **released, not deleted**; history preserved |
 | S27 | A | `pedido_elegivel_cancelamento` on a Pedido with a registered delivery | `elegivel: false`, `PEDIDO_COM_ENTREGA_REGISTRADA` |
@@ -361,20 +475,40 @@ report.
 
 ## 10. Required invariants
 
-Asserted **after every scenario**:
+### 10.1 Cutover invariant timing
 
 ```
 ordem_compra_cutover.status = legacy_active
-read_authority = flat
+read_authority              = flat
+```
+
+is asserted at these five points, **not** continuously through seed preparation:
+
+```
+A. before the bounded maintenance excursion of §6;
+B. immediately after resume_legacy and before 04b;
+C. immediately before S01;
+D. after every S01-S47 scenario;
+E. at final isolation verification.
+```
+
+The §6.2 excursion is the ONLY window in which `status` may read
+`maintenance_fenced`, and `read_authority` never leaves `flat`.
+
+At **all** times, including maintenance preparation:
+
+```
 productive_receipt_started_at IS NULL
 ```
+
+remains mandatory and is asserted alongside every check above.
 
 Preserved across the whole run:
 
 - terminal migration `db/111` (`supabase_migrations` version `20260731204800`);
 - no `db/103b`, no `db/104`, no `db/106`, no `db/110`;
-- the five real TD1 `saldo_fios` rows unchanged (content hash
-  `aa3986ffa0757c76390e43cadab8ea71`);
+- the five real TD1 `saldo_fios` rows unchanged — see §10.2 for the algorithm
+  each recorded fingerprint belongs to;
 - `OC-001-3-26` and `OC-001-4-26` unchanged;
 - every copied non-`P3F` production row unchanged — count **and** ordered
   content hash identical before and after;
@@ -391,7 +525,65 @@ Preserved across the whole run:
 `necessidade_compra_planejamento`, the four command/attempt stores
 (`ordem_compra_aceite_comandos`, `entrega_cima_comandos`,
 `op_acabamento_comandos`, `op_acabamento_tentativas`), plus the `P3F` rows of
-`auth.users`, `usuarios`, `clientes`, `fornecedores` and `saldo_fios`.
+`auth.users`, `usuarios`, `clientes`, `fornecedores` and `saldo_fios`, plus the
+`P3F` rows of `ordem_compra_recebimentos` and
+`ordem_compra_fio_lancamentos` created by the §6 seed.
+
+`ordem_compra_cutover_source_snapshot` and
+`ordem_compra_cutover_inventory_baseline` may hold rows ONLY inside the §6.2
+excursion and must be back at their copied baseline of zero rows before `04b`.
+`ordem_compra_cutover` itself must hash back to its copied baseline after
+`resume_legacy`.
+
+### 10.2 TD1 fingerprints — three projections of the SAME five rows
+
+The five preserved rows are `public.saldo_fios WHERE id BETWEEN 11 AND 15`,
+`n = 5`, `sum(kg_total) = 2685.020`. Three fingerprints are on record. They are
+**not** three business invariants; they are three serializations, and each was
+reproduced byte-exactly from the current restored clone.
+
+| Name | Algorithm | Expected |
+|---|---|---|
+| **P1 canonical** | `md5(string_agg(to_jsonb(s)::text, E'\n' ORDER BY to_jsonb(s)::text))` — aggregates the RAW row JSON text, newline separator, ordered by that same text | `aa3986ffa0757c76390e43cadab8ea71` |
+| **P3-a** | `md5(string_agg(d, '\|' ORDER BY d))` where `d = md5(to_jsonb(s)::text)` — aggregates the PER-ROW DIGEST, pipe separator, ordered by the digest | `18a890412feeca2be31d5201ba72c446` |
+| **P3-b** | `md5(string_agg(d, '\|' ORDER BY id))` where `d = md5(to_jsonb(s)::text)` — per-row digest, pipe separator, ordered by `id` | `6f2632f75f66b6222ab25181ce5fea89` |
+
+`TimeZone = UTC` is **load-bearing** for all three: `kg_total` is `NUMERIC` so
+`extra_float_digits` is irrelevant, but `atualizado_em` is `timestamptz` and
+every projection changes under a different zone. The full pinned set used by the
+harness is `TimeZone=UTC`, `DateStyle=ISO,MDY`, `IntervalStyle=postgres`,
+`extra_float_digits=0`, `bytea_output=hex`, `client_encoding=UTF8` — production's
+own measured capture conditions.
+
+**Row identity and content equality is the authoritative test.** A hash
+comparison is valid ONLY when projection, ordering, separator and session
+serialization settings all match. Comparing two different projections and
+reporting a difference is a measurement error, not a fidelity failure. Do not
+invent a fourth fingerprint.
+
+### 10.3 The one narrow `op_numeros` exception
+
+`db/108` derives the finishing-OP year as `EXTRACT(YEAR FROM CURRENT_DATE)` and
+calls `proximo_numero_op`, whose body is
+`INSERT … ON CONFLICT (tipo, ano) DO UPDATE SET ultimo_numero = ultimo_numero + 1`.
+A successful canonical finishing-OP creation therefore **must** increment the
+copied counter row
+
+```
+op_numeros(tipo = 'latex', ano = <year derived by the canonical function>)
+```
+
+and no data-only mechanism can redirect it. That exact row — and only that row —
+may increase, solely as the unavoidable result of a successful canonical
+finishing-OP creation exercised by P3. For the currently preserved clone the
+measured baseline is `latex / 2026 / ultimo_numero = 18`.
+
+`06-isolation.json` must therefore report the exact baseline, every increment,
+the scenario and RPC that caused each one, the final value, and proof that no
+unrelated `op_numeros` row changed. **The counter must never be reset during
+cleanup merely to make an isolation hash pass.** This exception authorizes no
+other copied-row mutation; every other copied non-`P3F` row stays under the
+strict count-and-hash equality of §10 above.
 
 **PONR marker.** `ponr` is **not** a stored column anywhere in the production
 database; `productive_receipt_started_at` is the enforced PONR marker per
@@ -434,6 +626,17 @@ cluster_pointer:
 ```
 
 Run id `p3-a0e2331-20260801T030008Z`.
+
+**Preserved predecessor progress (do NOT rebuild).** The clone is live and
+already holds the complete validated `P3F` namespace — 70 synthetic rows
+covering the four identities, five Pedidos, seven OPs, five needs, six Purchase
+Orders, eight allocations, the non-zero synthetic TD1 balance and the delivered
+Manta expedition — recorded in `04-fixtures.json`. `05-scenarios/` is empty: no
+scenario has ever been executed. The measured pre-seed state is
+`legacy_active` / `flat` / PONR marker NULL, terminal `20260731204800`, zero
+receipt headers, zero ledger lines, zero cutover snapshot and baseline rows, and
+`op_numeros(latex, 2026) = 18`. A resumption order starts at §6.3 step 1, not at
+§5.
 
 **Phase 1 — production read-only dump: ACCEPTED FOR P3 ENTRY.** Production
 identity proved by cluster `system_identifier 7642734024280108049` on
