@@ -11023,3 +11023,13 @@ product file they depend on, was modified by this pass or the prior one):
 - **Fronteira de autorizacao de fase.** A execucao do P5 NAO autoriza o P6 e nenhuma fase encadeia. O P6 — o primeiro comando de recebimento nativo bem-sucedido, INCLUSIVE um exclusivamente de excedente, que cruza o PONR — exige nova ordem explicita do arquiteto. TD1, TD2 e TD3 permanecem vinculantes.
 - **Escopo alterado.** `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md` (secoes 9.9.V nova, 14 e 16), `docs/governance/current-state.json`, `docs/ledgers/G28_LEDGER.md`, `AGENT_HANDOFF.md` (regenerado pelo renderizador canonico), `tests/p5-cutover-rehearsal.integration.mjs` (novo) e os metadados derivados de catalogo/manifesto mecanicamente exigidos pelos validadores existentes.
 - **Owner of the full record.** This ledger entry and `docs/governance/current-state.json`.
+
+## 2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1 — SUPERVISOR ACCEPTANCE — docs: accept P5 cutover
+
+- **Decisao do supervisor.** `NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1`: **CLOSED / ACCEPTED**. Checkpoint aceito: `d9bc3787afacfb51f7fbe60c1c2189667f00b688`, o mesmo registrado em `docs/governance/current-state.json`. Esta reconciliacao documental NAO e um checkpoint funcional separado; o escopo aceito e propriedade de `accepted_checkpoints` e a evidencia de implementacao e propriedade da secao 9.9.V do plano, nenhuma repetida aqui.
+- **Estado de producao aceito.** `ordem_compra_cutover` = `canonical_active / canonical`, `cutover_generation` 20260801, `reconciliation_status` `reconciled`, ACL final fechada.
+- **O PONR NAO FOI CRUZADO.** `productive_receipt_started_at` permanece NULL e nenhum comando de recebimento nativo foi executado.
+- **O P6 CONTINUA NAO AUTORIZADO** e exige nova ordem explicita do arquiteto com o contexto real de Ordem de Compra / material / quantidade.
+- **`db/110` continua trabalho separado, pos-aceitacao, de retirada de legado.**
+- **Escopo alterado.** `docs/governance/current-state.json`, `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md` (secoes 14 e 16), `docs/ledgers/G28_LEDGER.md`, `AGENT_HANDOFF.md` (regenerado pelo renderizador canonico) e os metadados derivados de catalogo mecanicamente exigidos pelos validadores existentes.
+- **Owner of the full record.** This ledger entry and `docs/governance/current-state.json`.
