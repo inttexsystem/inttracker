@@ -38,6 +38,37 @@ observed `S24` refusal shape, §10.1 fixes the invariant timing, §10.2 names ea
 TD1 fingerprint's algorithm, and §10.3 bounds the `op_numeros` exception. No
 product, database or test file changed.
 
+**Amendment R2 (2026-08-01).** The R1 excursion was itself unreachable. The
+resumption cleared the whole pre-mutation gate and then hard-stopped at §6.3
+step 2: `ordem_compra_c3c_fence_and_snapshot` — the ONLY canonical transition
+into `maintenance_fenced` — ends with `IF v_source_count <> 51 THEN RAISE
+'snapshot_mapping_count_mismatch'` (`db/75` line 566), while production and its
+clone hold zero `ordens_compra_fio` and zero `ordem_compra_item_compat_fio`
+rows, so the assertion can never be satisfied. `db/75` froze a second dataset
+cardinality the same way, in `ordem_compra_c3c_assert_import_reconciled`
+(`39` headers / `44` lines / `20221.280` kg / `405.980` kg excess), which would
+have blocked the very next step. Both are the measured shape of the db/67
+REFUND-A seed, not business invariants, and the legacy corpus they describe has
+since been retired in production.
+
+`NATIVE-RECEIPT-CUTOVER-SNAPSHOT-CARDINALITY-ROOT-CAUSE-CORRECTION-R1` replaces
+both with derived completeness invariants in forward migration
+**`db/112_cutover_snapshot_completeness_invariant.sql`**. This is a real cutover
+defect corrected in the repository and proved on a disposable database; it is
+**not applied to production**. Consequences for P3, which override the
+corresponding statements in §2, §6.3 and §10.1 below:
+
+- the P3 disposable clone must have **`db/112` applied** before §6.3 step 2, and
+  its terminal migration then reads `db/112`, not `db/111`;
+- production remains at terminal `db/111` (`20260731204800`) and the §15
+  production-untouched remeasurement is still asserted against `db/111`;
+- §6.3 gains **step 0**: apply `db/112` to the preserved clone and record it;
+- the §10.1 preserved invariant "terminal migration `db/111`" reads `db/112`
+  **on the clone** and `db/111` **on production**.
+
+Nothing else in this contract changes. P3 remains unaccepted, no scenario has
+run, and P4/P5 remain unauthorized.
+
 ---
 
 ## 1. P3 purpose
@@ -62,7 +93,8 @@ inactive.
 - P3 does **not** activate the receipt.
 - P3 does **not** alter production authority.
 - P3 does **not** apply `db/103b`, `db/104`, `db/106` or `db/110`. Those numbers
-  remain RESERVED and uncreated; the terminal migration stays `db/111`.
+  remain RESERVED and uncreated. Per Amendment R2 the disposable clone carries
+  terminal `db/112`; production stays at terminal `db/111`.
 - The retired project `gqmpsxkxynrjvidfmojk` is not a target. The forbidden
   project `bhgifjrfagkzubpyqpew` is not accessed at all.
 
@@ -245,6 +277,12 @@ The approved harness mechanism is therefore a **bounded pre-PONR maintenance
 excursion on the disposable clone only**, through the canonical `db/107` cutover
 functions. It is fixture preparation, never a caller-proof scenario.
 
+**Amendment R2 correction.** That excursion additionally requires `db/112`.
+`ordem_compra_c3c_fence_and_snapshot` is the only canonical door into
+`maintenance_fenced` and, as shipped in `db/75`, it refuses every source
+cardinality except exactly `51` — a cardinality production no longer has. See
+Amendment R2 and §6.3 step 0.
+
 ### 6.2 Boundary of the excursion
 
 - Production is **never** involved.
@@ -263,6 +301,10 @@ functions. It is fixture preparation, never a caller-proof scenario.
 
 ### 6.3 Mandatory ordering
 
+0. apply `db/112_cutover_snapshot_completeness_invariant.sql` to the preserved
+   disposable clone and record the resulting terminal migration (Amendment R2).
+   Without it, step 2 cannot succeed at any source cardinality that production
+   actually has;
 1. prove the starting state is `legacy_active` / `flat` /
    `productive_receipt_started_at IS NULL`;
 2. acquire the canonical owner/session lock and enter the bounded pre-PONR
@@ -505,7 +547,9 @@ remains mandatory and is asserted alongside every check above.
 
 Preserved across the whole run:
 
-- terminal migration `db/111` (`supabase_migrations` version `20260731204800`);
+- terminal migration `db/112` on the disposable clone and `db/111`
+  (`supabase_migrations` version `20260731204800`) on production, per
+  Amendment R2;
 - no `db/103b`, no `db/104`, no `db/106`, no `db/110`;
 - the five real TD1 `saldo_fios` rows unchanged — see §10.2 for the algorithm
   each recorded fingerprint belongs to;

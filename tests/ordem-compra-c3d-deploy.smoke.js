@@ -149,6 +149,15 @@
 //     across runs, and still cleans up fully when readiness is forced to
 //     fail; and that no code path here ever references a shared or remote
 //     database host.
+//
+// CUTOVER SNAPSHOT CARDINALITY note
+// (NATIVE-RECEIPT-CUTOVER-SNAPSHOT-CARDINALITY-ROOT-CAUSE-CORRECTION-R1):
+// the authorized forward-correction migration
+// db/112_cutover_snapshot_completeness_invariant.sql extends this manifest by
+// one further entry, so the expected terminal advances 111 -> 112 and the
+// terminal two become db/111/db/112. The fail-closed mechanism is unchanged
+// (mechanism preserved, only the terminal expectation advanced), and the
+// three reserved numbers are unchanged.
 
 'use strict';
 
@@ -169,7 +178,7 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 111;
+const EXPECTED_TERMINAL = 112;
 
 // Migration numbers deliberately RESERVED by the accepted coordinated
 // native-receipt release and not present until a later phase:
@@ -206,6 +215,7 @@ const DB99_FILENAME = '99_planejamento_compra_refoundation.sql';
 const DB108_FILENAME = '108_acabamento_idempotente.sql';
 const DB109_FILENAME = '109_estorno_tapete_e_correcao_entrega.sql';
 const DB111_FILENAME = '111_entrega_cima_acabamento_atomico.sql';
+const DB112_FILENAME = '112_cutover_snapshot_completeness_invariant.sql';
 const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
@@ -385,8 +395,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB109_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB111_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB111_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB112_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -405,7 +415,7 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/111 less the three reserved numbers', () => {
+test('deployment manifest resolves exactly db/01..db/112 less the three reserved numbers', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const expectedNumbers = Array.from({ length: EXPECTED_TERMINAL }, (_, i) => i + 1)
@@ -414,12 +424,12 @@ test('deployment manifest resolves exactly db/01..db/111 less the three reserved
   assert.deepEqual(entries.map((entry) => entry.number), expectedNumbers);
 });
 
-test('db/109 and db/111 are the terminal two migrations', () => {
+test('db/111 and db/112 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB109_FILENAME);
-  assert.equal(terminal.filename, DB111_FILENAME);
+  assert.equal(penultimate.filename, DB111_FILENAME);
+  assert.equal(terminal.filename, DB112_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
