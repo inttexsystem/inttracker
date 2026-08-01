@@ -3308,7 +3308,7 @@
       "content_hash": "b8520d5dc0faa1fb1f1f0c2de2185cc8480640e3847c83dda7d56f07b4fb4ff8",
       "disposition": "KEEP_NORMATIVE",
       "generated_status": "MANUAL",
-      "inbound_references": 4,
+      "inbound_references": 5,
       "line_count": 692,
       "outbound_references": 5,
       "owner": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",

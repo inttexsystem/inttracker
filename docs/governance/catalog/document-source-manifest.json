@@ -23788,6 +23788,13 @@
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10980,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
         }
       ],
       "headings": [
@@ -79186,10 +79193,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "d9bd51491349b9e393ec95553eefe918126da0ad",
-      "sha256": "ec0f87316a074e3181c3d7322416541040024667306b80510d6a1653099b9f2e",
-      "line_count": 10971,
-      "byte_count": 1597673,
+      "git_object_id": "abdfa2dd020ed133aa1a48ac48873fcfea45ec76",
+      "sha256": "3adf2c278c57b5e036880a4a04480dd59c1bf7bb2a3e0f242cf43a0372938f9d",
+      "line_count": 10984,
+      "byte_count": 1600149,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86247,6 +86254,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10969
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md`",
+          "target_path": "docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10980
         }
       ],
       "inbound_references": [
@@ -89917,6 +89932,12 @@
           "text": "2026-08-01 — NATIVE-RECEIPT-P3-PROOF-CONTRACT-AMENDMENT-R1 — docs: reconcile P3 authenticated proof contract",
           "anchor": "2026-08-01-native-receipt-p3-proof-contract-amendment-r1-docs-reconcile-p3-authenticated-proof-contract",
           "line": 10955
+        },
+        {
+          "level": 2,
+          "text": "2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF — SUPERVISOR ACCEPTANCE — docs: accept P3 authenticated proof closeout",
+          "anchor": "2026-08-01-native-receipt-coordinated-release-p3-authenticated-proof-supervisor-acceptance-docs-accept-p3-authenticated-proof-closeout",
+          "line": 10974
         }
       ]
     },

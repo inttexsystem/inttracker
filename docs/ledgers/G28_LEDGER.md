@@ -10969,3 +10969,16 @@ product file they depend on, was modified by this pass or the prior one):
 - **Escopo alterado.** `docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md`, `docs/governance/current-state.json`, `docs/ledgers/G28_LEDGER.md`, `AGENT_HANDOFF.md` (regenerado pelo renderizador canonico) e os metadados derivados de catalogo/manifesto mecanicamente exigidos pelos validadores existentes.
 - **P3 CONTINUA NAO ACEITO.** O proximo passo e uma ORDEM DE RETOMADA DE EXECUCAO separada, que nomeie o ambiente e a operacao permitida. P4 e P5 permanecem NAO AUTORIZADOS, `db/103b`, `db/104`, `db/106` e `db/110` continuam reservados e nao criados, e O RECEBIMENTO NATIVO CONTINUA INATIVO.
 - **Owner of the full record.** This ledger entry and `docs/governance/current-state.json`.
+
+
+## 2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF — SUPERVISOR ACCEPTANCE — docs: accept P3 authenticated proof closeout
+
+- **Decisao do supervisor.** `NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF`: **CLOSED / ACCEPTED**. Checkpoint aceito: `1eeffbf2fee8373c7a8b34aea38c0d0c8f881cbe`, o mesmo registrado em `docs/governance/current-state.json`. A reconciliacao documental (`3fc49e5adb045e5b45b7a753184090035f036036`) e esta entrada de ledger NAO sao checkpoints funcionais separados.
+- **Gate A — aceitacao da evidencia, registrada por sessao de supervisao anterior.** A evidencia recuperada para as cinco lacunas anteriormente abertas — a varredura de concessao S45, a varredura de papel errado S46, a varredura de contorno S47, a medicao direta de autoridade S29 e a contabilidade causal do movimento permitido do contador copiado — foi marcada EVIDENCE_ACCEPTED por uma sessao de supervisao anterior, conforme o handoff. Esta entrada CITA essa decisao do arquiteto; ela nao foi reexaminada nem reprovada por este executor nesta sessao.
+- **Gate B — encerramento destrutivo, revisado diretamente pelo arquiteto nesta sessao.** O arquiteto revisou pessoalmente o relatorio do encerramento destrutivo exigido.
+- **Aceitacao final concedida diretamente pelo arquiteto.** Com base nessa revisao, o arquiteto concedeu diretamente em chat, nesta sessao, a decisao final: P3 = CLOSED / ACCEPTED.
+- **Nao retido aqui.** Assinaturas de RPC, contadores, fixtures, portas, caminhos e medicoes de execucao do P3 permanecem nos seus donos executaveis — `docs/architecture/NATIVE_RECEIPT_P3_AUTHENTICATED_PROOF_CONTRACT.md` e as entradas anteriores deste ledger (`NATIVE-RECEIPT-COORDINATED-RELEASE-P3-CANONICAL-ACTIVATION-R1`, `NATIVE-RECEIPT-P3-PROOF-CONTRACT-AMENDMENT-R1`) — e nao sao repetidos aqui.
+- **Fronteira de autorizacao de fase.** P4 e P5 PERMANECEM NAO AUTORIZADOS por esta aceitacao; nenhuma fase encadeia automaticamente. O RECEBIMENTO NATIVO CONTINUA INATIVO.
+- **Nenhuma mutacao de producao ocorreu como parte do P3.** Todo contato do P3 com `ucrjtfswnfdlxwtmxnoo` foi somente-leitura.
+- **db/112 e db/113 fora de escopo.** A aplicacao em producao de `db/112` continua fora do P3, sob a divida `CUTOVER-FROZEN-DATASET-CARDINALITY-DB112`; `db/113` nao foi aplicado em producao e sua aplicacao tambem continua fora do P3.
+- **Owner of the full record.** This ledger entry and `docs/governance/current-state.json`.
