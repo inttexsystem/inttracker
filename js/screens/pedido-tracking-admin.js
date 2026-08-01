@@ -246,17 +246,23 @@
       btnSalvar.textContent = 'Salvando...';
 
       try {
-        var updateRes = await window.supa
-          .from('pedidos')
-          .update(updatePayload)
-          .eq('id', pedido.id);
+        // P4 (9.9.L.2): dono servidor para `pedidos.status_cliente_*`.
+        var updateRes = await window.supa.rpc('salvar_situacao_visivel_pedido', {
+          p_pedido_id: pedido.id,
+          p_status_visual: updatePayload.status_cliente_visual,
+          p_excecao: updatePayload.status_cliente_excecao,
+          p_mensagem: updatePayload.status_cliente_mensagem,
+        });
 
-        if (updateRes.error) {
+        if (updateRes.error || !updateRes.data || !updateRes.data.ok) {
+          var msgSit = updateRes.error
+            ? updateRes.error.message
+            : ((updateRes.data && (updateRes.data.erro || updateRes.data.codigo)) || 'desconhecido');
           window.toast(
-            'Erro ao salvar situacao visivel: ' + (updateRes.error.message || 'desconhecido'),
+            'Erro ao salvar situacao visivel: ' + msgSit,
             'error'
           );
-          console.error('pedido-tracking-admin: erro ao atualizar pedidos', updateRes.error);
+          console.error('pedido-tracking-admin: erro ao atualizar pedidos', updateRes.error || updateRes.data);
           return;
         }
 

@@ -577,6 +577,17 @@ function makePersistirOPSandbox({
               }
               return Promise.resolve(opsUpdateResult);
             }
+            // P4 (9.9.L.4): editar uma OP existente nao escreve mais
+            // `ops.status`. O primeiro acesso virou uma RELEITURA, e ela
+            // ocupa o lugar do antigo UPDATE no envelope de erro — por isso
+            // continua governada pela mesma alavanca.
+            if (!chain._hasInsert) {
+              calls.push({ op: 'ops_select_single' });
+              if (opsUpdateError) {
+                return Promise.resolve({ data: null, error: opsUpdateError });
+              }
+              return Promise.resolve(opsUpdateResult);
+            }
             calls.push({ op: 'ops_insert_single', payload: chain._payload });
             if (opsInsertError) {
               return Promise.resolve({ data: null, error: opsInsertError });
@@ -696,6 +707,53 @@ function makePersistirOPSandbox({
       }
       if (fn === 'sincronizar_necessidades_compra_fio') {
         return Promise.resolve(sincronizarResult || { data: { ok: true, created: 0, updated: 0, deleted: 0, unchanged: 0 }, error: null });
+      }
+
+      // -- P4 (9.9.L.4): os escritores canonicos que substituiram a DML direta.
+      //
+      // As alavancas antigas do harness continuam valendo e passam a
+      // controlar o escritor correspondente, para que cada cenario ja
+      // provado continue sendo exercitado pelo caminho novo:
+      //   opItensDeleteError / opItensInsertError -> substituir_itens_op
+      //   regimeResolveResult / sincronizarResult -> abrir_op_tecelagem
+      if (fn === 'substituir_itens_op') {
+        const erro = opItensDeleteError || opItensInsertError;
+        if (erro) return Promise.resolve({ data: null, error: erro });
+        return Promise.resolve({
+          data: { ok: true, codigo: 'ok', op_id: params && params.p_op_id, itens: (params && params.p_itens ? params.p_itens.length : 0) },
+          error: null,
+        });
+      }
+      if (fn === 'abrir_op_tecelagem') {
+        // O regime legado e a falha de sincronizacao chegam como EXCECAO,
+        // porque e a excecao que desfaz a transicao no servidor.
+        if (regimeModelo !== 'native') {
+          return Promise.resolve({ data: null, error: { message: 'regime_legado_sem_escritor' } });
+        }
+        // O erro original do passo interno e PRESERVADO (code, details), com
+        // o codigo estavel prefixado na mensagem — que e exatamente como o
+        // servidor o entrega, via RAISE, ao desfazer a transicao.
+        if (regimeResolveResult && !(regimeResolveResult.data && regimeResolveResult.data.ok)) {
+          const base = regimeResolveResult.error || {};
+          return Promise.resolve({
+            data: null,
+            error: { ...base, message: 'regime_resolve: ' + (base.message || '') },
+          });
+        }
+        if (sincronizarResult && !(sincronizarResult.data && sincronizarResult.data.ok)) {
+          const base = sincronizarResult.error || {};
+          return Promise.resolve({
+            data: null,
+            error: { ...base, message: 'necessidades_sync: ' + (base.message || '') },
+          });
+        }
+        return Promise.resolve({
+          data: { ok: true, codigo: 'ok', op_id: params && params.p_op_id, modelo: 'native', status: 'aberta' },
+          error: null,
+        });
+      }
+      if (fn === 'remover_op') {
+        return Promise.resolve({ data: { ok: true }, error: null });
       }
       return Promise.resolve({ data: null, error: null });
     },
@@ -995,11 +1053,15 @@ test('41. falha em ops.update({ lote_id }) retorna step "lotes_vincular"', async
 
 // ---- 12-15: Falhas em op_itens / op_fornecedores --------------------
 
-test('42. falha em op_itens.delete retorna step "op_itens_delete"', async () => {
+test('42. P4: a troca do conjunto de itens e UMA operacao, entao a falha do lado do delete tambem reporta "op_itens_insert"', async () => {
+  // O par DELETE+INSERT direto perdeu o privilegio de DELETE (TD2.2) e virou
+  // `substituir_itens_op`. Nao existe mais um passo separado que possa
+  // falhar sozinho, entao o step 'op_itens_delete' deixou de ser alcancavel:
+  // qualquer falha da substituicao chega como 'op_itens_insert'.
   const { sandbox } = makePersistirOPSandbox({ opItensDeleteError: new Error('mock itens delete') });
   sandbox.payload = { ...payloadBase(), op: { id: 42, lote_id: 100 } };
   const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
-  assert.equal(result.step, 'op_itens_delete');
+  assert.equal(result.step, 'op_itens_insert');
   assert.equal(result.partial, true);
 });
 
@@ -1103,12 +1165,25 @@ test('50c. um Pedido em regime LEGADO falha honestamente, sem escritor e sem fin
     'o regime legado não pode ser sincronizado como se fosse nativo');
 });
 
-test('50d. o regime legado devolve a OP a simulada', async () => {
+test('50d. P4: o regime legado falha honestamente e NENHUM rollback de status parte do cliente', async () => {
+  // A garantia e a mesma de antes — a OP nao pode ficar aberta sem compra
+  // sincronizada — mas quem a sustenta mudou. Antes o cliente tentava
+  // devolver `ops.status` a 'simulada' com um UPDATE direto, que nunca foi um
+  // rollback de verdade e que TD2 remove. Agora transicao, regime e
+  // sincronizacao vivem na MESMA transacao do servidor: se o regime e legado,
+  // a transacao inteira e desfeita e a OP nunca chega a abrir.
   const { sandbox, calls } = makePersistirOPSandbox({ regimeModelo: 'legacy' });
   sandbox.payload = { ...payloadBase(), status: 'aberta', op: { id: 42, lote_id: 100 } };
-  await vm.runInContext('window.persistirOP(payload)', sandbox);
-  const volta = calls.filter((c) => c.op === 'ops_update' && c.payload && c.payload.status === 'simulada');
-  assert.ok(volta.length >= 1, 'a OP não pode ficar aberta sem compra sincronizada');
+  const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
+
+  assert.equal(result.step, 'regime_legado_sem_escritor');
+  assert.equal(result.partial, true);
+  assert.ok(calls.find((c) => c.op === 'rpc' && c.fn === 'abrir_op_tecelagem'),
+    'a abertura deve passar pelo escritor canonico');
+  const escritaDeStatus = calls.filter((c) => (c.op === 'ops_update' || c.op === 'ops_update_single')
+    && c.payload && Object.prototype.hasOwnProperty.call(c.payload, 'status'));
+  assert.equal(escritaDeStatus.length, 0,
+    'o cliente nao pode mais escrever ops.status, nem para compensar');
 });
 
 test('50e. clearFenceError saiu junto com as escritas planas que ele traduzia', () => {
@@ -1134,8 +1209,10 @@ test('50b. status="aberta" nativo NÃO cria ordens_compra_fio e sincroniza neces
     'nativo NÃO deve deletar ordens_compra_fio');
   assert.equal(calls.filter((c) => c.op === 'calcularFiosOP').length, 0,
     'nativo NÃO deve computar o cálculo flat');
-  assert.ok(calls.find((c) => c.op === 'rpc' && c.fn === 'sincronizar_necessidades_compra_fio'),
-    'nativo deve sincronizar necessidades via RPC canônica');
+  // P4: a sincronizacao passou para dentro de abrir_op_tecelagem, junto com
+  // a transicao, porque as duas precisam ser atomicas.
+  assert.ok(calls.find((c) => c.op === 'rpc' && c.fn === 'abrir_op_tecelagem'),
+    'nativo deve abrir pela RPC canonica, que sincroniza as necessidades');
 });
 
 test('50c. status="aberta" nativo: falha na sincronização retorna step "necessidades_sync" sem fallback flat', async () => {

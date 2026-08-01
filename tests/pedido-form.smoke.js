@@ -345,6 +345,60 @@ function makePedidoFormRuntime() {
     from: (table) => chain(table),
     rpc: (fn, params) => {
       calls.rpcs.push({ fn, params });
+
+      // P4 (9.9.L.4 / TD2.1): a criacao administrativa passou a ser UMA
+      // transacao do servidor. O harness continua registrando exatamente os
+      // mesmos payloads que antes viajavam nos INSERTs diretos, entao as
+      // assercoes sobre numero, data, itens e modelo_id seguem valendo — o
+      // que mudou foi o transporte, nao o conteudo.
+      if (fn === 'criar_pedido_admin') {
+        const pedido = (params && params.p_pedido) || {};
+        const itens = (params && params.p_itens) || [];
+        calls.pedidoInsert = pedido;
+        calls.pedidoInserts.push(pedido);
+
+        // Colisao de `numero`: o escritor deixa a violacao de unicidade
+        // propagar, entao o cliente recebe o MESMO envelope 23505 de antes.
+        const aindaColide = typeof numeroDuplicado === 'number'
+          ? calls.pedidoInserts.length <= numeroDuplicado
+          : Boolean(numeroDuplicado);
+        if (aindaColide && pedido.numero != null) {
+          return Promise.resolve({
+            data: null,
+            error: {
+              code: '23505',
+              message: 'duplicate key value violates unique constraint "pedidos_numero_key"',
+              details: 'Key (numero)=(' + pedido.numero + ') already exists.',
+            },
+          });
+        }
+        if (failItensInsert) {
+          // A transacao inteira e desfeita no servidor: nada e criado e nao
+          // ha compensacao do lado do cliente.
+          return Promise.resolve({ data: null, error: { message: 'itens insert falhou' } });
+        }
+
+        // Os itens so contam como PERSISTIDOS quando a transacao inteira
+        // vinga. Numa recusa nada e gravado, mesmo que o payload os tenha
+        // carregado.
+        calls.pedidoItensInsert = itens;
+
+        return Promise.resolve({
+          data: {
+            ok: true,
+            codigo: 'ok',
+            pedido: {
+              id: 'ped-1',
+              numero: pedido.numero == null ? 7 : pedido.numero,
+              status: 'rascunho',
+              data_pedido: pedido.data_pedido || '2026-07-25',
+            },
+            itens: itens.map((it, i) => ({ id: 'pi-' + (i + 1), ordem: it.ordem })),
+          },
+          error: null,
+        });
+      }
+
       if (fn !== 'consultar_proximo_numero_pedido') {
         return Promise.resolve({ data: null, error: { message: 'rpc inesperada: ' + fn } });
       }
@@ -576,19 +630,25 @@ test('pedidos-list.js: NÃO tem mais toast "próxima fase" no botão Novo', () =
 // 6. pedido-form.js usa tabelas corretas
 // ---------------------------------------------------------------------
 
-test('pedido-form: usa tabela `pedidos` para insert', () => {
-  assert.match(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.insert\s*\(/);
+test('pedido-form: cria pelo escritor canonico criar_pedido_admin', () => {
+  // P4 (9.9.L.4 / TD2.1): a autoridade direta de INSERT em `pedidos` foi
+  // revogada do cliente. Pedido, itens e prioridade viajam num unico comando.
+  assert.match(screen, /\.rpc\(\s*['"]criar_pedido_admin['"]/);
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.insert\s*\(/);
 });
 
-test('pedido-form: usa tabela `pedido_itens` para insert', () => {
-  assert.match(screen, /\.from\(\s*['"]pedido_itens['"]\s*\)\s*\.insert\s*\(/);
+test('pedido-form: NAO faz INSERT direto em pedido_itens', () => {
+  // Os itens continuam existindo e continuam sendo gravados; o que mudou e
+  // que quem os grava e a mesma transacao que cria o Pedido.
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"]\s*\)\s*\.insert\s*\(/);
 });
 
-test('pedido-form: compensa (DELETE pedidos) se itens falharem', () => {
-  // Comentário + lógica de compensação: insert pedido → se itens falharem
-  // → delete pedido criado.
-  assert.match(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.delete\s*\(\s*\)\s*\.eq\s*\(\s*['"]id['"]\s*,\s*pedidoId\s*\)/);
-  assert.match(screen, /Compensa[çc][ãa]o|compensar/);
+test('pedido-form: NAO compensa com DELETE — a transacao do servidor e atomica', () => {
+  // A compensacao existia porque tres escritas do navegador nao sao uma
+  // transacao, e ela nunca foi um rollback: era uma segunda operacao que
+  // podia falhar sozinha e deixar o Pedido salvo pela metade. TD2.2 revoga o
+  // DELETE direto e o escritor canonico torna a compensacao desnecessaria.
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.delete\s*\(/);
 });
 
 test('pedido-form: NÃO referencia tabelas de OP/lote/entrega', () => {
@@ -838,9 +898,12 @@ test('pedido-form: tem LIMITACAO documentada (sem RPC/transação atômica)', ()
   assert.match(screen, /[Ll]imita[çc][ãa]o|atomic|transa[çc][ãa]o|compensar/i);
 });
 
-test('pedido-form: usa .single() para retornar o pedido inserido', () => {
-  // Para obter o id do pedido criado para uso na compensação.
-  assert.match(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.insert\([\s\S]*?\)\s*\.select\([\s\S]*?\)\s*\.single\s*\(\s*\)/);
+test('pedido-form: o escritor devolve a identidade do Pedido criado', () => {
+  // O `.single()` existia para recuperar o id do Pedido recem-inserido, que
+  // a compensacao precisava. O escritor canonico devolve numero, status e
+  // data no proprio envelope, e a tela consome esse envelope.
+  assert.match(screen, /criarRes\.data\.pedido/);
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.insert\([\s\S]*?\)\s*\.select\([\s\S]*?\)\s*\.single\s*\(\s*\)/);
 });
 
 // ---------------------------------------------------------------------
@@ -1426,8 +1489,11 @@ test('batch2/15. modelo_id e a UNICA identidade de produto persistida', async ()
 
   assert.ok(Array.isArray(calls.pedidoItensInsert));
   for (const linha of calls.pedidoItensInsert) {
+    // P4: `pedido_id` saiu do payload porque o item deixou de ser inserido
+    // isoladamente — ele viaja dentro da MESMA transacao que cria o Pedido,
+    // que ja conhece o id. Os quatro campos de conteudo sao os mesmos.
     assert.deepEqual(Object.keys(linha).sort(),
-      ['metros', 'modelo_id', 'observacao', 'ordem', 'pedido_id'],
+      ['metros', 'modelo_id', 'observacao', 'ordem'],
       'pedido_itens nao pode ganhar campo algum');
     for (const proibido of ['tipo_produto', 'tipo', 'rota', 'cor', 'largura']) {
       assert.equal(Object.prototype.hasOwnProperty.call(linha, proibido), false,

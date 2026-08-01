@@ -2367,6 +2367,125 @@ not a hypothetical one.
 
 ---
 
+### 9.9.T P4 implementation evidence
+
+`NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1` implemented the
+**P4 coordinated authority switch** and proved it on a disposable local
+PostgreSQL 18.4 cluster reconstructed to the production migration set. This
+subsection records that operational fact; it does not modify the accepted
+design above. **P4 IS NOT SELF-ACCEPTED.**
+
+**Migrations created.** `db/103b_emissao_aceite_e_democao.sql` (9.9.E emission
+freeze on the supplier column plus the `ordem_compra_config` demotion trigger),
+`db/104_recebimento_lock_e_aceite_gate.sql` (9.9.B lock protocol, 9.9.F
+acceptance gate, lock alignment) and the accepted single containment migration
+`db/106`, applied as the ordered pair `db/106a_escritores_canonicos.sql` and
+`db/106b_contencao_dml.sql`.
+
+**Why db/106 is an ordered pair.** No content was added, removed or
+reinterpreted; only ordered. `db/106b` revokes the direct DML that the
+*currently deployed* frontend still performs, and the repointed frontend cannot
+be deployed before the writers it calls exist. A single migration containing
+both halves would have broken live Pedido and OP writes for the whole interval
+between the migration and the asset deployment. Split, the release has no such
+window: `db/106a` is purely additive and safe while the pre-P4 assets are live;
+the assets deploy; `db/106b` narrows only once nothing depends on the direct
+authority. `db/106b` refuses to start unless `db/106a`'s five writers and the
+recovery baseline already exist. This is a deployment ordering, not a phase
+boundary, and it is the same additive-then-narrow discipline the P1→P2→P4
+sequence already encodes.
+
+**Two defects the design's own code sketch could not have shipped, found by
+execution rather than by reading.**
+
+1. **The L.3 fence was structurally inert as written.** Section 9.9.L.3
+   declares `trg_fato_protegido_fence` as `SECURITY DEFINER`. Inside a
+   `SECURITY DEFINER` function `current_user` is ALWAYS the function owner, so
+   the fence's own predicate `current_user <> 'postgres'` could never be true:
+   the fence would appear installed and refuse nothing. Measured on the
+   disposable cluster — a fully granted `BYPASSRLS` role updated
+   `pedidos.status` with no refusal at all. The shipped fence is
+   `SECURITY INVOKER`, which is what makes the ACCEPTED predicate hold: the
+   trigger then observes whoever issued the statement (`authenticated` for
+   direct client DML, `postgres` when a granted definer writer is writing).
+   The intent, the predicate and the error contract of L.3 are unchanged; only
+   the unreachable declaration is corrected. `db/106b` asserts `NOT prosecdef`
+   so the fence cannot silently become inert again.
+2. **A blanket rollback could not honestly restore the prior grant.** 9.9.P
+   names the P4 recovery as "re-apply db/106 rollback block restoring the prior
+   grant". A blanket re-`GRANT` restores whatever the migration names rather
+   than what the environment had, and the two differ, because part of the
+   pre-P4 matrix comes from Supabase platform defaults rather than from `db/**`
+   — measured: a blanket rollback over-granted 20 privileges the rehearsal
+   cluster never held. `db/106a` therefore CAPTURES the exact pre-P4 matrix
+   into `public.p4_contencao_acl_baseline` (owner-only) and the rollback
+   replays it row for row, on the same principle as the 9.9.G.2.1 cutover ACL
+   manifest: restoration replays what was recorded, never what was assumed.
+
+**Three mechanical consequences of the accepted containment, ruled in scope by
+the supervisor.** (a) `pedidos.status_cliente_*` is excluded from the re-issued
+grant by L.2 but had NO canonical writer and two live administrative surfaces
+writing it directly; a bounded writer `salvar_situacao_visivel_pedido` now owns
+it, so the capability is preserved and only the authority moved. (b)
+`alterar_status_op` shipped from db/21 with `EXECUTE` granted to PUBLIC, `anon`
+and `service_role` on a `SECURITY DEFINER` lifecycle writer; `db/104` narrows it
+to `authenticated`, which changes no legitimate behaviour because the body
+already refused non-admins. (c) The OP persistence flow depended on direct
+`DELETE` and on protected-status rollbacks that TD2 removes. The MINIMUM
+server-owned mechanism was derived from the executable owners, not assumed: most
+compensations disappear simply by writing items and suppliers BEFORE the status
+transition, but the OPENING itself cannot be reordered, because
+`sincronizar_necessidades_compra_fio` only considers OPs whose status is already
+`aberta` and the db/21 matrix has no `aberta → simulada` edge. Transition,
+regime and synchronisation are therefore ONE server-owned transaction,
+`abrir_op_tecelagem`; item-set replacement is `substituir_itens_op`; and the
+orphan-OP compensation routes to the already-canonical `remover_op` per TD2.2.
+
+**How the four large proven bodies were preserved.** `alterar_status_op`
+(db/21), `cancelar_ordem_compra` and `excluir_ordem_compra` (db/100) carry
+accepted, separately proved bodies. None was retyped. Each is RENAMED IN PLACE
+to an owner-only implementation — which preserves its body byte-exactly by
+construction — under a thin public wrapper carrying the lock prologue, the same
+wrapper/impl architecture db/75 already established for receipt. `db/104`
+asserts that byte-equality from hashes captured before the rename.
+
+**db/110 reconciliation.** `listar_ordens_compra_fio_compat` and the flat
+`ordens_compra_fio` table (0 rows) are both still present, so db/110's
+responsibility is still required and is satisfied by no current owner. It
+remains **post-acceptance legacy retirement** (9.9.N Block 4 row 29, 9.9.O), and
+the P4 order independently prohibits physically removing the flat purchasing
+model. Naming db/110 among the P4-reserved slots is MECHANICAL DOCUMENT DRIFT
+against this design and against that same prohibition. db/110 was NOT created.
+
+**Rehearsal.** `tests/p4-authority-switch.integration.mjs`, on a fresh
+disposable PG 18.4 cluster reconstructed as preamble + 64-row corpus +
+db/01..db/100 + the eight applied P1 migrations + db/113, with **db/112
+deliberately absent** so the rehearsal mirrors the production migration set
+exactly. Result: clean apply and byte-identical no-op re-apply of all four
+migrations; the five focused suites PASS; the lock protocol returns
+`concorrencia_ocupada` with `deadlock_40P01 = false`; the GRANT layer refuses
+all 15 protected direct-DML attempts for `authenticated` with SQLSTATE 42501;
+the TRIGGER fence independently refuses a fully granted `BYPASSRLS` probe role
+with `writer_canonico_obrigatorio`; five distinct application-GUC spoofs all
+fail; TD2's OBS-4 measurement is zero; the only surviving INSERT grant is
+column-level `ops(numero, ano)`; the cutover stays `legacy_active/flat` with the
+PONR NULL and zero receipt facts are fabricated.
+
+**Recovery boundary, proved rather than asserted.** The rollback block is
+executed against the post-P4 cluster and the restored authority fingerprint is
+compared to the pre-P4 one: `PRE_P4_AUTHORITY_RESTORED_EXACTLY`, 0 privileges
+not restored and 0 unexpected. Re-applying `db/106b` afterwards restores the
+containment, so recovery is not a one-way door.
+
+**Cutover and PONR.** Unchanged and unreachable from P4:
+`ordem_compra_cutover` is `legacy_active` / `flat` with
+`productive_receipt_started_at` NULL, both receipt paths still refuse with
+`recebimento_canonico_inativo`, and the db/75/db/76 writer fence is untouched.
+No native receipt was executed. **db/112 was NOT applied.** P5 and P6 remain
+unauthorized.
+
+---
+
 ## 11. Acceptance model
 
 Migrations, tests, hashes, commits, pushes and deployments are **necessary but

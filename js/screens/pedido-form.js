@@ -789,9 +789,14 @@
       btn.textContent = 'Salvando...';
 
       try {
+        // P4 (9.9.L.4 / TD2.1): o Pedido, seus itens e a prioridade sao UMA
+        // transacao do servidor. `pedidos.status` NAO viaja mais no payload —
+        // a criacao administrativa sempre produz o estado inicial canonico, e
+        // esse fato protegido passou a ser do servidor. As escritas diretas em
+        // `pedidos`/`pedido_itens` e o DELETE compensatorio foram retirados
+        // junto: se qualquer etapa falhar, nada e criado.
         var pedidoPayload = {
           cliente_id: Number(state.clienteId),
-          status: status,
           data_pedido: state.dataPedido
         };
         // Em branco => a coluna de identidade aloca automaticamente.
@@ -799,11 +804,41 @@
         if (state.prazoEntrega) pedidoPayload.prazo_entrega = state.prazoEntrega;
         if (state.observacao) pedidoPayload.observacao = state.observacao;
 
-        var pedidoRes = await window.supa
-          .from('pedidos')
-          .insert(pedidoPayload)
-          .select('id, numero, status, data_pedido')
-          .single();
+        var itensPayload = state.itens.map(function (item, index) {
+          return {
+            modelo_id: Number(item.modeloId),
+            metros: Number(item.metros),
+            ordem: index,
+            observacao: item.observacao || null
+          };
+        });
+
+        var prioridadePayload = null;
+        if (window.RAVATEX_PEDIDO_PRIORITY
+            && state.prioridadeHabilitada
+            && window.RAVATEX_PEDIDO_PRIORITY.aplicavel(state.itens.length)) {
+          prioridadePayload = { habilitada: true };
+        }
+
+        var criarRes = await window.supa.rpc('criar_pedido_admin', {
+          p_pedido: pedidoPayload,
+          p_itens: itensPayload,
+          p_prioridade: prioridadePayload
+        });
+
+        // O escritor deixa a violacao de unicidade de `numero` propagar com o
+        // SQLSTATE 23505 e o nome da constraint, entao `isNumeroDuplicado`
+        // continua reconhecendo o conflito exatamente como antes.
+        var pedidoRes = {
+          error: criarRes.error,
+          data: (criarRes.data && criarRes.data.ok) ? criarRes.data.pedido : null
+        };
+        if (!criarRes.error && criarRes.data && !criarRes.data.ok) {
+          pedidoRes.error = {
+            message: criarRes.data.erro || criarRes.data.codigo || 'Falha ao criar pedido',
+            code: criarRes.data.codigo
+          };
+        }
 
         if (pedidoRes.error || !pedidoRes.data) {
           // Numero ja em uso: o UNIQUE do banco e a autoridade. Em NENHUM dos
@@ -837,38 +872,8 @@
           return;
         }
 
-        var pedidoId = pedidoRes.data.id;
-        var itensPayload = state.itens.map(function (item, index) {
-          return {
-            pedido_id: pedidoId,
-            modelo_id: Number(item.modeloId),
-            metros: Number(item.metros),
-            ordem: index,
-            observacao: item.observacao || null
-          };
-        });
-
-        var itensRes = await window.supa
-          .from('pedido_itens')
-          .insert(itensPayload)
-          .select('id, ordem');
-
-        if (itensRes.error) {
-          console.error('Erro ao inserir itens, compensando:', itensRes.error);
-          var delRes = await window.supa.from('pedidos').delete().eq('id', pedidoId);
-          if (delRes.error) {
-            window.toast(
-              'Erro grave: pedido #' + pedidoRes.data.numero + ' criado sem itens e nao compensado. Contate suporte.',
-              'error'
-            );
-            console.error('Compensacao falhou:', delRes.error);
-          } else {
-            window.toast('Erro ao inserir itens. Pedido cancelado. Tente novamente.', 'error');
-          }
-          return;
-        }
-
-        if (window.RAVATEX_PEDIDO_PRIORITY && !(await window.RAVATEX_PEDIDO_PRIORITY.persistirNaCriacao(state, pedidoId, itensRes.data, pedidoRes.data.numero))) return;
+        // Itens e prioridade ja foram gravados na MESMA transacao do escritor.
+        // Nao existe mais etapa parcial para compensar.
         postSave = {
           pedido: pedidoRes.data,
           resumo: {

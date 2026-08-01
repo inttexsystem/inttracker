@@ -61,6 +61,30 @@ function makeSandbox({ regime = { ok: true, modelo: 'native' }, sync = { ok: tru
       rpc: (fn, params) => {
         ops.push({ op: 'rpc', fn, params });
         if (fn === 'proximo_numero_op') return Promise.resolve({ data: 7, error: null });
+        if (fn === 'substituir_itens_op') {
+          return Promise.resolve({ data: { ok: true, op_id: params && params.p_op_id }, error: null });
+        }
+        // P4: abrir_op_tecelagem é o dono da abertura. Ele resolve o regime e
+        // sincroniza as necessidades DENTRO da mesma transação, então o
+        // harness reproduz esse encadeamento aqui — inclusive o fato de que
+        // uma falha chega como exceção, que é o que desfaz a transição.
+        if (fn === 'abrir_op_tecelagem') {
+          if (!regime || regime.ok !== true) {
+            return Promise.resolve({ data: null, error: { message: 'regime_resolve' } });
+          }
+          if (regime.modelo !== 'native') {
+            return Promise.resolve({ data: null, error: { message: 'regime_legado_sem_escritor' } });
+          }
+          ops.push({ op: 'sync_nativo' });
+          if (!sync || sync.ok !== true) {
+            return Promise.resolve({ data: null, error: { message: 'necessidades_sync' } });
+          }
+          return Promise.resolve({
+            data: { ok: true, op_id: params && params.p_op_id, modelo: 'native', status: 'aberta' },
+            error: null,
+          });
+        }
+        if (fn === 'remover_op') return Promise.resolve({ data: { ok: true }, error: null });
         return Promise.resolve({ data: null, error: null });
       },
     },
@@ -149,8 +173,10 @@ test('6. falha na sincronização nativa devolve a OP a simulada e NÃO cai para
   const r = await persistir(sandbox);
   assert.ok(r.error, 'a falha tem de ser propagada');
   assert.equal(r.step, 'necessidades_sync');
-  const volta = ops.filter((o) => o.table === 'ops' && o.op === 'update' && o.payload && o.payload.status === 'simulada');
-  assert.ok(volta.length >= 1, 'a OP tem de voltar a simulada');
+  // P4: quem devolve a OP a 'simulada' é o ROLLBACK da transação do
+  // servidor, não um UPDATE do cliente — que perdeu esse privilégio (TD2).
+  const escritaStatus = ops.filter((o) => o.table === 'ops' && o.op === 'update' && o.payload && 'status' in o.payload);
+  assert.equal(escritaStatus.length, 0, 'o cliente não pode escrever ops.status nem para compensar');
   assert.equal(ops.some((o) => o.table === 'ordens_compra_fio'), false,
     'a falha NÃO pode acionar um fallback plano');
 });
@@ -164,13 +190,20 @@ test('7. um Pedido em regime LEGADO falha honestamente — sem escritor, sem fin
     'o regime legado NÃO pode recriar as linhas planas');
   assert.equal(ops.some((o) => o.op === 'sync_nativo'), false,
     'o regime legado não pode ser sincronizado como se fosse nativo');
-  const volta = ops.filter((o) => o.table === 'ops' && o.op === 'update' && o.payload && o.payload.status === 'simulada');
-  assert.ok(volta.length >= 1, 'a OP tem de voltar a simulada');
+  const escritaStatus = ops.filter((o) => o.table === 'ops' && o.op === 'update' && o.payload && 'status' in o.payload);
+  assert.equal(escritaStatus.length, 0, 'o cliente não pode escrever ops.status nem para compensar');
 });
 
 test('8. o regime continua sendo decidido pelo SERVIDOR, não pelo cliente', () => {
-  assert.match(oppExec, /resolverRegimeCompraFio\s*\(/,
-    'o regime tem de vir do servidor');
+  // P4: a resolução do regime deixou de ser uma chamada separada da tela e
+  // passou para DENTRO de abrir_op_tecelagem, junto com a transição e a
+  // sincronização, porque as três precisam ser atômicas. A garantia que esta
+  // asserção protege é a mesma — o cliente não decide o regime — e agora ela
+  // é ainda mais forte: a tela sequer enxerga o regime.
+  assert.match(oppExec, /rpc\(\s*['"]abrir_op_tecelagem['"]/,
+    'a abertura, e com ela o regime, tem de vir do servidor');
+  assert.doesNotMatch(oppExec, /resolverRegimeCompraFio\s*\(/,
+    'a tela não resolve mais o regime por conta própria');
   assert.doesNotMatch(oppExec, /modelo\s*=\s*['"]native['"]/,
     'o cliente não pode decidir o regime localmente');
 });
@@ -190,12 +223,17 @@ test('9. a criação de OP simulada NÃO envia ops.status (toma o default canôn
   assert.equal(insert.payload.ano, 2026);
 });
 
-test('10. um status que NÃO é o default continua explícito', async () => {
+test('10. P4: nem um status não-default é declarado pelo cliente', async () => {
   const { sandbox, ops } = makeSandbox();
   await persistir(sandbox, { status: 'aberta', op: null });
+  // P4 (TD2.1): ops.status deixou de ser declarável pelo cliente em QUALQUER
+  // caso. Uma OP nova nasce 'simulada' pelo default e a abertura é uma
+  // operação subsequente do servidor.
   const insert = ops.find((o) => o.table === 'ops' && o.op === 'insert');
-  assert.equal(insert.payload.status, 'aberta',
-    'um estado que não é o default tem de ser declarado');
+  assert.equal('status' in insert.payload, false,
+    'nem mesmo um estado não-default pode ser declarado pelo cliente');
+  assert.ok(ops.find((o) => o.op === 'rpc' && o.fn === 'abrir_op_tecelagem'),
+    'a abertura passa pelo escritor canônico');
 });
 
 test('11. nenhum escritor de criação do P4 foi antecipado aqui', () => {

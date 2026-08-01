@@ -2838,14 +2838,17 @@
             status_cliente_mensagem: messageInput.value ? messageInput.value.trim() : null,
           };
 
-          var updateRes = await window.supa
-            .from('pedidos')
-            .update(updatePayload)
-            .eq('id', state.pedido.id);
-
-          if (updateRes.error) {
-            window.toast('Erro ao salvar situacao visivel: ' + (updateRes.error.message || 'desconhecido'), 'error');
-            console.error('pedido-detail: erro ao atualizar situacao visivel', updateRes.error);
+          // P4 (9.9.L.2): `status_cliente_*` tem dono servidor.
+          var updateRes = await window.supa.rpc('salvar_situacao_visivel_pedido', {
+            p_pedido_id: state.pedido.id,
+            p_status_visual: updatePayload.status_cliente_visual,
+            p_excecao: updatePayload.status_cliente_excecao,
+            p_mensagem: updatePayload.status_cliente_mensagem,
+          });
+          if (updateRes.error || !updateRes.data || !updateRes.data.ok) {
+            var msgSit = updateRes.error ? updateRes.error.message : ((updateRes.data && (updateRes.data.erro || updateRes.data.codigo)) || 'desconhecido');
+            window.toast('Erro ao salvar situacao visivel: ' + msgSit, 'error');
+            console.error('pedido-detail: erro ao atualizar situacao visivel', updateRes.error || updateRes.data);
             return false;
           }
 

@@ -108,6 +108,19 @@
     return pedidoId != null && String(pedidoId).trim() !== '';
   }
 
+  // Limpeza best-effort de uma OP recem-criada que nao chegou a ganhar lote.
+  // `remover_op` recusa sem o token da classe correta, e a classe depende do
+  // que ja esta ligado a OP, entao as duas classes sao tentadas em ordem.
+  // Falhar aqui NAO e mascarado: quem chama devolve o erro original do lote.
+  async function removerOPRecemCriada(supa, opId) {
+    for (const token of ['EXCLUIR', 'EXCLUIR TUDO']) {
+      const r = await supa.rpc('remover_op', { p_op_id: Number(opId), p_confirmacao: token });
+      if (!r.error && r.data && r.data.ok) return true;
+    }
+    console.error('op-persistir: nao foi possivel remover a OP recem-criada', opId);
+    return false;
+  }
+
   // Persiste OP + filhos. Retorna envelope { error, step, partial, opId }.
   //
   // Steps:
@@ -197,31 +210,27 @@
     }
 
     // 1) upsert ops PRIMEIRO — evita lote órfão se o número da OP duplicar.
+    //
+    // P4 (§9.9.L.4 / TD2.1): `ops.status` NUNCA viaja daqui. O grant por
+    // coluna admite apenas (numero, ano) no INSERT, e o status e um fato
+    // protegido de dono servidor. Uma OP nova nasce 'simulada' por DEFAULT
+    // (db/01) e a transicao para 'aberta' e o ULTIMO passo, feita pelo
+    // escritor canonico `abrir_op_tecelagem`.
     let opRow;
     let opIdSalvo;
     if (!isNova) {
-      // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: o UPDATE nao toca mais
-      // `numero`/`ano`. ANTES gravava os valores digitados na tela, sem
-      // sincronizar `op_numeros`, dessincronizando o high-water. A numeracao
-      // interna e imutavel apos a criacao e o guard de db/95 recusa qualquer
-      // tentativa; o cliente nao depende mais desse guard porque simplesmente
-      // nao envia os campos.
-      const r = await supa.from('ops').update({ status }).eq('id', op.id).select().single();
+      // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: o UPDATE nao toca
+      // `numero`/`ano`. P4 removeu tambem a escrita de `status` que existia
+      // aqui: reabrir/abrir passou a ser operacao do servidor, e regravar o
+      // status atual era, na pratica, um no-op disfarçado.
+      const r = await supa.from('ops').select().eq('id', op.id).single();
       if (r.error) {
         return { error: r.error, step: 'ops_update', partial: false, opId: op.id };
       }
       opRow = r.data;
       opIdSalvo = opRow.id;
     } else {
-      // P2-A (§9.9.L.4 / TD2.1, caminho 3): NÃO enviar ops.status na criação
-      // quando o valor é o próprio default canônico. Uma OP nova nasce
-      // 'simulada' por DEFAULT do schema (db/01) e o cliente não precisa —
-      // nem deve — declarar esse fato protegido. Só permanece explícito o
-      // status que NÃO é o default; quando o P4 estreitar o grant por coluna,
-      // o caminho do default já estará limpo.
-      const insertPayload = { numero: numeroPersistido, ano: anoInt };
-      if (status !== 'simulada') insertPayload.status = status;
-      const r = await supa.from('ops').insert(insertPayload).select().single();
+      const r = await supa.from('ops').insert({ numero: numeroPersistido, ano: anoInt }).select().single();
       if (r.error) {
         return { error: r.error, step: 'ops_insert', partial: false, opId: null };
       }
@@ -248,8 +257,12 @@
       const li = await supa.from('lotes').insert(lotePayload).select().single();
       if (li.error) {
         if (isNova) {
-          // limpa OP recém-criada
-          await supa.from('ops').delete().eq('id', opIdSalvo);
+          // P4 (TD2.2): o DELETE direto em `ops` foi revogado do cliente. A
+          // remocao de uma OP recem-criada e ainda pre-operacional passa pelo
+          // escritor canonico de exclusao, que ja existia (db/34+). Ele exige
+          // o token de confirmacao correspondente a CLASSE da exclusao, entao
+          // a limpeza tenta a classe simples e so entao a cascata.
+          await removerOPRecemCriada(supa, opIdSalvo);
         }
         return { error: li.error, step: 'lotes_insert', partial: true, opId: opIdSalvo };
       }
@@ -261,34 +274,35 @@
     }
 
     // 3) substitui op_itens
-    const delItens = await supa.from('op_itens').delete().eq('op_id', opIdSalvo);
-    if (delItens.error) {
-      return { error: delItens.error, step: 'op_itens_delete', partial: true, opId: opIdSalvo };
-    }
-    const itensPayload = montarPayloadItensOP(validos, opIdSalvo);
-    const itensRes = await supa.from('op_itens').insert(itensPayload);
-    if (itensRes.error) {
-      if (status === 'aberta') {
-        await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-      }
-      return { error: itensRes.error, step: 'op_itens_insert', partial: true, opId: opIdSalvo };
+    //
+    // P4 (§9.9.L.4 / TD2.2): o par DELETE+INSERT direto perdeu o privilegio de
+    // DELETE. A troca do conjunto passou a ser UMA transacao do servidor, o
+    // que tambem elimina a janela em que a OP ficava sem itens.
+    const itensRes = await supa.rpc('substituir_itens_op', {
+      p_op_id: opIdSalvo,
+      p_itens: montarPayloadItensOP(validos, opIdSalvo),
+    });
+    if (itensRes.error || !itensRes.data || !itensRes.data.ok) {
+      const erro = itensRes.error || {
+        message: (itensRes.data && (itensRes.data.erro || itensRes.data.codigo)) || 'Falha ao salvar itens',
+      };
+      return { error: erro, step: 'op_itens_insert', partial: true, opId: opIdSalvo };
     }
 
     // 4) substitui op_fornecedores — só tecelagem na criação (fios são atribuídos depois)
+    //
+    // `op_fornecedores` NAO e um fato protegido pelo P4 e mantem seus grants,
+    // entao este par continua direto. Os rollbacks para 'simulada' saíram: a
+    // transicao para 'aberta' agora acontece DEPOIS deste ponto, entao uma
+    // falha aqui simplesmente deixa a OP como ela ja estava.
     const delForn = await supa.from('op_fornecedores').delete().eq('op_id', opIdSalvo);
     if (delForn.error) {
-      if (status === 'aberta') {
-        await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-      }
       return { error: delForn.error, step: 'op_fornecedores_delete', partial: true, opId: opIdSalvo };
     }
     if (fornSel && fornSel.cima) {
       const fornecedoresPayload = montarPayloadFornecedoresOP(fornSel, opIdSalvo);
       const fornRes = await supa.from('op_fornecedores').insert(fornecedoresPayload);
       if (fornRes.error) {
-        if (status === 'aberta') {
-          await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-        }
         return { error: fornRes.error, step: 'op_fornecedores_insert', partial: true, opId: opIdSalvo };
       }
     }
@@ -297,44 +311,37 @@
     //    decides the purchasing regime; the client never decides locally and
     //    a native Pedido never silently falls back to flat purchasing.
     if (status === 'aberta') {
-      const regimeApi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.opCompraRegime;
-      const regime = regimeApi
-        ? await regimeApi.resolverRegimeCompraFio(pedidoId)
-        : { ok: false, erro: 'Modulo de regime de compra indisponivel' };
-      if (!regime || regime.ok !== true) {
-        await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-        return { error: regime && regime.error ? regime.error : { message: (regime && regime.erro) || 'Falha ao resolver regime de compra' }, step: 'regime_resolve', partial: true, opId: opIdSalvo };
-      }
-
-      // P2-A (§9.9.N linha 9): SOMENTE sincronização NATIVA. O ramo legado —
-      // que montava linhas planas de `ordens_compra_fio` a partir da receita
-      // e as gravava com delete+insert diretos — foi REMOVIDO. A proibição
-      // canônica é explícita: nenhuma escrita dupla nativo-para-plano, nenhuma
-      // materialização sintética de ordens_compra_fio, nem sequer como medida
-      // temporária de compatibilidade.
+      // P4 (§9.9.L.4): ABRIR e UMA operacao do servidor.
       //
-      // O regime continua sendo do SERVIDOR e não é ignorado. Um Pedido que o
-      // servidor ainda classifica como 'legacy' (evidência de compra plana
-      // pré-existente) não tem mais escritor de compra nesta tela: a operação
-      // FALHA HONESTAMENTE e devolve a OP a 'simulada'. Fingir sucesso, ou
-      // recriar as linhas planas, seria exatamente o que a proibição veda.
-      if (regime.modelo !== 'native') {
-        await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
+      // Nao da para reordenar isto no cliente. `sincronizar_necessidades_
+      // compra_fio` so enxerga OPs cujo status JA e 'aberta', entao a
+      // transicao precisa vir antes da sincronizacao; e a matriz de transicao
+      // de db/21 nao tem aresta aberta -> simulada, entao o cliente nao
+      // conseguiria desfazer a transicao se a sincronizacao falhasse. Os seis
+      // rollbacks manuais para 'simulada' que existiam aqui eram uma
+      // aproximacao disso, e nunca foram um rollback de verdade.
+      //
+      // `abrir_op_tecelagem` faz transicao + regime + sincronizacao na MESMA
+      // transacao: ou a OP fica aberta e sincronizada, ou continua exatamente
+      // como estava. As falhas de regime e de sincronizacao chegam como
+      // excecao (e o que desfaz a transicao), com o codigo estavel na
+      // mensagem.
+      const abrir = await supa.rpc('abrir_op_tecelagem', { p_op_id: opIdSalvo });
+
+      if (abrir.error) {
+        const texto = String(abrir.error.message || '') + ' ' + String(abrir.error.details || '');
+        let step = 'regime_resolve';
+        if (texto.indexOf('regime_legado_sem_escritor') !== -1) step = 'regime_legado_sem_escritor';
+        else if (texto.indexOf('necessidades_sync') !== -1) step = 'necessidades_sync';
+        return { error: abrir.error, step, partial: true, opId: opIdSalvo };
+      }
+      if (!abrir.data || !abrir.data.ok) {
         return {
-          error: { message: 'Este Pedido está no regime de compra legado, que não tem mais escritor de ordens de fio nesta tela. Trate a compra pelo planejamento nativo antes de abrir a OP.' },
-          step: 'regime_legado_sem_escritor',
+          error: { message: (abrir.data && (abrir.data.erro || abrir.data.codigo)) || 'Falha ao abrir a OP' },
+          step: 'ops_update',
           partial: true,
           opId: opIdSalvo,
         };
-      }
-
-      // O que persiste é NECESSIDADE, não documento, e quem persiste é o
-      // escritor do servidor. Falha para a operação e devolve a OP a
-      // 'simulada' — nunca cai para o modelo plano em silêncio.
-      const sync = await regimeApi.sincronizarNecessidadesCompraFio(pedidoId);
-      if (!sync || sync.ok !== true) {
-        await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
-        return { error: sync && sync.error ? sync.error : { message: (sync && sync.erro) || 'Falha ao sincronizar necessidades nativas' }, step: 'necessidades_sync', partial: true, opId: opIdSalvo };
       }
       return { error: null, step: 'ok', partial: false, opId: opIdSalvo, numero: numeroPersistido, modelo: 'native' };
     }

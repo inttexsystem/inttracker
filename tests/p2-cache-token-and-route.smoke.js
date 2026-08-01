@@ -46,12 +46,31 @@ function tokenDe(asset) {
 // token de fase nenhum.
 const STABILIZATION_TOKEN = '20260731-native-receipt-p2-stabilization-r1';
 const STABILIZATION_ASSETS = [
-  'js/screens/pedido-detail-events.js',
   'js/screens/expedicao-admin.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN];
+
+// NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1: o P4 repontou
+// as superficies de criacao e de rastreamento para os escritores canonicos,
+// entao os assets que ele alterou passam a carregar o token do P4 — o mesmo
+// mecanismo da estabilizacao, aplicado a fase seguinte. O sujeito do guard
+// continua o mesmo: todo asset alterado carrega o token da fase que o alterou
+// POR ULTIMO.
+//
+// `pedido-detail-events.js` migrou da lista da estabilizacao para a do P4
+// porque o P4 foi a ultima fase a altera-lo.
+const P4_TOKEN = '20260801-native-receipt-p4-authority-switch-r1';
+const P4_ASSETS = [
+  'js/pedido-priority.js',
+  'js/screens/cliente-pedido-form.js',
+  'js/screens/pedido-form.js',
+  'js/screens/op-persistir.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/pedido-tracking-admin.js',
+];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN];
 
 function tokenEsperado(asset) {
+  if (P4_ASSETS.includes(asset)) return P4_TOKEN;
   return STABILIZATION_ASSETS.includes(asset) ? STABILIZATION_TOKEN : P2_TOKEN;
 }
 

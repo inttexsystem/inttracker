@@ -132,28 +132,36 @@ test('boot.js: registra rota #/cliente/pedidos/novo com role cliente', () => {
 });
 
 // ---------------------------------------------------------------------
-// 5. Tabela / INSERTs
+// 5. Criação — P4 (9.9.L.4 / TD2.1): escritor canônico, não DML direta
 // ---------------------------------------------------------------------
 
-test('cliente-pedido-form: usa from(\'pedidos\') para insert', () => {
-  assert.match(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.insert\s*\(/);
+test('cliente-pedido-form: cria pelo escritor canônico criar_pedido_cliente', () => {
+  assert.match(screen, /\.rpc\(\s*['"]criar_pedido_cliente['"]/);
 });
 
-test('cliente-pedido-form: usa from(\'pedido_itens\') para insert', () => {
-  assert.match(screen, /\.from\(\s*['"]pedido_itens['"]\s*\)\s*\.insert\s*\(/);
+test('cliente-pedido-form: NÃO faz DML direta em pedidos nem em pedido_itens', () => {
+  // TD2: a autoridade direta de INSERT e DELETE sobre estas duas tabelas foi
+  // revogada do cliente. Pedido, itens e prioridade viajam num único payload
+  // para o escritor do servidor.
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.(insert|delete|update)\s*\(/);
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"]\s*\)\s*\.(insert|delete|update)\s*\(/);
 });
 
-test('cliente-pedido-form: compensa com DELETE em pedidos se itens falharem', () => {
-  assert.match(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.delete\s*\(\s*\)\s*\.eq\s*\(\s*['"]id['"]\s*,\s*pedidoId\s*\)/);
+test('cliente-pedido-form: NÃO compensa com DELETE — a transação do servidor é atômica', () => {
+  // A compensação existia porque três escritas do navegador não são uma
+  // transação. Com um único comando, não há etapa parcial para desfazer.
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedidos['"]\s*\)\s*\.delete\s*\(/);
 });
 
 // ---------------------------------------------------------------------
-// 6. status inicial = recebido
+// 6. status inicial = recebido, decidido pelo SERVIDOR
 // ---------------------------------------------------------------------
 
-test('cliente-pedido-form: status inicial é "recebido"', () => {
-  // O literal 'recebido' aparece no payload de insert de pedidos
-  assert.match(screen, /status\s*:\s*['"]recebido['"]/);
+test('cliente-pedido-form: NÃO envia pedidos.status — o servidor é o dono', () => {
+  // `pedidos.status` é um fato protegido (TD2.1). 'recebido' continua sendo o
+  // estado inicial de um Pedido criado pelo Cliente, mas quem o declara é
+  // public.criar_pedido_cliente, e não mais este payload.
+  assert.doesNotMatch(screen, /status\s*:\s*['"]recebido['"]/);
 });
 
 test('cliente-pedido-form: NÃO hardcoda status de "rascunho"/"confirmado"/"produzindo"/"entregue"/"cancelado"', () => {
@@ -280,8 +288,15 @@ test('cliente-pedido-form: NÃO faz delete exceto compensação em pedidos', () 
   assert.doesNotMatch(codeOnly, /\.from\(\s*['"]pedido_itens['"]\s*\)\s*\.delete/);
 });
 
-test('cliente-pedido-form: NÃO usa rpc', () => {
-  assert.doesNotMatch(screen, /\.rpc\s*\(/);
+test('cliente-pedido-form: usa RPC APENAS para os escritores canônicos', () => {
+  // Antes do P4 esta tela não chamava nenhuma RPC, porque escrevia direto nas
+  // tabelas. A regra que essa asserção protegia — nenhuma lógica de escrita
+  // própria fora dos donos canônicos — continua valendo; o que mudou é que o
+  // dono agora é uma RPC. A lista é fechada de propósito.
+  const rpcs = [...screen.matchAll(/\.rpc\(\s*['"]([a-z0-9_]+)['"]/g)].map((m) => m[1]);
+  const permitidas = new Set(['criar_pedido_cliente', 'definir_prioridade_pedido']);
+  const inesperadas = rpcs.filter((n) => !permitidas.has(n));
+  assert.deepEqual(inesperadas, [], 'RPC não prevista nesta tela: ' + inesperadas.join(', '));
 });
 
 // ---------------------------------------------------------------------

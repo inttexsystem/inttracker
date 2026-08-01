@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `NO ACTIVE PRODUCT PHASE`
-- Objective: NO PRODUCT PHASE IS ACTIVE. NATIVE-RECEIPT-COORDINATED-RELEASE-P3-AUTHENTICATED-PROOF is CLOSED / ACCEPTED and is recorded in accepted_checkpoints, which owns its acceptance scope; P1 (additive backend) and P2 (frontend) were accepted before it. NOTHING CHAINS FROM THAT ACCEPTANCE: P4 (coordinated authority switch) and P5 (cutover) REMAIN NOT AUTHORIZED, and no product implementation, database operation, migration application, deployment or environment mutation is authorized without a NEW explicit architect order naming the scope, the environment and the permitted operation. NATIVE RECEIPT REMAINS INACTIVE. The next step is a supervisor decision selecting the next product phase; an executor may not infer one from a completed phase, a backlog position or a contract.
-- Next authorizable action: `SELECT NEXT PRODUCT PHASE` / `AWAITING PRODUCT DIRECTION; NO PHASE IS CHAINED`
+- Status: `IMPLEMENTED / APPLIED TO PRODUCTION / PUBLISHED THROUGH THE SINGLE AUTHORIZED staging/dev PUSH / AWAITING SUPERVISOR REVIEW AND ACCEPTANCE. SELF-ACCEPTANCE IS NOT CLAIMED AND NO ACCEPTED CHECKPOINT IS APPENDED FOR THIS PHASE. NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover IS legacy_active/flat WITH productive_receipt_started_at NULL AND THE db/75/db/76 WRITER FENCE IS UNCHANGED`
+- Objective: P4, the coordinated authority switch, is implemented and applied. Emission now freezes the SUPPLIER-level fornecedores.exige_aceite and the global ordem_compra_config.exige_aceite is demoted (db/103b); the 9.9.B lock protocol and the 9.9.F acceptance gate are installed and alterar_status_op, cancelar_ordem_compra and excluir_ordem_compra are joined to them without retyping their proven bodies (db/104); and the TD2 direct-DML containment plus the five bounded canonical writers are in place (db/106a + db/106b). The full evidence is owned by docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md section 9.9.T and is not restated here. THE NEXT STEP IS SUPERVISOR REVIEW OF THAT EVIDENCE. P5 (cutover) and P6 (first native receipt) REMAIN NOT AUTHORIZED and neither is reachable without a new explicit order.
+- Next authorizable action: `SUPERVISOR REVIEW OF NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/governance/AGENT_INSTRUCTIONS.md::## 4. Authorization and roles`
+- `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md::### 9.9.T P4 implementation evidence`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

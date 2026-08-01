@@ -2251,11 +2251,13 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   const intocados = [
     ['js/screens/pedido-detail-data.js', P2_TOKEN],
     ['js/screens/pedido-itens-edit.js', SCREEN_GROUP_1_TOKEN],
-    // PEDIDO-SCREEN-GROUP-2 passou a ser a ULTIMA ordem a alterar
-    // cliente-pedido-form (moldura, divisor de cabecalho, empilhamento
-    // canonico do modal de item e remocao do contorno de posicionamento
-    // provado redundante). O lote 3 continua proibido de arrastar asset algum.
-    ['js/screens/cliente-pedido-form.js', PRIORITY_TOKEN],
+    // NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1 passou a ser a
+    // ULTIMA ordem a alterar cliente-pedido-form: a criacao foi repontada para
+    // o escritor canonico criar_pedido_cliente e as escritas diretas em
+    // `pedidos`/`pedido_itens`, com a sua compensacao, sairam. O sujeito do
+    // guard nao muda: o lote 3 continua proibido de arrastar asset algum, e
+    // cada asset segue verificado contra a ordem que o alterou POR ULTIMO.
+    ['js/screens/cliente-pedido-form.js', '20260801-native-receipt-p4-authority-switch-r1'],
     // INTTEX-BRAND-ASSET-INTEGRATION passou a ser a ULTIMA ordem a alterar
     // common.js: a marca textual da topbar deu lugar ao logotipo aprovado. O
     // lote 3 continua proibido de arrastar asset algum.

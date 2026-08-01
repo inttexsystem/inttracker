@@ -178,7 +178,25 @@ function makeRuntime() {
   sandbox.globalThis = sandbox;
   sandbox.supa = {
     from: (t) => chain(t),
-    rpc: () => Promise.resolve({ data: 69, error: null }),
+    // P4 (9.9.L.4 / TD2.1): a criacao virou UMA transacao do servidor, entao
+    // o payload de itens chega em `p_itens` do escritor canonico em vez de um
+    // INSERT direto. O que esta suite prova — que os dois caminhos de entrada
+    // convergem no MESMO payload — nao muda; so o transporte mudou.
+    rpc: (fn, params) => {
+      if (fn === 'criar_pedido_admin') {
+        calls.pedidoInsert = (params && params.p_pedido) || null;
+        calls.itensInsert = (params && params.p_itens) || null;
+        return Promise.resolve({
+          data: {
+            ok: true,
+            pedido: { id: 'ped-1', numero: 69, status: 'rascunho', data_pedido: '2026-08-01' },
+            itens: (calls.itensInsert || []).map((it, i) => ({ id: 'pi-' + (i + 1), ordem: it.ordem })),
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: 69, error: null });
+    },
   };
   sandbox.ADMIN_MENU = [];
   sandbox.shellLayout = (_m, content) => content;
@@ -572,7 +590,10 @@ test('dual/16. os dois caminhos convergem no MESMO payload de pedido_itens', asy
   // MESMA forma, MESMAS chaves, MESMA semantica — e nenhum tipo redundante.
   const chaves = calls.itensInsert.map((i) => Object.keys(i).sort().join(','));
   assert.equal(chaves[0], chaves[1], 'os dois itens devem ter as mesmas chaves');
-  assert.equal(chaves[0], 'metros,modelo_id,observacao,ordem,pedido_id');
+  // P4: `pedido_id` saiu do payload — o item viaja DENTRO da transacao que
+  // cria o Pedido, que ja conhece o id. Os quatro campos de conteudo, e a
+  // convergencia dos dois caminhos, sao exatamente os mesmos.
+  assert.equal(chaves[0], 'metros,modelo_id,observacao,ordem');
   // O payload nasce DENTRO do contexto vm, entao ele carrega o Object.prototype
   // daquele realm. A copia traz o valor para o realm da suite sem alterar nada
   // do que esta sendo provado.
@@ -582,10 +603,10 @@ test('dual/16. os dois caminhos convergem no MESMO payload de pedido_itens', asy
   // 5 chaves (contrato inalterado), mas os DOIS itens agora nascem com
   // observacao NULL, sempre, pelos dois caminhos de entrada.
   assert.deepEqual(payload(calls.itensInsert[0]), {
-    pedido_id: 'ped-1', modelo_id: 1, metros: 4, ordem: 0, observacao: null,
+    modelo_id: 1, metros: 4, ordem: 0, observacao: null,
   });
   assert.deepEqual(payload(calls.itensInsert[1]), {
-    pedido_id: 'ped-1', modelo_id: 2, metros: 6, ordem: 1, observacao: null,
+    modelo_id: 2, metros: 6, ordem: 1, observacao: null,
   });
   for (const item of calls.itensInsert) {
     assert.ok(!('tipo' in item), 'o tipo nunca e persistido');

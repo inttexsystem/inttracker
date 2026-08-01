@@ -90,8 +90,12 @@ test('pedido-tracking-admin usa helpers compartilhados para preview', () => {
   assert.match(adminSrc, /getClienteTrackingProgress/);
 });
 
-test('pedido-tracking-admin grava campos visuais em pedidos', () => {
-  assert.match(adminSrc, /from\(\s*['"]pedidos['"]\s*\)/);
+test('pedido-tracking-admin grava campos visuais pelo escritor canônico', () => {
+  // P4 (9.9.L.2): `pedidos.status_cliente_*` saiu do grant do cliente. A
+  // capacidade administrativa é a mesma; o dono da escrita passou a ser
+  // public.salvar_situacao_visivel_pedido.
+  assert.match(adminSrc, /\.rpc\(\s*['"]salvar_situacao_visivel_pedido['"]/);
+  assert.doesNotMatch(adminSrc, /from\(\s*['"]pedidos['"]\s*\)\s*\n?\s*\.update\s*\(/);
   assert.match(adminSrc, /status_cliente_visual/);
   assert.match(adminSrc, /status_cliente_excecao/);
   assert.match(adminSrc, /status_cliente_mensagem/);
@@ -119,7 +123,10 @@ test('pedido-tracking-admin usa CURRENT_USER.id para criado_por quando disponive
 test('pedido-tracking-admin trata falha no update antes do insert e falha de historico separadamente', () => {
   assert.match(adminSrc, /Erro ao salvar situacao visivel/);
   assert.match(adminSrc, /Situacao visivel salva, mas o historico visual nao foi registrado/);
-  assert.match(adminSrc, /if\s*\(\s*updateRes\.error\s*\)/);
+  // P4: a escrita virou uma RPC com envelope, então a falha pode chegar como
+  // erro de transporte OU como `ok:false`. As duas têm de ser tratadas, e o
+  // registro do histórico continua sendo avaliado separadamente.
+  assert.match(adminSrc, /if\s*\(\s*updateRes\.error\s*\|\|\s*!updateRes\.data\s*\|\|\s*!updateRes\.data\.ok\s*\)/);
   assert.match(adminSrc, /if\s*\(\s*insertRes\.error\s*\)/);
 });
 

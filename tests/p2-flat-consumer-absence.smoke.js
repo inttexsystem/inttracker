@@ -98,7 +98,14 @@ test('10. o detalhe do Pedido nao tem mais fallback plano', () => {
 
 test('11. a abertura de OP nao materializa linhas planas', () => {
   assert.doesNotMatch(SRC.persistir, /from\(\s*['"]ordens_compra_fio['"]\s*\)/);
-  assert.match(SRC.persistir, /sincronizarNecessidadesCompraFio/);
+  // P4 (9.9.L.4): a sincronizacao das necessidades deixou de ser uma chamada
+  // separada da tela e passou para DENTRO de abrir_op_tecelagem, junto com a
+  // transicao de status, porque as duas precisam ser atomicas — a
+  // sincronizacao so enxerga uma OP que JA esta 'aberta', e o cliente nao tem
+  // como desfazer a transicao se ela falhar. A garantia deste guard nao muda:
+  // a abertura continua sincronizando NECESSIDADE nativa e nunca documento
+  // plano; o dono e que passou a ser o servidor.
+  assert.match(SRC.persistir, /rpc\(\s*['"]abrir_op_tecelagem['"]/);
 });
 
 test('12. a receita produz NECESSIDADE, nao documento plano', () => {

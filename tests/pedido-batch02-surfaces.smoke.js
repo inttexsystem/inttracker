@@ -119,7 +119,10 @@ test('cliente-form: confirmar sem Tipo é rejeitado', () => {
 });
 
 test('cliente-form: data_pedido é enviada e aparece ANTES de Prazo desejado', () => {
-  assert.match(clienteForm, /pedidoPayload\.data_pedido = state\.dataPedido;/);
+  // P4: o payload deixou de ser montado por atribuicoes soltas e passou a ser
+  // o literal enviado ao escritor canonico. `data_pedido` continua obrigatorio
+  // e continua saindo de `state.dataPedido`.
+  assert.match(clienteForm, /data_pedido:\s*state\.dataPedido/);
   const iData = clienteForm.indexOf("'Data do pedido'");
   const iPrazo = clienteForm.indexOf("'Prazo desejado'");
   assert.ok(iData > 0 && iPrazo > 0, 'rótulos de data/prazo ausentes');
@@ -347,10 +350,16 @@ test('index.html: a superfície tocada pela passada 1 de cor carrega o token del
   // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 acrescentou a solicitacao de
   // prioridade e a confirmacao de finalizacao a esta tela, entao ela e
   // retokenizada mais uma vez. Mesma regra de sempre.
-  assert.match(index, new RegExp(esc + '\\?v=20260728-pedido-item-production-priority-r1'),
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1 repontou a
+  // criacao desta tela para o escritor canonico criar_pedido_cliente e
+  // retirou as escritas diretas e a compensacao, entao ela e retokenizada
+  // mais uma vez. Mesma regra de sempre.
+  assert.match(index, new RegExp(esc + '\\?v=20260801-native-receipt-p4-authority-switch-r1'),
     asset + ' deve carregar o token da ordem que o alterou por ultimo');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-2'),
     asset + ' não pode reter o token de PEDIDO-SCREEN-GROUP-2');
+  assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260728-pedido-item-production-priority-r1'),
+    asset + ' não pode reter o token anterior ao P4');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-1'),
     asset + ' não pode reter o token de PEDIDO-SCREEN-GROUP-1');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-specialized-controls-b1'),
@@ -424,8 +433,12 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // sinalizador de foco/caret (pedido-form.js) e o gancho de mousedown da
   // acao de mencao (pedido-item-row-editor.js); pedido-item-modal.js nao foi
   // tocado e mantem o token anterior.
+  // NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1 alterou APENAS
+  // pedido-form.js dos tres — a criacao passou ao escritor canonico
+  // criar_pedido_admin —, entao ele volta a divergir dos outros dois, que nao
+  // foram tocados e mantem os seus. Mesma regra de sempre.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260729-pedido-item-mention-observation-ux-r1-review-correction',
+    'screens/pedido-form.js': '20260801-native-receipt-p4-authority-switch-r1',
     'screens/pedido-item-modal.js': '20260729-pedido-item-mention-observation-ux-r1',
     'screens/pedido-item-row-editor.js': '20260729-pedido-item-mention-observation-ux-r1-review-correction',
   };

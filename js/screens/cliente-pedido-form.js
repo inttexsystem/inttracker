@@ -1002,33 +1002,22 @@
       btn.textContent = 'Enviando…';
 
       try {
+        // P4 (9.9.L.4 / TD2.1): o Pedido, seus itens e a prioridade solicitada
+        // pelo Cliente sao UMA transacao do servidor. `pedidos.status` NAO
+        // viaja mais no payload — 'recebido' e decisao do escritor canonico,
+        // nao do cliente. As escritas diretas e o DELETE compensatorio saem
+        // junto: ou tudo existe, ou nada foi criado.
         var pedidoPayload = {
           cliente_id: Number(clienteId),
-          status: 'recebido',
+          data_pedido: state.dataPedido,
         };
-        pedidoPayload.data_pedido = state.dataPedido;
         if (state.prazoEntrega) pedidoPayload.prazo_entrega = state.prazoEntrega;
         if (state.observacao) pedidoPayload.observacao = state.observacao;
-
-        var pedidoRes = await window.supa
-          .from('pedidos')
-          .insert(pedidoPayload)
-          .select('id, numero, status')
-          .single();
-
-        if (pedidoRes.error || !pedidoRes.data) {
-          window.toast('Erro ao criar pedido: ' + (pedidoRes.error && pedidoRes.error.message
-            ? pedidoRes.error.message : 'desconhecido'), 'error');
-          console.error(pedidoRes.error);
-          return;
-        }
-        var pedidoId = pedidoRes.data.id;
 
         var itensPayload = [];
         for (var j = 0; j < state.itens.length; j++) {
           var it2 = state.itens[j];
           var row2 = {
-            pedido_id: pedidoId,
             modelo_id: Number(it2.modeloId),
             metros: Number(it2.metros),
             ordem: j,
@@ -1039,41 +1028,27 @@
           itensPayload.push(row2);
         }
 
-        // `ordem` volta no select porque a sequência de prioridade é lida DELE,
-        // nunca da ordem em que o banco devolveu as linhas.
-        var itensRes = await window.supa
-          .from('pedido_itens')
-          .insert(itensPayload)
-          .select('id, ordem');
-
-        if (itensRes.error) {
-          console.error('Erro ao inserir itens, compensando:', itensRes.error);
-          try {
-            var delRes = await window.supa.from('pedidos').delete().eq('id', pedidoId);
-            if (delRes.error) {
-              window.toast(
-                'Erro: pedido #' + pedidoRes.data.numero + ' criado sem itens e compensação falhou. Contate o suporte.',
-                'error'
-              );
-              console.error('Compensação falhou:', delRes.error);
-            } else {
-              window.toast('Erro ao inserir itens. Pedido cancelado. Tente novamente.', 'error');
-            }
-          } catch (e) {
-            window.toast(
-              'Erro: pedido #' + pedidoRes.data.numero + ' criado sem itens e compensação falhou. Contate o suporte.',
-              'error'
-            );
-            console.error('Compensação threw:', e);
-          }
-          return;
+        var prioApi = priorityApi();
+        var prioridadePayload = null;
+        if (prioApi && state.prioridadeHabilitada && prioApi.aplicavel(state.itens.length)) {
+          prioridadePayload = { habilitada: true };
         }
 
-        // Prioridade solicitada pelo Cliente. Se a persistência falhar, o
-        // Pedido NÃO fica salvo sem ela: o dono compartilhado já compensa e
-        // devolve `false`, e aqui só resta parar.
-        var prioApi = priorityApi();
-        if (prioApi && !(await prioApi.persistirNaCriacao(state, pedidoId, itensRes.data, pedidoRes.data.numero))) return;
+        var criarRes = await window.supa.rpc('criar_pedido_cliente', {
+          p_pedido: pedidoPayload,
+          p_itens: itensPayload,
+          p_prioridade: prioridadePayload,
+        });
+
+        if (criarRes.error || !criarRes.data || !criarRes.data.ok) {
+          var msg = criarRes.error
+            ? criarRes.error.message
+            : ((criarRes.data && (criarRes.data.erro || criarRes.data.codigo)) || 'desconhecido');
+          window.toast('Erro ao criar pedido: ' + msg, 'error');
+          console.error(criarRes.error || criarRes.data);
+          return;
+        }
+        var pedidoRes = { data: criarRes.data.pedido };
 
         postSave = {
           pedido: pedidoRes.data,

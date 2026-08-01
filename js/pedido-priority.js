@@ -754,34 +754,19 @@
   // `itensInseridos` sao as linhas devolvidas pelo INSERT, com `ordem`. A
   // sequencia sai de `ordem`, e NUNCA da ordem em que o banco devolveu as
   // linhas — que nada promete.
-  async function persistirNaCriacao(state, pedidoId, itensInseridos, pedidoNumero) {
-    if (!state || !state.prioridadeHabilitada) return true;
-    if (!aplicavel((state.itens || []).length)) return true;
-
-    var ordenados = sortByOrdem(itensInseridos || []);
-    var res = await definirPrioridade({
-      pedidoId: pedidoId,
-      itemIds: ordenados.map(function (row) { return row.id; }),
-      habilitada: true,
-    });
-    if (res.ok) return true;
-
-    console.error('pedido-priority: falha ao persistir a prioridade, compensando', res.error);
-    var del = { error: null };
-    try {
-      del = await window.supa.from('pedidos').delete().eq('id', pedidoId);
-    } catch (e) {
-      del = { error: e };
-    }
-    if (del.error) {
-      window.toast('Erro grave: pedido #' + pedidoNumero
-        + ' criado sem a prioridade selecionada e nao compensado. Contate o suporte.', 'error');
-      console.error('pedido-priority: compensacao falhou', del.error);
-    } else {
-      window.toast('Erro ao salvar a prioridade. Pedido cancelado. Tente novamente.', 'error');
-    }
-    return false;
-  }
+  // P4 (9.9.L.4 / TD2.2) RETIROU `persistirNaCriacao`.
+  //
+  // Ela existia para aproximar atomicidade a partir do cliente: gravava a
+  // prioridade DEPOIS do Pedido e, ao falhar, apagava o Pedido recem-criado
+  // com um DELETE direto em `pedidos`. Esse DELETE e exatamente a autoridade
+  // que TD2.2 remove do cliente, e a compensacao nunca foi um rollback — era
+  // uma segunda operacao que podia falhar sozinha, deixando o Pedido salvo
+  // sem a sequencia que o operador escolheu.
+  //
+  // Os dois escritores canonicos `criar_pedido_admin` e `criar_pedido_cliente`
+  // gravam Pedido, itens e prioridade na MESMA transacao do servidor, entao
+  // nao ha etapa parcial para compensar e nao existe mais chamador desta
+  // funcao. Ela foi RETIRADA, nao repontada.
 
   // ------------------------------------------------------------------
   // 10. Bloco somente leitura para detalhe e OP
@@ -883,7 +868,6 @@
     definirPrioridade: definirPrioridade,
     buildCreationPanel: buildCreationPanel,
     painelDeCriacao: painelDeCriacao,
-    persistirNaCriacao: persistirNaCriacao,
     projetarItensLocais: projetarItensLocais,
     buildSequence: buildSequence,
     buildBadge: buildBadge,

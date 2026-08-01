@@ -927,14 +927,17 @@ test('pedido-detail.js: a transicao de status passa pelo escritor canonico do se
     'a revisao e submetida');
 });
 
-test('pedido-detail.js: NAO faz .update() de status em pedidos', () => {
-  // A unica escrita direta que resta em `pedidos` e a de RASTREAMENTO visivel
-  // ao cliente (status_cliente_*), que nao e o status de ciclo de vida e nao
-  // tem escritor canonico nesta fase.
+test('pedido-detail.js: NAO faz .update() direto em pedidos', () => {
+  // Ate o P3 restava UMA escrita direta em `pedidos` — a de RASTREAMENTO
+  // visivel ao cliente (status_cliente_*) — porque ela nao tinha escritor
+  // canonico. O P4 (9.9.L.2) deu um a ela: public.salvar_situacao_visivel_
+  // pedido. Agora NENHUMA escrita direta em `pedidos` resta nesta tela.
   assert.doesNotMatch(detailEvents, /update\(\s*\{\s*status:/,
     'nenhum update direto do status de ciclo de vida');
-  assert.match(detailEvents, /update\(updatePayload\)/,
-    'a escrita de rastreamento visivel ao cliente permanece');
+  assert.doesNotMatch(detailEvents, /update\(updatePayload\)/,
+    'o rastreamento visivel passou ao escritor canonico');
+  assert.match(detailEvents, /\.rpc\(\s*['"]salvar_situacao_visivel_pedido['"]/,
+    'a escrita de rastreamento passa pelo dono servidor');
 });
 
 test('pedido-detail.js: NÃO faz .insert() / .delete() / .upsert() em pedidos', () => {
