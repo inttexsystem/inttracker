@@ -201,6 +201,15 @@
 // grammar and the suffix register are unchanged (mechanism preserved, only the
 // terminal expectation advanced), and db/110 remains the one reservation.
 //
+// SALDO_FIOS CONTAINMENT note
+// (NATIVE-RECEIPT-SALDO-FIOS-DIRECT-GRANT-DEFENSE-IN-DEPTH-GAP): the authorized
+// forward ACL correction db/116_saldo_fios_contencao_dml_simetrica.sql extends
+// this manifest by one further entry, so the expected terminal advances
+// 115 -> 116 and the terminal two become db/115/db/116. The fail-closed
+// mechanism, the identity grammar and the suffix register are unchanged
+// (mechanism preserved, only the terminal expectation advanced), and db/110
+// remains the one reservation: still NOT created and NOT AUTHORIZED.
+//
 'use strict';
 
 const { test, before, after } = require('node:test');
@@ -220,7 +229,7 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 115;
+const EXPECTED_TERMINAL = 116;
 
 // Migration BASE numbers deliberately RESERVED and GENUINELY ABSENT from the
 // repository:
@@ -283,6 +292,7 @@ const DB112_FILENAME = '112_cutover_snapshot_completeness_invariant.sql';
 const DB113_FILENAME = '113_pode_recuperar_op_acabamento_admin_guard.sql';
 const DB114_FILENAME = '114_pedido_alteracao_client_direct_select_column_acl.sql';
 const DB115_FILENAME = '115_pedido_alteracao_expected_refusal_semantics.sql';
+const DB116_FILENAME = '116_saldo_fios_contencao_dml_simetrica.sql';
 const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
@@ -507,8 +517,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB114_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB115_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB115_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB116_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -527,7 +537,7 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/115 less the one reserved number, including the accepted suffix identities', () => {
+test('deployment manifest resolves exactly db/01..db/116 less the one reserved number, including the accepted suffix identities', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   assert.equal(entries.length, EXPECTED_MIGRATION_IDENTITIES.length);
@@ -547,12 +557,12 @@ test('the formerly reserved numbers 104 and 106 are resolved as real migrations,
   assert.deepEqual([...RESERVED_MIGRATION_NUMBERS], [110]);
 });
 
-test('db/114 and db/115 are the terminal two migrations', () => {
+test('db/115 and db/116 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB114_FILENAME);
-  assert.equal(terminal.filename, DB115_FILENAME);
+  assert.equal(penultimate.filename, DB115_FILENAME);
+  assert.equal(terminal.filename, DB116_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
