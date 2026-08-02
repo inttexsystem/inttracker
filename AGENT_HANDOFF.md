@@ -9,7 +9,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 - Workspace: `D:\Programação\controle-tapetes-g28`
 - Branch: `dev`
 - Publication boundary: `staging/dev`; EXPLICIT_SINGLE_FAST_FORWARD_ONLY
-- Accepted operational checkpoint: `78c35c4e762ec05a6815be7d70f806cde97fbf04`
+- Accepted operational checkpoint: `ef4a01a0844fd80d3fdce35b78b21a511994fbf0`
 
 ## Environment
 
@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `CLOSED / ACCEPTED. RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1 is CLOSED / ACCEPTED, db/118 is PRODUCTION APPLIED / VERIFIED / ACCEPTED, and accepted_operational_checkpoint ADVANCES from 9499255fd2ada97bc0ff6d30866736d0ae3cf29e to 78c35c4e762ec05a6815be7d70f806cde97fbf04. P6 REMAINS NOT AUTHORIZED and no implementation phase is started by this closeout.`
-- Objective: Actual received material is the production input again: real receipt surplus raises the productive ceiling of its (Pedido, material, colour) axis through public._oc_excedente_pool, bounded by public._oc_excedente_consumido so one physical kilogram raises only one OP ceiling, and public._oc_teto_disponivel is the single executable ceiling owner shared by the client projection, the adjustment writer and the production-start revalidation. The semantic is installed in production and the PONR is not crossed.
-- Next authorizable action: `NATIVE-RECEIPT-COORDINATED-RELEASE-P6-FIRST-NATIVE-RECEIPT` / `SEPARATE EXPLICIT ARCHITECT ORDER REQUIRED; NO PHASE IS CHAINED`
+- Status: `CLOSED / ACCEPTED. The PONR is CROSSED, the first native receipt is EXECUTED, db/119 is PRODUCTION APPLIED / VERIFIED / DEPLOYED, the ADMIN receipt-metadata correction is OPERATIONALLY VALIDATED by Kleber, and accepted_operational_checkpoint ADVANCES from 78c35c4e762ec05a6815be7d70f806cde97fbf04 to ef4a01a0844fd80d3fdce35b78b21a511994fbf0. THE HISTORICAL RECEIVING EVENT IS NOT COMPLETE: CRU, KRAFT and CINZA remain PENDING and the real db/118 surplus scenario is NOT yet operationally validated. No implementation phase is started by this closeout.`
+- Objective: Reconcile the canonical documentary owners with facts that have already occurred in production. Native receipt is the live authority and the PONR is crossed: receipt 30 on purchase order 105 recorded PRETO 860.100 kg for the historical event OC-001-3-26. db/119 narrowed the db/70 receipt-header guard so that an administrative input error is corrected by EDIT while a real operation that must be undone is still REVERSED, and Kleber validated that path by correcting the receipt business date from 02/08/2026 to 04/06/2026 in the published application.
+- Next authorizable action: `NATIVE-RECEIPT-OC-001-3-26-REMAINING-EVENT-CRU-KRAFT-CINZA` / `SEPARATE EXPLICIT ARCHITECT ORDER REQUIRED; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
 
