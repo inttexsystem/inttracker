@@ -56,6 +56,9 @@
     linhas_invalidas: 'Linhas de recebimento inválidas.',
     ordem_nao_encontrada: 'Ordem de compra não encontrada.',
     lancamento_invalido: 'Lançamento inválido para estorno.',
+    nao_encontrado: 'Recebimento não encontrado.',
+    comando_invalido: 'Dados do recebimento inválidos.',
+    concorrencia_ocupada: 'Outra operação está alterando este recebimento. Tente novamente.',
     item_invalido: 'Item inválido.',
     alocacao_invalida: 'Alocação inválida.',
     erro_interno: 'Erro interno ao processar a solicitação.',
@@ -257,6 +260,87 @@
       });
     }
 
+    // ---- Metadata correction modal (db/119) ---------------------------
+    //
+    // Corrects ONLY the four administrative fields of an existing receipt.
+    // It creates no receipt, triggers no reversal, moves no kilogram and never
+    // opens the R12 production-review continuation — nothing productive
+    // changed, so offering to "review production" would be a lie.
+    //
+    // No idempotency tracker: the command is naturally idempotent (it sets the
+    // four values absolutely), so there is no ambiguous-commit window to
+    // protect and no token to retain.
+    function editarMetadadosRecebimento(comando) {
+      var hist = state.receiptHistory;
+      if (!hist || hist.ok !== true || hist.ator_tipo !== 'admin' || comando.comando_tipo !== 'recebimento') {
+        window.toast('Edição de dados do recebimento indisponível.', 'error');
+        return;
+      }
+
+      // Pre-filled with the CURRENT values. `ocorrido_em` arrives as an ISO
+      // timestamp; the date control owns only the calendar day.
+      var dateInput = window.textInput({
+        type: 'date',
+        value: comando.ocorrido_em ? String(comando.ocorrido_em).slice(0, 10) : '',
+      });
+      var docInput = window.textInput({
+        placeholder: 'Documento / referência (opcional)',
+        value: comando.documento_ref || '',
+      });
+      var origemTipoInput = window.textInput({
+        placeholder: 'Ex.: nota_fiscal',
+        value: comando.origem_tipo || '',
+      });
+      var origemRefInput = window.textInput({
+        placeholder: 'Referência de origem (opcional)',
+        value: comando.origem_ref || '',
+      });
+
+      var body = el('div', {});
+      body.appendChild(el('div', { class: 'text-sm mb-3', style: 'color:var(--rv-color-muted);' },
+        'As quantidades, alocações, excedente e OPs deste recebimento não são alteradas por esta edição.'));
+      body.appendChild(window.formField({ label: 'Data do recebimento', input: dateInput }));
+      body.appendChild(window.formField({ label: 'Documento', input: docInput }));
+      body.appendChild(window.formField({ label: 'Tipo de origem', input: origemTipoInput }));
+      body.appendChild(window.formField({ label: 'Referência de origem', input: origemRefInput }));
+
+      window.modal({
+        title: 'Editar dados do recebimento',
+        body: body,
+        saveLabel: 'Salvar',
+        onSave: async function () {
+          if (!dateInput.value) {
+            window.toast('Informe a data do recebimento.', 'error');
+            return false;
+          }
+          if (!String(origemTipoInput.value || '').trim()) {
+            window.toast('Informe o tipo de origem.', 'error');
+            return false;
+          }
+          var res = await ns.corrigirMetadadosRecebimento({
+            recebimentoId: comando.id,
+            ocorridoEm: dateInput.value,
+            documentoRef: docInput.value || null,
+            origemTipo: origemTipoInput.value,
+            origemRef: origemRefInput.value || null,
+          });
+          if (res.outcome === 'success') {
+            // Authoritative reload: the corrected values are read back from
+            // the server projection, never patched into local state.
+            await reload();
+            window.toast('Dados do recebimento atualizados.', 'success');
+            return; // closes the modal
+          }
+          if (res.outcome === 'ambiguous') {
+            window.toast('Falha de conexão. Recarregue a ordem para conferir se a alteração foi aplicada.', 'error');
+            return false;
+          }
+          window.toast(rejectionMessage(res), 'error');
+          return false;
+        },
+      });
+    }
+
     // ---- Reversal modal ----------------------------------------------
     function estornarLancamento(comando, lanc) {
       var hist = state.receiptHistory;
@@ -340,6 +424,7 @@
     return {
       abrirRegistroRecebimento: abrirRegistroRecebimento,
       estornarLancamento: estornarLancamento,
+      editarMetadadosRecebimento: editarMetadadosRecebimento,
       // R12 exposto para prova direta do roteamento, sem renderizar o modal
       // de registro inteiro.
       opsAfetadasDoResultado: opsAfetadasDoResultado,

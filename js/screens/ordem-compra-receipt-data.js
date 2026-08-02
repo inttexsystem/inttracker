@@ -230,6 +230,28 @@
     return classifyReceiptWriteResult(res);
   };
 
+  // Administrative correction of a receipt's business metadata (db/119).
+  // params: { recebimentoId, ocorridoEm, documentoRef, origemTipo, origemRef }.
+  //
+  // Deliberately carries NO idempotency token and NO attempt tracker: unlike
+  // the two physical writers, this command is naturally idempotent — it sets
+  // the four metadata columns to the exact values supplied, so replaying it
+  // converges on the same row and the server answers `alterado: false`. It
+  // creates no receipt, no reversal and no ledger line, so an ambiguous
+  // transport is recovered by simply reloading and, if needed, submitting
+  // again. Classification still runs through the shared classifier so the
+  // caller branches on the same outcome vocabulary.
+  ns.corrigirMetadadosRecebimento = async function (params) {
+    var res = await window.supa.rpc('corrigir_metadados_recebimento_ordem_compra', {
+      p_recebimento_id: params.recebimentoId,
+      p_ocorrido_em: params.ocorridoEm || null,
+      p_documento_ref: params.documentoRef || null,
+      p_origem_tipo: params.origemTipo || null,
+      p_origem_ref: params.origemRef || null,
+    });
+    return classifyReceiptWriteResult(res);
+  };
+
   // params: { ordemId, ocorridoEm, motivo, linhas }.
   ns.estornarRecebimento = async function (params, attempt) {
     var res = await window.supa.rpc('estornar_recebimento_ordem_compra', {

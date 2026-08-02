@@ -49,6 +49,7 @@
   }
   var ICON_INBOX = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>';
   var ICON_UNDO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
+  var ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
 
   function fmtKg(v) {
     if (v == null) return '—';
@@ -231,10 +232,32 @@
     return el('span', attrs, label + (value == null ? '—' : value));
   }
 
+  // db/119: administrative correction of the four metadata fields of a
+  // RECEIPT command. Availability is not recomputed here — `atorTipo` is the
+  // server's own classification of the caller, carried by the read model
+  // (obter_historico_recebimento_ordem_compra returns ator_tipo). A reversal
+  // command carries no correctable metadata and gets no control, matching the
+  // server, which refuses it with estado_invalido.
+  //
+  // Compact icon-only row action (§8.1) via actionButton(): 30×30,
+  // --rv-radius-control, title + aria-label + sr-only label. NOT danger:
+  // correcting a document reference is an ordinary administrative edit and
+  // must not borrow the destructive affordance of the reversal control.
+  function editMetadataButton(comando, atorTipo, handlers) {
+    var editable = comando.comando_tipo === 'recebimento' && atorTipo === 'admin';
+    if (!editable) return null;
+    return window.actionButton({
+      title: 'Editar dados do recebimento',
+      icon: svgIcon(ICON_EDIT),
+      srLabel: 'Editar dados do recebimento de ' + fmtDateTime(comando.ocorrido_em),
+      onclick: function () { handlers.editarMetadadosRecebimento(comando); },
+    });
+  }
+
   // Command history: one block per command (recebimento/estorno) with its
   // header metadata and a nested lançamentos table carrying honest per-line
   // OP/excess attribution and the row-level reversal control.
-  function historico(comandos, acoes, handlers) {
+  function historico(comandos, acoes, handlers, atorTipo) {
     if (!comandos.length) {
       return el('div', { id: 'oc-recebimentos-historico', class: 'px-5 py-8 text-center text-sm', style: 'color:var(--rv-color-muted);' },
         'Nenhum recebimento registrado ainda.');
@@ -245,13 +268,17 @@
         class: 'px-5 py-4', 'data-comando-id': String(c.id),
         style: i > 0 ? 'border-top:1px solid var(--rv-color-line-100);' : '',
       });
-      var meta = el('div', { class: 'flex flex-wrap items-center gap-x-4 gap-y-1 mb-2 text-sm' },
+      var meta = el('div', { class: 'flex flex-wrap items-center gap-x-4 gap-y-1 text-sm' },
         tipoBadge(c.comando_tipo),
         el('span', { style: 'color:var(--rv-color-muted);font-variant-numeric:tabular-nums;' }, fmtDateTime(c.ocorrido_em)),
         metaSpan('Ator: ', c.ator_tipo || '—'),
         metaSpan('Doc.: ', c.documento_ref || '—', c.documento_ref || undefined),
         metaSpan('Origem: ', (c.origem_tipo || '—') + (c.origem_ref ? (' / ' + c.origem_ref) : ''), c.origem_ref || undefined));
-      block.appendChild(meta);
+      // db/119: the metadata line owns its own correction control, on the same
+      // row and to the right, so the Edit action sits with the values it edits.
+      var editBtn = editMetadataButton(c, atorTipo, handlers);
+      block.appendChild(el('div', { class: 'flex items-start justify-between gap-3 mb-2' },
+        meta, editBtn || el('span', {})));
 
       var showActions = c.comando_tipo === 'recebimento';
       // Pass-8 §2.5: this history table renders SIX columns — Fio, Origem, Kg,
@@ -358,7 +385,7 @@
     children.push(subHeader('Alocações'));
     children.push(alocacoesTable(itens));
     children.push(subHeader('Histórico'));
-    children.push(historico(hist.comandos || [], acoes, handlers));
+    children.push(historico(hist.comandos || [], acoes, handlers, hist.ator_tipo));
 
     return sectionCard(children);
   };
