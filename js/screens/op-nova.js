@@ -171,7 +171,22 @@
   // ordem_compra_admin_select / ordem_compra_item_admin_select /
   // ordem_compra_item_alocacao_admin_select), então o leitor não precisa de
   // RPC nova nem de posse legada por `op_id`.
-  var OC_ALOCACAO_SELECT = 'id, op_id, kg_alocado, item:item_id(id, ordem_id, material, cor_id, cor_poliester, kg_pedido, kg_recebido, cores:cor_id(id, nome), ordem:ordem_id(id, identidade_operacional, codigo, pedido_id, identidade_pedido_id, fornecedor_id, legado, status_administrativo, status_aceite, status_recebimento))';
+  //
+  // SÃO DUAS ROTAS, NÃO UMA. `ordem_compra_item_alocacao.op_id` só é
+  // preenchido para necessidade de ORIGEM OP: os dois escritores canônicos
+  // (db/96 definir_alocacao_necessidade_compra_fio e db/99
+  // gerar_ordem_compra_do_planejamento) gravam
+  //     CASE WHEN origem_tipo = 'op' THEN op_id ELSE NULL END
+  // e a própria tabela de necessidade proíbe a outra forma
+  //     CONSTRAINT necessidade_origem_shape CHECK (
+  //          (origem_tipo = 'op'     AND op_id IS NOT NULL)
+  //       OR (origem_tipo = 'pedido' AND op_id IS NULL))
+  // Material de ORIGEM PEDIDO (hoje o poliéster) é um pool COMPARTILHADO do
+  // Pedido — db/101 §9.9.A escopa o líquido produtivo dele por
+  // `n.pedido_id`, não por OP. Filtrar só por `op_id` deixaria a ordem que
+  // abastece o poliéster desta OP estruturalmente invisível, que é
+  // exatamente o defeito de posse-por-op_id que esta tela veio corrigir.
+  var OC_ALOCACAO_SELECT = 'id, op_id, necessidade_id, kg_alocado, item:item_id(id, ordem_id, material, cor_id, cor_poliester, kg_pedido, kg_recebido, cores:cor_id(id, nome), ordem:ordem_id(id, identidade_operacional, codigo, pedido_id, identidade_pedido_id, fornecedor_id, legado, status_administrativo, status_aceite, status_recebimento))';
   var OCF_ADMIN_LABEL = { rascunho: 'Rascunho', emitida: 'Emitida', cancelada: 'Cancelada' };
   var OCF_ACEITE_LABEL = { nao_aplicavel: 'Aceite dispensado', pendente: 'Aguardando aceite', aceita: 'Aceita', rejeitada: 'Rejeitada' };
   var OCF_RECEB_LABEL = { nao_recebido: 'Nao recebido', parcial: 'Recebimento parcial', recebido: 'Recebido' };
@@ -1327,13 +1342,23 @@
   // alocações do MESMO item para a MESMA OP somam; itens de ordens diferentes
   // nunca se misturam. A identidade da ordem vem do dono canônico de exibição
   // (js/op-display.js), nunca da chave primária.
+  //
+  // As duas rotas de proveniência são lidas em consultas separadas, então a
+  // MESMA alocação pode chegar aqui duas vezes. Ela é contada UMA vez: o
+  // desempate é a chave primária da alocação, nunca o par ordem/item, para
+  // que duas alocações legítimas do mesmo item continuem somando.
   function mapAlocacoesParaOrdensSupridoras(linhas) {
     var porItem = new Map();
+    var alocacoesVistas = new Set();
     for (var i = 0; i < (linhas || []).length; i++) {
       var alocacao = linhas[i];
       var item = alocacao && alocacao.item;
       var ordem = item && item.ordem;
       if (!item || !ordem || item.id == null) continue;
+      if (alocacao.id != null) {
+        if (alocacoesVistas.has(String(alocacao.id))) continue;
+        alocacoesVistas.add(String(alocacao.id));
+      }
       var chave = String(item.id);
       var linha = porItem.get(chave);
       if (!linha) {
@@ -1362,19 +1387,58 @@
     return Array.from(porItem.values());
   }
 
-  // Carga da proveniência canônica de compra desta OP. Falha NÃO é silenciosa
-  // e NÃO inventa ausência: a lista fica vazia, o erro vai para o console e a
-  // seção volta a exibir o que a projeção plana souber.
+  // Carga da proveniência canônica de compra desta OP, pelas DUAS rotas que os
+  // donos executáveis já mantêm (ver OC_ALOCACAO_SELECT). Nenhuma proveniência
+  // nova é inventada aqui.
+  //
+  // Falha NÃO é silenciosa e NÃO inventa ausência: qualquer erro esvazia a
+  // lista, registra no console e devolve o erro. Uma leitura PARCIAL nunca é
+  // apresentada como completa — seria pior que a ausência, porque a métrica
+  // afirmaria um total que não mediu.
   async function carregarOrdensCompraSupridoras(opId) {
-    const res = await supa.from('ordem_compra_item_alocacao')
+    // Rota 1 — proveniência DIRETA de OP: necessidade de origem 'op', cuja
+    // alocação carrega o op_id.
+    const direta = await supa.from('ordem_compra_item_alocacao')
       .select(OC_ALOCACAO_SELECT)
       .eq('op_id', opId);
-    if (res.error) {
+    if (direta.error) {
       ocSupridoras = [];
-      console.error('op-nova: ordem_compra_item_alocacao', res.error);
-      return { data: null, error: res.error };
+      console.error('op-nova: ordem_compra_item_alocacao (op)', direta.error);
+      return { data: null, error: direta.error };
     }
-    ocSupridoras = mapAlocacoesParaOrdensSupridoras(res.data || []);
+    var linhas = direta.data || [];
+
+    // Rota 2 — proveniência de ORIGEM PEDIDO: o pool compartilhado. A
+    // necessidade é do Pedido (op_id NULL por constraint), então o alcance se
+    // faz pela necessidade, com o MESMO escopo de Pedido que db/101 usa para
+    // o teto (ops -> lotes.pedido_id, aqui já resolvido em pedidoIdState).
+    if (pedidoIdState) {
+      const necRes = await supa.from('necessidade_compra_fio')
+        .select('id')
+        .eq('pedido_id', pedidoIdState)
+        .eq('origem_tipo', 'pedido');
+      if (necRes.error) {
+        ocSupridoras = [];
+        console.error('op-nova: necessidade_compra_fio (pedido)', necRes.error);
+        return { data: null, error: necRes.error };
+      }
+      var necIds = (necRes.data || [])
+        .map(function (n) { return n && n.id; })
+        .filter(function (id) { return id != null; });
+      if (necIds.length) {
+        const pool = await supa.from('ordem_compra_item_alocacao')
+          .select(OC_ALOCACAO_SELECT)
+          .in('necessidade_id', necIds);
+        if (pool.error) {
+          ocSupridoras = [];
+          console.error('op-nova: ordem_compra_item_alocacao (pedido)', pool.error);
+          return { data: null, error: pool.error };
+        }
+        linhas = linhas.concat(pool.data || []);
+      }
+    }
+
+    ocSupridoras = mapAlocacoesParaOrdensSupridoras(linhas);
     return { data: ocSupridoras, error: null };
   }
 

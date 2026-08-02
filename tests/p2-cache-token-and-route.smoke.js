@@ -67,13 +67,15 @@ const P4_ASSETS = [
   'js/screens/pedido-detail-events.js',
   'js/screens/pedido-tracking-admin.js',
 ];
-// OP-NATIVE-YARN-DISTRIBUTION-UI-REACHABILITY-RESTORATION-R1: a restauracao
-// do alcance dos sliders nativos e a correcao do leitor de Pedido de Compra da
-// tela da OP alteraram op-nova.js DEPOIS do P2, entao ele passa a carregar o
+// OP-CANONICAL-PURCHASE-ORDER-DISTINCT-COUNT-FIX-R1: a restauracao do alcance
+// dos sliders nativos, a contagem por ORDEM distinta e as duas rotas de
+// proveniencia canonica alteraram op-nova.js DEPOIS do P2, entao ele carrega o
 // token desta ordem — o mesmo mecanismo declarado para a estabilizacao e para
 // o P4. O sujeito do guard nao muda: todo asset alterado carrega o token da
-// ordem que o alterou POR ULTIMO.
-const REACHABILITY_TOKEN = '20260802-native-yarn-distribution-ui-reachability-r1';
+// ordem que o alterou POR ULTIMO, e o token anterior
+// (20260802-native-yarn-distribution-ui-reachability-r1) foi superseded sem
+// nunca ter sido publicado sobre estes bytes finais.
+const REACHABILITY_TOKEN = '20260802-oc-distinct-count-and-pedido-origin-r1';
 const REACHABILITY_ASSETS = [
   'js/screens/op-nova.js',
 ];

@@ -294,10 +294,11 @@ test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () 
   // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 passou a ordenar os itens da
   // OP pelo rank do Pedido pai e acrescentou o bloco derivado "Ordem de
   // prioridade do Pedido", entao op-nova.js carrega o token dessa ordem.
-  // OP-NATIVE-YARN-DISTRIBUTION-UI-REACHABILITY-RESTORATION-R1 devolveu os
-  // sliders nativos ao alcance da tela e corrigiu o leitor de Pedido de
-  // Compra, entao op-nova.js passa a carregar o token dessa ordem.
-  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260802-native-yarn-distribution-ui-reachability-r1"\s*><\/script>/g;
+  // OP-CANONICAL-PURCHASE-ORDER-DISTINCT-COUNT-FIX-R1 devolveu os sliders
+  // nativos ao alcance da tela, passou a contar ORDENS distintas e alcancou as
+  // duas rotas de proveniencia canonica, entao op-nova.js carrega o token
+  // dessa ordem.
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260802-oc-distinct-count-and-pedido-origin-r1"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,
@@ -2215,6 +2216,120 @@ test('93. C1: DUAS ordens distintas (três itens) => métrica "Ordens de fio: 2"
     'duas ordens distintas contam 2, mesmo com três itens no total');
   assert.doesNotMatch(rendered.text, /Ordens de fio\s*3\b/,
     'o total de itens não pode vazar para a métrica');
+});
+
+// -------------------------------------------------------------------------
+// OP-CANONICAL-PURCHASE-ORDER-DISTINCT-COUNT-FIX-R1 — EXPANSÃO AUTORIZADA
+//
+// `ordem_compra_item_alocacao.op_id` só existe para necessidade de ORIGEM OP.
+// Os dois escritores canônicos (db/96, db/99) gravam
+//     CASE WHEN origem_tipo = 'op' THEN op_id ELSE NULL END
+// e db/67 proíbe a outra forma por constraint:
+//     (origem_tipo = 'op' AND op_id IS NOT NULL)
+//  OR (origem_tipo = 'pedido' AND op_id IS NULL)
+//
+// Logo um Pedido de Compra que abastece o POLIÉSTER desta OP — pool
+// compartilhado do Pedido, escopado por `pedido_id` em db/101 §9.9.A — tem
+// alocação com op_id NULL e era estruturalmente invisível ao leitor. Estes
+// casos provam as DUAS rotas, sem inventar uma terceira.
+// -------------------------------------------------------------------------
+
+// Necessidade de ORIGEM PEDIDO (poliéster) do Pedido 'ped-1'. op_id NULL pela
+// constraint necessidade_origem_shape.
+const NECESSIDADES_PEDIDO_ORIGIN = [
+  { id: 7001, pedido_id: 'ped-1', origem_tipo: 'pedido', op_id: null, material: 'poliester', cor_id: null, cor_poliester: 'PRETO' },
+  { id: 7002, pedido_id: 'ped-1', origem_tipo: 'pedido', op_id: null, material: 'poliester', cor_id: null, cor_poliester: 'BRANCO' },
+];
+
+// Alocação de POLIÉSTER com op_id = null — a forma real do pool do Pedido.
+function alocacaoPedidoOrigin({ alocacaoId, itemId, necessidadeId, ordemId, identidade, corPoliester, kg }) {
+  return {
+    id: alocacaoId, op_id: null, necessidade_id: necessidadeId, kg_alocado: kg,
+    item: {
+      id: itemId, ordem_id: ordemId, material: 'poliester', cor_id: null, cor_poliester: corPoliester,
+      kg_pedido: kg, kg_recebido: kg, cores: null,
+      ordem: {
+        id: ordemId, identidade_operacional: identidade, codigo: identidade,
+        pedido_id: 'ped-1', identidade_pedido_id: 'ped-1', fornecedor_id: 703,
+        legado: false, status_administrativo: 'emitida', status_aceite: 'nao_aplicavel',
+        status_recebimento: 'recebido',
+      },
+    },
+  };
+}
+
+const OC_POLIESTER_PEDIDO_ORIGIN = [
+  alocacaoPedidoOrigin({ alocacaoId: 9100, itemId: 5200, necessidadeId: 7001, ordemId: 107, identidade: 'OC-003-3-26', corPoliester: 'PRETO', kg: 40.5 }),
+  alocacaoPedidoOrigin({ alocacaoId: 9101, itemId: 5201, necessidadeId: 7002, ordemId: 107, identidade: 'OC-003-3-26', corPoliester: 'BRANCO', kg: 40.5 }),
+];
+
+test('95. C1: ordem de ORIGEM PEDIDO (poliéster, alocação com op_id NULL) entra no leitor da OP', async () => {
+  const rendered = await renderOpNativa({
+    db: buildOpAbertaNativaFixture({
+      necessidade_compra_fio: NECESSIDADES_PEDIDO_ORIGIN,
+      ordem_compra_item_alocacao: OC_POLIESTER_PEDIDO_ORIGIN,
+    }),
+  });
+  const txt = collectNodeText(findNodeById(rendered.view, 'ordens-compra-reader'));
+  assert.match(txt, /OC-003-3-26/,
+    'uma ordem que abastece o pool de poliéster do Pedido abastece esta OP e tem de aparecer');
+  assert.match(txt, /Poliéster — PRETO/, 'o eixo de poliéster PRETO tem de aparecer');
+  assert.match(txt, /Poliéster — BRANCO/, 'o eixo de poliéster BRANCO tem de aparecer');
+  assert.doesNotMatch(txt, /Nenhuma ordem de compra de fio gerada/,
+    'a seção não pode negar a existência da ordem que abastece o pool');
+  // UMA ordem, dois eixos => a métrica continua contando ORDENS.
+  assert.match(rendered.text, /Ordens de fio\s*1\b/);
+  assert.doesNotMatch(rendered.text, /Ordens de fio\s*2\b/);
+});
+
+test('96. C1: as DUAS rotas somam identidades distintas sem duplicar linha', async () => {
+  const rendered = await renderOpNativa({
+    db: buildOpAbertaNativaFixture({
+      necessidade_compra_fio: NECESSIDADES_PEDIDO_ORIGIN,
+      // Rota 1: ordem 105 de algodão (op_id = 94, quatro itens).
+      // Rota 2: ordem 107 de poliéster (op_id NULL, dois itens).
+      ordem_compra_item_alocacao: OC_UMA_ORDEM_QUATRO_ITENS.concat(OC_POLIESTER_PEDIDO_ORIGIN),
+    }),
+  });
+  const reader = findNodeById(rendered.view, 'ordens-compra-reader');
+  const txt = collectNodeText(reader);
+  assert.match(txt, /OC-001-3-26/, 'a ordem de algodão (rota 1) continua presente');
+  assert.match(txt, /OC-003-3-26/, 'a ordem de poliéster (rota 2) passa a estar presente');
+  // Seis itens no total, duas ordens distintas.
+  assert.match(rendered.text, /Ordens de fio\s*2\b/,
+    'duas ordens distintas alcançadas por rotas diferentes contam 2');
+  assert.doesNotMatch(rendered.text, /Ordens de fio\s*6\b/,
+    'o total de itens não pode vazar para a métrica');
+  // Nenhuma linha duplicada. A contagem é feita sobre o texto PRÓPRIO de cada
+  // nó: collectNodeText reemite o textContent de todo ancestral, então contar
+  // substring na árvore inteira mediria profundidade, não duplicação.
+  const celulas = collectStyledTextNodes(reader).map((n) => n.text.trim());
+  assert.equal(celulas.filter((t) => t === 'Algodão — PRETO').length, 1,
+    'o item de algodão PRETO não pode ser listado duas vezes');
+  assert.equal(celulas.filter((t) => t === 'OC-001-3-26').length, 4,
+    'a ordem de algodão aparece uma vez por item seu (quatro), nunca mais');
+  assert.equal(celulas.filter((t) => t === 'OC-003-3-26').length, 2,
+    'a ordem de poliéster aparece uma vez por item seu (dois), nunca mais');
+});
+
+test('97. C1: a mesma alocação alcançada pelas duas rotas é contada UMA vez', () => {
+  // Defensivo: a constraint necessidade_origem_shape torna esta sobreposição
+  // impossível no banco (op_id NOT NULL exige origem 'op'). O desempate por
+  // chave primária da alocação existe para que a UNIÃO das duas consultas
+  // nunca possa dobrar kg nem duplicar linha se essa premissa mudar.
+  const alocacao = alocacaoCanonica({
+    alocacaoId: 9300, itemId: 5300, ordemId: 108, identidade: 'OC-004-3-26',
+    corId: 11, corNome: 'PRETO', kg: 100,
+  });
+  const mapear = new Function('window', 'linhas', `
+    ${(opnSrc.match(/function mapAlocacoesParaOrdensSupridoras[\s\S]*?\n  \}/) || [''])[0]}
+    return mapAlocacoesParaOrdensSupridoras(linhas);
+  `);
+  const fakeWindow = { RAVATEX_OP_DISPLAY: { formatOcOperationalCode: (oc) => oc.identidade_operacional } };
+  const uma = mapear(fakeWindow, [alocacao]);
+  const duplicada = mapear(fakeWindow, [alocacao, alocacao]);
+  assert.equal(duplicada.length, uma.length, 'a linha não pode ser duplicada');
+  assert.equal(duplicada[0].kg_alocado, 100, 'o kg alocado não pode ser somado duas vezes');
 });
 
 test('94. C1: sem proveniência canônica, a contagem plana permanece exatamente como era', async () => {
