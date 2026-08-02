@@ -2882,7 +2882,20 @@ administrative and client flows are not forced to match. *Validation:* the
 client smoke suites plus rendered validation. *Stop conditions:* any internal
 field appearing on a client surface. *Next action:* Phase 5.
 
-**Phase 5 — administrative comparison and approval screen.**
+**Phase 5 — administrative comparison and approval screen. COMPLETE.**
+Executed by `PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1`, accepted at
+`d9d2b083dc76390c3a9cb8661b76a49e11a4bb33` (parent
+`b6bbe4a69c583d255a1f6d993b01988be1646cbd`). There is **no correction chain**:
+the single implementation commit is the accepted checkpoint, and no separate
+accepted checkpoint exists for any continuation of it. **No material Phase 5
+defect remains.** The acceptance scope is owned by `accepted_checkpoints` in
+`docs/governance/current-state.json` and is not restated here; the phase
+semantics below are unchanged by that record. Two debts stay open and
+nonblocking and neither was repaired by that acceptance:
+`PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE`
+(the U10.4 semantics below are **not** rewritten by this record — the screen
+renders the backend behaviour that exists) and the separately recorded ACL debt
+`PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS`.
 *Objective:* `#/pedidos/<uuid>/alteracoes/<request-id>` and its entry point on
 the Pedido detail hub. *Authorized paths:* `js/`, `index.html`, `tests/`.
 *Prerequisites:* Phase 4 accepted. *Invariants:* no complete entity inside a
