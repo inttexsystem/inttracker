@@ -2670,6 +2670,15 @@ refusal can never be misfiled as an application failure; the static guard
 `tests/pedido-unified-edit-change-approval-schema.smoke.js` asserts that
 ordering in source.
 
+> `db/92` as shipped did **not** satisfy that last sentence for two identifiers:
+> `PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED` and
+> `PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP` were only raised inside the
+> subtransaction and were therefore recorded as `falha_aplicacao`. **U18 owns
+> that correction**, applied to production by `db/115`. The rule stated here is
+> unchanged; `db/115` made the implementation match it. The static guard above
+> continues to assert the ordering of the four identifiers it names against the
+> unmodified `db/92` source and is not a current-state manifest.
+
 ### U9. RLS and security contract
 
 | Requirement | Mechanism |
@@ -3512,6 +3521,195 @@ invoked.
 accepted. The debt `PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS` is
 closed. `db/92`'s `PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE`
 remains `OPEN / NONBLOCKING`.
+
+### U18. Expected-refusal semantics correction (db/115)
+
+#### U18.1 The defect this closes
+
+U8.3 states that an **expected** validation refusal returns a stable
+identifier, leaves the request `pendente` and changes no live row, and that
+only an **unexpected** failure of the application stage becomes
+`falha_aplicacao`. Two expected refusals violated that distinction because they
+were only ever raised **inside** `aprovar_alteracao_pedido`'s
+`BEGIN ... EXCEPTION WHEN OTHERS` application subtransaction:
+
+1. `PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED`, raised by
+   `definir_prioridade_pedido` (`db/91` §7.6) through
+   `pedido_prioridade_aplicar`;
+2. `PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP`, raised defensively by
+   `pedido_itens_reconciliar`.
+
+`EXCEPTION WHEN OTHERS` captured both and stamped the request
+`falha_aplicacao`. No data was lost — the subtransaction rolled everything back
+and the before-image survived — but the request became **decided**, which made
+the U10.4 explicit-confirmation retry (the same `p_solicitacao_id` with
+`p_confirmar_impacto = true`) unreachable: the second call hit
+`PEDIDO_ALTERACAO_SOLICITACAO_JA_DECIDIDA`.
+
+Recorded as
+`PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE`
+in `docs/governance/current-state.json`.
+
+#### U18.2 What the correction is, and what it deliberately is not
+
+`db/115` redefines **one** function,
+`public.aprovar_alteracao_pedido(uuid, boolean, text)`, adding the
+**pre-detection** of those same two conditions to the validation prologue, with
+the same identifiers, the same `SQLSTATE` and the same relative precedence the
+application stage already imposed. Nothing else changes: no table, column,
+index, policy, RLS state, trigger, sequence, table grant, new public API, and
+not one business row. `db/92` and `db/91` are not rewritten.
+
+It is **not** a second business rule:
+
+- The priority rule keeps **one** owner, `db/91` §7.6. The prologue reads the
+  same `pedidos.status` (already locked `FOR UPDATE`) and the same confirmation
+  parameter that `definir_prioridade_pedido` evaluates; it never calls a
+  mutating writer to discover whether it would refuse. `db/115`'s application
+  gate verifies that coupling at apply time and **fails closed** if `db/91` no
+  longer exposes that exact predicate.
+- The item refusal is **not broadened**. The evaluated set is exactly the
+  removal set `pedido_itens_reconciliar` would compute — live rows of the
+  Pedido absent from the absolute proposed collection — measured by the
+  canonical read-only predicate `pedido_item_tem_vinculo_producao`. A
+  structural proposal that removes nothing is not refused here.
+- Both defensive writer checks **remain in place**. Pre-detection is a second
+  reading of the same condition, never a replacement of the first, so any
+  caller that does not pass through `aprovar_alteracao_pedido` stays fully
+  protected — and so does the window in which `op_itens`, `expedicao_itens` and
+  `pedido_parcial_itens` are not locked.
+- The `BEGIN ... EXCEPTION WHEN OTHERS` subtransaction is **not removed and not
+  weakened**. It still owns unexpected application failure, still rolls back
+  every live change, and still records `falha_aplicacao` with
+  `falha_identificador`. An unexpected fault never becomes a `pendente`
+  refusal.
+
+#### U18.3 Refusal precedence, top to bottom
+
+1. authorization (`is_admin`) — `PEDIDO_ALTERACAO_FORBIDDEN`
+2. request existence — `..._SOLICITACAO_NOT_FOUND`
+3. already-decided request — `..._SOLICITACAO_JA_DECIDIDA`
+4. Pedido existence — `..._PEDIDO_NOT_FOUND`
+5. terminal lifecycle — `..._PEDIDO_TERMINAL`
+6. stale revision/base — `..._REVISAO_DESATUALIZADA`
+7. header field not permitted — `..._CAMPO_NAO_PERMITIDO`
+8. invalid item collection — `..._ITEM_SET_INVALIDO`
+9. structural after OP — `..._ESTRUTURA_BLOQUEADA_APOS_OP`
+10. **production-linked item — `..._ITEM_VINCULADO_A_OP`** *(moved here)*
+11. **priority impact — `PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED`** *(moved here)*
+12. application stage (subtransaction; unexpected failure only)
+
+10 before 11 is not arbitrary: it is the order the application stage already
+imposed (`pedido_itens_reconciliar` runs before `pedido_prioridade_aplicar`),
+and the order `js/screens/pedido-alteracao-review.js` already consumes in
+`tratarRecusaDeAprovacao`. `PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP` keeps
+its own identifier and its own position, ahead of the item refusal.
+
+#### U18.4 Locks and concurrency
+
+Both pre-detections run **after** the authoritative locks the prologue already
+took and **before** any write: `pedido_alteracao_solicitacoes FOR UPDATE`, then
+`pedidos FOR UPDATE`, then `pedido_itens ORDER BY id FOR UPDATE`. The global
+lock order of `db/88`/`db/91` (`pedidos` → `pedido_itens`) is preserved and no
+new edge enters it. Validation and application remain in the same transaction
+under the same locks, so no new TOCTOU window is opened; the residual surface
+is exactly the one `pedido_itens_reconciliar` already carried, which is why its
+defensive check stays as the final net. The server remains the sole decision
+owner; no unlocked browser precheck exists and no business authority moved to
+JavaScript.
+
+#### U18.5 Frontend contract — no change
+
+`js/screens/pedido-alteracao-review.js` already owns both states and is
+unchanged by this correction:
+
+- **Path A**, top-level `PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED`
+  while the request is still pending → `tratarRecusaDeAprovacao` opens the
+  canonical impact-confirmation flow and retries **once**, with the same
+  `p_solicitacao_id` and `p_confirmar_impacto = true`. `db/115` makes this path
+  reachable for the intended priority case; it was previously dead.
+- **Path B**, top-level `PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP` → the existing
+  `recusa-estrutural` notice, request still `PENDENTE`, no retry, no override.
+- The `falha_identificador` branches of `tratarResultadoNegativo` remain correct
+  for a genuinely unexpected failure and are not removed merely because the two
+  expected cases no longer reach them.
+
+#### U18.6 Evidence
+
+`tests/pedido-alteracao-expected-refusal-semantics-invariant.mjs` — one fresh
+disposable PostgreSQL 18.4 cluster per run, destroyed in Part Z, applying the
+whole accepted identity chain `db/01..db/114` and then `db/115`. It is a
+**current-topology** harness; the bounded historical `db/92`/`db/93` harness
+`tests/pedido-unified-edit-change-approval-invariant.mjs` is not a
+global-current manifest and is untouched.
+
+Both defects are **reproduced before being corrected**: against the
+pre-correction function, an approval needing production-impact confirmation
+becomes `falha_aplicacao` and the confirmed retry then hits
+`PEDIDO_ALTERACAO_SOLICITACAO_JA_DECIDIDA`, and an approval hitting the
+production-linked item refusal likewise becomes `falha_aplicacao`. `db/115`
+then changes exactly **one** catalogue line — the body of
+`aprovar_alteracao_pedido` — and replays twice with zero drift. After it:
+the priority refusal surfaces as an expected refusal, the request stays
+`pendente` with `decidido_em`/`decidido_por` unset and zero live mutation, and
+the explicit retry applies normally and lands `aprovada` exactly once with the
+priority resolving to `confirmada`; the item refusal surfaces before the
+application stage with the request still `pendente`, `p_confirmar_impacto` is
+proved **not** to be an override, and `pedido_itens_reconciliar` is proved to
+still refuse on its own; an injected unexpected fault after validation still
+rolls back and still records `falha_aplicacao` with `falha_identificador`,
+remaining distinct from the two expected refusals; and stale base, already
+decided, terminal Pedido, structural-after-OP and authorization all keep their
+current identifiers and their `pendente` outcome. **All proofs passed,
+`failures=0`.**
+
+Static suites: `tests/pedido-alteracao-review.smoke.js`,
+`tests/pedido-unified-edit-change-approval-schema.smoke.js`,
+`tests/pedido-alteracao-client-direct-select-acl.smoke.js` and
+`tests/pedido-unified-admin-editor.smoke.js` — 129/129 with no frontend change.
+`tests/ordem-compra-c3d-deploy.smoke.js`, the global migration-topology owner,
+advances terminal `114 → 115` and terminal two `113/114 → 114/115` in the same
+commit; the reservation register (`110`) and the suffix identity model are
+unchanged.
+
+#### U18.7 Production application
+
+Applied **once** to `ucrjtfswnfdlxwtmxnoo`, identity proved by
+`system_identifier 7642734024280108049` on PostgreSQL 17.6, never by connector
+label. Read-only preflight: terminal
+`20260802020804 / 114_pedido_alteracao_client_direct_select_column_acl` (67
+migrations), `db/110` absent, no partial `db/115`, `aprovar_alteracao_pedido`
+still exhibiting the measured debt (neither identifier present in its body),
+`db/91` still carrying the impact-confirmation predicate, owner `postgres`,
+`SECURITY DEFINER`, `search_path=public, auth`, `EXECUTE` for `authenticated`
+and `service_role` only — and **zero** change requests of any status, so no
+pending request existed underneath the semantics change.
+
+Post-apply, read-only: `db/115` registered exactly once (68 migrations);
+`md5(prosrc) = 47286302da734ea742076903b1aab70e`, byte-identical to the
+repository file's function body, proving the connector dropped no in-body
+comment; identity arguments, owner, `SECURITY DEFINER`, `search_path` and the
+three `EXECUTE` privileges unchanged; the item refusal at offset 5145 and the
+priority refusal at 6510 both ahead of the application stage at 6705 and its
+handler at 8219; `definir_prioridade_pedido`, `pedido_itens_reconciliar`,
+`pedido_prioridade_aplicar`, `pedido_item_tem_vinculo_producao`,
+`pedido_tem_op_relacionada`, `pedido_itens_payload_normalizar` and
+`pedido_itens_payload_e_estrutural` all byte-identical to preflight; the
+`db/114` column ACL intact (`id, pedido_id, status, criado_em` on the header
+table, nothing on the proposed collection); and row counts identical to
+preflight (`pedidos=5`, `pedido_itens=36`, `ops=1`, `op_itens=9`,
+`expedicoes=0`, both request tables `0`). No row was created, updated or
+deleted and no mutation RPC was invoked; no request was created to live-test
+production.
+
+#### U18.8 Declared residual coupling
+
+The priority pre-detection mirrors `db/91` §7.6. That coupling is explicit,
+documented here and **verified at apply time** by the migration's own gate, so
+a future change to `db/91`'s predicate fails the migration closed rather than
+letting the prologue diverge silently from the rule owner. It is not a second
+authority: `definir_prioridade_pedido` remains the only priority writer and
+still raises the same refusal.
 
 ## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)
 

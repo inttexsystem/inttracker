@@ -21,8 +21,8 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `CLOSED / ACCEPTED. PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS IS CLOSED / ACCEPTED / CORRECTED IN PRODUCTION BY db/114. accepted_operational_checkpoint advanced to ad4267d10f65f26901d8a5c87dce9703b28286fb. Db/92 semantic debt PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE remains OPEN / NONBLOCKING.`
-- Objective: PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS debt closed and accepted.
+- Status: `IMPLEMENTED / APPLIED IN PRODUCTION / PUBLISHED / AWAITING SUPERVISOR REVIEW. PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE IS CORRECTED IN PRODUCTION BY db/115 AND AWAITS SUPERVISOR REVIEW; the debt entry is NOT removed. accepted_operational_checkpoint REMAINS ad4267d10f65f26901d8a5c87dce9703b28286fb and is NOT advanced by this execution. No accepted_checkpoints entry was created: the executor does not self-accept.`
+- Objective: The two expected refusals raised inside aprovar_alteracao_pedido's application subtransaction are pre-detected in its validation prologue, so an expected refusal keeps the request pendente instead of becoming falha_aplicacao, and the U10.4 impact-confirmation retry is reachable.
 - Next authorizable action: `NATIVE-RECEIPT-COORDINATED-RELEASE-P6-FIRST-NATIVE-RECEIPT` / `SEPARATE EXPLICIT ARCHITECT ORDER REQUIRED; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### U17. Column-level ACL correction of the request tables (db/114)`
+- `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### U18. Expected-refusal semantics correction (db/115)`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`
