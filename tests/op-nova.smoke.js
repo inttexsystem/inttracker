@@ -294,7 +294,10 @@ test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () 
   // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 passou a ordenar os itens da
   // OP pelo rank do Pedido pai e acrescentou o bloco derivado "Ordem de
   // prioridade do Pedido", entao op-nova.js carrega o token dessa ordem.
-  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260731-native-receipt-p2"\s*><\/script>/g;
+  // OP-NATIVE-YARN-DISTRIBUTION-UI-REACHABILITY-RESTORATION-R1 devolveu os
+  // sliders nativos ao alcance da tela e corrigiu o leitor de Pedido de
+  // Compra, entao op-nova.js passa a carregar o token dessa ordem.
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260802-native-yarn-distribution-ui-reachability-r1"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,
@@ -1936,4 +1939,200 @@ test('83. buildOrdemPendenteRow: canonical success calls the write RPC exactly o
   // tests/op-writes.smoke.js's canonical-success test).
   await btn._listeners.click();
   assert.equal(writeCallCount, 1);
+});
+
+// -------------------------------------------------------------------------
+// OP-NATIVE-YARN-DISTRIBUTION-UI-REACHABILITY-RESTORATION-R1
+//
+// A tela da OP escondia os sliders JÁ EXISTENTES atrás de um gate DOCUMENTAL
+// (`ordens.length > 0 && pendentes.length === 0`). Com o fluxo canônico a
+// lista plana fica vazia, o gate dá falso com ZERO pendentes e a tela
+// anunciava "Aguardando recebimento de 0 fio(s)" — um estado impossível.
+//
+// E o resumo de compra só enxergava a projeção legada (db/76 Component A
+// filtra `oc.legado = TRUE`), então uma Ordem de Compra canônica de origem
+// Pedido que ABASTECE a OP por alocação era invisível: a métrica dizia zero.
+//
+// Estes casos provam a restauração SEM redesenhar nada: o dono compartilhado
+// buildDistribuicaoBlock continua sendo o único a construir slider, rodapé e
+// persistência.
+// -------------------------------------------------------------------------
+
+// Consumo de 120 m do modelo 1 (2,10 m; algodao_por_ml 0,01; poliester_por_ml
+// 0,02; valor_x 1): algodão PRETO 1,2 · algodão CRU 1,2 · poliéster PRETO 2,4
+// · poliéster BRANCO 2,4. Recebimento EXATO => teto 120 m.
+const DISPONIBILIDADE_NATIVA_TOTAL = [
+  { necessidade_id: 1, origem_tipo: 'op', material: 'algodao', cor_id: 11, cor_poliester: null, cor_nome: 'PRETO', kg_disponivel: 1.2 },
+  { necessidade_id: 2, origem_tipo: 'op', material: 'algodao', cor_id: 12, cor_poliester: null, cor_nome: 'CRU', kg_disponivel: 1.2 },
+  { necessidade_id: 3, origem_tipo: 'pedido', material: 'poliester', cor_id: null, cor_poliester: 'PRETO', cor_nome: null, kg_disponivel: 2.4 },
+  { necessidade_id: 4, origem_tipo: 'pedido', material: 'poliester', cor_id: null, cor_poliester: 'BRANCO', cor_nome: null, kg_disponivel: 2.4 },
+];
+// Recebimento PARCIAL: metade do algodão PRETO chegou (0,6 kg). O eixo mais
+// escasso passa a valer 60 m — o bloco NÃO some, o teto é que baixa.
+const DISPONIBILIDADE_NATIVA_PARCIAL = DISPONIBILIDADE_NATIVA_TOTAL.map((d) => (
+  d.material === 'algodao' && d.cor_id === 11 ? Object.assign({}, d, { kg_disponivel: 0.6 }) : d
+));
+
+// Ordem de Compra CANÔNICA de origem Pedido que abastece a OP 94 pela
+// alocação (public.ordem_compra_item_alocacao.op_id). `legado: false` — esta
+// linha jamais apareceria em listar_ordens_compra_fio_compat.
+const OC_CANONICA_SUPRIDORA = [
+  {
+    id: 9001, op_id: 94, kg_alocado: 860.1,
+    item: {
+      id: 5001, ordem_id: 105, material: 'algodao', cor_id: 11, cor_poliester: null,
+      kg_pedido: 860.1, kg_recebido: 860.1, cores: { id: 11, nome: 'PRETO' },
+      ordem: {
+        id: 105, identidade_operacional: 'OC-001-3-26', codigo: 'OC-001-3-26',
+        pedido_id: 'ped-1', identidade_pedido_id: 'ped-1', fornecedor_id: 702,
+        legado: false, status_administrativo: 'emitida', status_aceite: 'nao_aplicavel',
+        status_recebimento: 'recebido',
+      },
+    },
+  },
+];
+
+// OP aberta de tecelagem SEM nenhuma linha plana de Ordem de Compra — o
+// estado real depois do cutover nativo.
+function buildOpAbertaNativaFixture(overrides = {}) {
+  return buildOpNovaFixture(Object.assign({
+    ops: [
+      {
+        id: 94, identidade_operacional: 'OP-T001-1-26', identidade_pedido_id: 'ped-1', numero: 10, ano: 2026,
+        status: 'aberta', tipo: 'tecelagem', observacao: '', origem_op_id: null, lote_id: 304,
+        criado_em: '2026-06-20T11:00:00Z',
+        lote: { id: 304, numero: 17, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
+        op_itens: [{ id: 10, modelo_id: 1, metros_pedidos: 120, metros_ajustados: null, pedido_item_id: 'pi-1' }],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+    ],
+    ordens_compra_fio: [],
+    entregas: [],
+  }, overrides));
+}
+
+function renderOpNativa({ disponibilidade = DISPONIBILIDADE_NATIVA_TOTAL, db } = {}) {
+  return renderNovaOpForTest({
+    opId: 94,
+    db: db || buildOpAbertaNativaFixture(),
+    rpcImpl: (name) => (name === 'oc_disponibilidade_op'
+      ? { data: disponibilidade, error: null }
+      : { data: null, error: null }),
+  });
+}
+
+function rangeSliders(node) {
+  return findByTag(node, 'INPUT').filter((i) => i.getAttribute('type') === 'range');
+}
+
+test('84. R1: OP aberta + disponibilidade nativa + lista de ENTIDADE vazia => o bloco de distribuição RENDERIZA', async () => {
+  const rendered = await renderOpNativa();
+  const insumos = findNodeById(rendered.view, 'insumos-open-op');
+  assert.ok(insumos, 'o bloco de insumos deve existir');
+  assert.ok(rangeSliders(insumos).length >= 1,
+    'os sliders de distribuição têm de estar presentes mesmo sem NENHUMA linha plana de ordem de compra');
+  assert.match(collectNodeText(insumos), /Fator proporcional/i,
+    'o bloco compartilhado de distribuição tem de estar montado');
+});
+
+test('85. R1: a UI NUNCA emite "Aguardando recebimento de 0 fio(s)"', async () => {
+  for (const disponibilidade of [DISPONIBILIDADE_NATIVA_TOTAL, DISPONIBILIDADE_NATIVA_PARCIAL, []]) {
+    const rendered = await renderOpNativa({ disponibilidade });
+    assert.doesNotMatch(rendered.text, /Aguardando recebimento de 0\b/,
+      'zero pendentes nunca pode virar uma espera anunciada');
+  }
+  // E a construção do texto não pode voltar por outro caminho: nenhuma
+  // mensagem de espera pode ser emitida sem pendente REAL.
+  const bloco = (opnSrc.match(/function buildBlocoFios[\s\S]*?\n  \}/) || [''])[0];
+  assert.ok(bloco, 'buildBlocoFios não encontrado');
+  assert.match(bloco, /if \(pendentes\.length > 0\)/,
+    'o aviso de espera só pode existir com pendente real');
+});
+
+test('86. R1: recebimento PARCIAL baixa o TETO nativo do slider e não esconde o bloco', async () => {
+  const parcial = await renderOpNativa({ disponibilidade: DISPONIBILIDADE_NATIVA_PARCIAL });
+  const insumosParcial = findNodeById(parcial.view, 'insumos-open-op');
+  const slidersParcial = rangeSliders(insumosParcial);
+  assert.equal(slidersParcial.length, 1, 'o slider do item continua existindo com fio parcial');
+  assert.equal(slidersParcial[0].getAttribute('max'), '60',
+    'o teto vem da disponibilidade NATIVA (0,6 kg de algodão PRETO => 60 m), nunca da metragem do pedido');
+  assert.match(collectNodeText(insumosParcial), /máx individual: 60,00 m/,
+    'o rótulo do teto tem de dizer a verdade do material recebido');
+
+  const total = await renderOpNativa({ disponibilidade: DISPONIBILIDADE_NATIVA_TOTAL });
+  assert.equal(rangeSliders(findNodeById(total.view, 'insumos-open-op'))[0].getAttribute('max'), '120',
+    'recebimento exato preserva o teto original');
+});
+
+test('87. R1: a tela alcança o builder COMPARTILHADO — sliders rangeInput e as duas ações do rodapé', async () => {
+  const rendered = await renderOpNativa();
+  const insumos = findNodeById(rendered.view, 'insumos-open-op');
+  const sliders = rangeSliders(insumos);
+  assert.ok(sliders.length >= 1, 'tem de existir slider');
+  assert.ok(sliders.every((s) => String(s.className || s.getAttribute('class') || '').includes('rv-range')),
+    'os sliders têm de ser o primitivo canônico rangeInput (.rv-range), não um controle local');
+  const textos = findButtons(insumos).map((b) => collectNodeText(b));
+  assert.ok(textos.some((t) => /Manter pedido/i.test(t)), 'rodapé preserva "Manter pedido"');
+  assert.ok(textos.some((t) => /Salvar distribui/i.test(t)), 'rodapé preserva "Salvar distribuição"');
+  assert.ok(!textos.some((t) => /Aceitar proposta/i.test(t)), 'o escritor obsoleto não volta');
+});
+
+test('88. R1: a tela da OP NÃO implementa lógica de slider própria', () => {
+  assert.doesNotMatch(opnSrc, /rangeInput\s*\(/,
+    'op-nova.js não pode construir slider — quem constrói é o dono compartilhado');
+  assert.doesNotMatch(opnSrc, /type:\s*['"]range['"]/,
+    'nenhum input range local em op-nova.js');
+  assert.equal((opnSrc.match(/window\.buildDistribuicaoBlock\(/g) || []).length, 1,
+    'existe UM único ponto de delegação ao builder compartilhado');
+  assert.doesNotMatch(opnSrc, /function\s+buildDistribuicaoBlock/,
+    'op-nova.js não pode duplicar o builder compartilhado');
+});
+
+test('89. R1: uma OC canônica de origem Pedido que abastece a OP por alocação entra no leitor da OP', async () => {
+  const rendered = await renderOpNativa({
+    db: buildOpAbertaNativaFixture({ ordem_compra_item_alocacao: OC_CANONICA_SUPRIDORA }),
+  });
+  const reader = findNodeById(rendered.view, 'ordens-compra-reader');
+  assert.ok(reader, 'a seção de ordens de compra deve existir');
+  const txt = collectNodeText(reader);
+  assert.match(txt, /OC-001-3-26/, 'a ordem canônica que abastece a OP tem de ser nomeada');
+  assert.match(txt, /Fios do Vale/, 'o fornecedor da ordem canônica tem de aparecer');
+  assert.match(txt, /860,100 kg/, 'a quantidade ALOCADA para esta OP tem de aparecer');
+  assert.doesNotMatch(txt, /Nenhuma ordem de compra de fio gerada/,
+    'a seção não pode afirmar que não existe ordem de compra');
+});
+
+test('90. R1: com OC canônica supridora, "Ordens de fio" não pode reportar zero', async () => {
+  const comOc = await renderOpNativa({
+    db: buildOpAbertaNativaFixture({ ordem_compra_item_alocacao: OC_CANONICA_SUPRIDORA }),
+  });
+  assert.match(comOc.text, /Ordens de fio\s*1\b/, 'a métrica tem de contar a ordem canônica');
+  assert.doesNotMatch(comOc.text, /Ordens de fio\s*0\b/, 'a métrica não pode reportar zero');
+
+  // Sem proveniência canônica alguma o zero volta a ser a verdade.
+  const semOc = await renderOpNativa();
+  assert.match(semOc.text, /Ordens de fio\s*0\b/,
+    'sem ordem plana e sem alocação canônica, zero é honesto');
+  assert.match(collectNodeText(findNodeById(semOc.view, 'ordens-compra-reader')),
+    /Nenhuma ordem de compra de fio gerada/);
+});
+
+test('91. R1: a proveniência canônica NÃO é lida do modelo plano e não decide produção', () => {
+  const loader = (opnSrc.match(/async function carregarOrdensCompraSupridoras[\s\S]*?\n  \}/) || [''])[0];
+  assert.ok(loader, 'carregarOrdensCompraSupridoras não encontrado');
+  assert.doesNotMatch(loader, /ordens_compra_fio/,
+    'a proveniência canônica não pode passar pelo modelo plano');
+  assert.match(loader, /from\(\s*['"]ordem_compra_item_alocacao['"]\s*\)/,
+    'a relação executável é ordem_compra_item_alocacao.op_id');
+  // Nenhuma decisão produtiva pode derivar da nova lista nem da lista plana.
+  // Só linhas EXECUTÁVEIS: um comentário que explica de onde o teto NÃO vem
+  // não pode satisfazer nem violar a proibição.
+  const executavel = (s) => s.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  for (const nome of ['buildProposta', 'buildAcaoAberta']) {
+    const corpo = executavel((opnSrc.match(new RegExp('function\\s+' + nome + '\\s*\\([\\s\\S]*?\\n  \\}', 'm')) || [''])[0]);
+    assert.ok(corpo, nome + ' não encontrado');
+    assert.doesNotMatch(corpo, /ocSupridoras|\bordens\b/,
+      nome + ' não pode derivar decisão produtiva de nenhuma lista de ENTIDADE');
+    assert.match(corpo, /disponibilidade/, nome + ' decide pela projeção nativa');
+  }
 });

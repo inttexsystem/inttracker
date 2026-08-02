@@ -159,6 +159,19 @@
   // do not invent new visual language"). Read-only labels; no business rule.
   var OCF_SELECT_LEGACY = 'id, tipo, cor_id, cor_poliester, kg_pedido, kg_recebido, status, fornecedor_id, cores:cor_id(id, nome)';
   var OCF_SELECT_DIM = 'id, tipo, cor_id, cor_poliester, kg_pedido, kg_recebido, status, fornecedor_id, status_administrativo, status_aceite, status_recebimento, aceite_exigido_na_emissao, legado_recebimento_automatico, cores:cor_id(id, nome)';
+  // PROVENIÊNCIA CANÔNICA DE COMPRA -> OP. `ordens_compra_fio` (acima) é a
+  // projeção PLANA/compat e, por construção, NUNCA pode conter um Pedido de
+  // Compra canônico de origem Pedido: db/76 Component A filtra
+  // `oc.legado = TRUE` e exige mapeamento em ordem_compra_item_compat_fio.
+  // O dono executável de "qual Pedido de Compra abastece ESTA OP" é
+  // public.ordem_compra_item_alocacao.op_id (db/67 §R.3/§R.4) — a MESMA
+  // relação pela qual o próprio db/76 escopa seu grão item x OP e a mesma que
+  // db/101 percorre para montar a disponibilidade nativa. As três tabelas têm
+  // SELECT direto para o administrador (db/67:
+  // ordem_compra_admin_select / ordem_compra_item_admin_select /
+  // ordem_compra_item_alocacao_admin_select), então o leitor não precisa de
+  // RPC nova nem de posse legada por `op_id`.
+  var OC_ALOCACAO_SELECT = 'id, op_id, kg_alocado, item:item_id(id, ordem_id, material, cor_id, cor_poliester, kg_pedido, kg_recebido, cores:cor_id(id, nome), ordem:ordem_id(id, identidade_operacional, codigo, pedido_id, identidade_pedido_id, fornecedor_id, legado, status_administrativo, status_aceite, status_recebimento))';
   var OCF_ADMIN_LABEL = { rascunho: 'Rascunho', emitida: 'Emitida', cancelada: 'Cancelada' };
   var OCF_ACEITE_LABEL = { nao_aplicavel: 'Aceite dispensado', pendente: 'Aguardando aceite', aceita: 'Aceita', rejeitada: 'Rejeitada' };
   var OCF_RECEB_LABEL = { nao_recebido: 'Nao recebido', parcial: 'Recebimento parcial', recebido: 'Recebido' };
@@ -411,6 +424,12 @@
   // legado enquanto o recebimento nativo está inativo, métrica e PDF) e não
   // tem autoridade produtiva nenhuma.
   let disponibilidade = [];
+  // Pedidos de Compra que ABASTECEM esta OP pela proveniência canônica de
+  // alocação (OC_ALOCACAO_SELECT). Um grão por ITEM de ordem de compra
+  // alocado a esta OP. Como `ordens`, NÃO tem autoridade produtiva nenhuma:
+  // serve ao resumo read-only e à métrica. O teto continua sendo
+  // exclusivamente `disponibilidade` (oc_disponibilidade_op).
+  let ocSupridoras = [];
   // ORDEM-COMPRA-B1: is the db/65 dimension layer present on this database?
   // Set by fetchOrdensCompraFio's extended-select-with-fallback. When false
   // (pre-db/65 database, e.g. production before Phase A lands there), the
@@ -652,6 +671,7 @@
       if (ordRes.error) { toast('Erro ao carregar ordens de fio', 'error'); console.error(ordRes.error); }
       ordens = ordRes.data || [];
       await carregarDisponibilidadeNativa();
+      await carregarOrdensCompraSupridoras(op.id);
       // ORDEM-COMPRA-B1: global config (Aceite dispensado/exigido chip).
       // Best-effort — absent table (pre-db/65) or error → default dispensado.
       const cfgRes = await supa.from('ordem_compra_config').select('exige_aceite').eq('id', 1).maybeSingle();
@@ -1303,6 +1323,69 @@
     return await supa.from('ordens_compra_fio').select(OCF_SELECT_LEGACY).eq('op_id', opId);
   }
 
+  // Uma linha por ITEM de Pedido de Compra que abastece esta OP. Duas
+  // alocações do MESMO item para a MESMA OP somam; itens de ordens diferentes
+  // nunca se misturam. A identidade da ordem vem do dono canônico de exibição
+  // (js/op-display.js), nunca da chave primária.
+  function mapAlocacoesParaOrdensSupridoras(linhas) {
+    var porItem = new Map();
+    for (var i = 0; i < (linhas || []).length; i++) {
+      var alocacao = linhas[i];
+      var item = alocacao && alocacao.item;
+      var ordem = item && item.ordem;
+      if (!item || !ordem || item.id == null) continue;
+      var chave = String(item.id);
+      var linha = porItem.get(chave);
+      if (!linha) {
+        linha = {
+          ordem_id: ordem.id,
+          ordem_identidade: window.RAVATEX_OP_DISPLAY.formatOcOperationalCode(ordem),
+          item_id: item.id,
+          // `tipo` e `cores` reproduzem a forma que window.rotuloFio já lê,
+          // para que o rótulo do fio tenha um dono só nas duas projeções.
+          tipo: item.material,
+          cor_id: item.cor_id,
+          cor_poliester: item.cor_poliester,
+          cores: item.cores || null,
+          kg_recebido: Number(item.kg_recebido || 0),
+          fornecedor_id: ordem.fornecedor_id,
+          legado: ordem.legado === true,
+          status_administrativo: ordem.status_administrativo,
+          status_aceite: ordem.status_aceite,
+          status_recebimento: ordem.status_recebimento,
+          kg_alocado: 0,
+        };
+        porItem.set(chave, linha);
+      }
+      linha.kg_alocado = Math.round((linha.kg_alocado + Number(alocacao.kg_alocado || 0)) * 1000) / 1000;
+    }
+    return Array.from(porItem.values());
+  }
+
+  // Carga da proveniência canônica de compra desta OP. Falha NÃO é silenciosa
+  // e NÃO inventa ausência: a lista fica vazia, o erro vai para o console e a
+  // seção volta a exibir o que a projeção plana souber.
+  async function carregarOrdensCompraSupridoras(opId) {
+    const res = await supa.from('ordem_compra_item_alocacao')
+      .select(OC_ALOCACAO_SELECT)
+      .eq('op_id', opId);
+    if (res.error) {
+      ocSupridoras = [];
+      console.error('op-nova: ordem_compra_item_alocacao', res.error);
+      return { data: null, error: res.error };
+    }
+    ocSupridoras = mapAlocacoesParaOrdensSupridoras(res.data || []);
+    return { data: ocSupridoras, error: null };
+  }
+
+  // Quantas ordens de compra são relevantes para esta OP. A proveniência
+  // canônica é a autoridade quando resolve alguma coisa — ela alcança tanto a
+  // ordem nativa quanto a legada, porque ambas alocam. As duas listas NUNCA
+  // se somam: a mesma ordem legada aparece nas duas e seria contada em dobro.
+  function totalOrdensCompraRelevantes() {
+    return ocSupridoras.length || ordens.length;
+  }
+
   // P2-A (§9.9.A): carga da DISPONIBILIDADE NATIVA. É a única leitura que
   // alimenta teto/slider/ajuste/início de produção. Falha aqui NÃO é
   // silenciosa e NÃO cai para o modelo plano: a lista fica vazia, o bloco de
@@ -1354,6 +1437,7 @@
     if (r.error) { toast('Erro ao recarregar ordens de fio', 'error'); console.error(r.error); return; }
     ordens = r.data || [];
     await carregarDisponibilidadeNativa();
+    await carregarOrdensCompraSupridoras(op.id);
     render();
   }
 
@@ -1450,6 +1534,39 @@
     return el('div', { style: 'display:flex;flex-wrap:wrap;gap:6px;' },
       ocfAdminBadge(admin), ocfAceiteBadge(aceite), ocfRecebBadge(receb));
   }
+  // Resumo das ordens de compra que abastecem esta OP pela proveniência
+  // canônica. As três dimensões vêm DIRETO da ordem canônica — não passam
+  // por ocfIsLegacy(), que traduz o modelo plano (ordensDimDisponivel /
+  // legado_recebimento_automatico) e não se aplica aqui.
+  function ocSupridoraBadges(linha) {
+    return el('div', { style: 'display:flex;flex-wrap:wrap;gap:6px;' },
+      ocfAdminBadge(linha.status_administrativo || 'emitida'),
+      ocfAceiteBadge(linha.status_aceite || 'nao_aplicavel'),
+      ocfRecebBadge(linha.status_recebimento || 'nao_recebido'));
+  }
+  function buildOcSupridorasTable() {
+    // Mesmo contrato de tabela do resumo plano (Pass-8 §2.5/A1), com a coluna
+    // ORDEM à frente: sem o nome da ordem o resumo não consegue dizer QUAL
+    // Pedido de Compra abastece esta OP. ALOCADO (KG) é a quantidade desta
+    // ordem comprometida com ESTA OP — nunca o recebido do item inteiro, que
+    // é de outro grão. Mínimo: 130+120+110+120+230 de piso + 40px de gaps +
+    // 48px de padding.
+    var cols = 'minmax(130px,1.1fr) minmax(120px,1.3fr) minmax(110px,1fr) 120px minmax(230px,1.7fr)';
+    var t = tableScroll(el('div', { style: 'min-width:800px;' }));
+    t.grid.appendChild(thRow(cols, ['ORDEM', 'FIO', 'FORNECEDOR', 'ALOCADO (KG)', 'SITUAÇÃO'], { numericCols: [3] }));
+    ocSupridoras.forEach(function (linha) {
+      var forn = ocfFornecedorNome(linha);
+      t.grid.appendChild(gridRow(cols, [
+        el('div', { style: 'font-size:13.5px;font-weight:600;color:var(--rv-text-primary);' }, linha.ordem_identidade),
+        el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(linha)),
+        el('div', { style: 'font-size:13px;color:' + (forn ? 'var(--rv-text-primary)' : 'var(--rv-text-tertiary)') + ';' }, forn || '— não atribuído'),
+        el('div', { class: 'num', style: 'font-size:13px;color:var(--rv-text-primary);font-variant-numeric:tabular-nums;text-align:right;' }, window.fmtKg(linha.kg_alocado)),
+        ocSupridoraBadges(linha),
+      ]));
+    });
+    return t.scroll;
+  }
+
   function buildOrdensReaderSection() {
     const box = el('div', { id: 'ordens-compra-reader', style: CARD + 'padding:0;overflow:hidden;margin-top:16px;' });
     const chip = ocConfig.exige_aceite
@@ -1466,6 +1583,16 @@
     box.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 24px 12px;' },
       el('span', { style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.06em;text-transform:uppercase;' }, 'Ordens de compra de fio'),
       el('div', { style: 'display:flex;align-items:center;gap:12px;' }, chip, distributionLink, verLink)));
+    // Proveniência canônica primeiro: quando existe alocação para esta OP, é
+    // ela que responde "quais ordens abastecem esta OP", inclusive as de
+    // origem Pedido. A tabela plana abaixo permanece intocada e responde
+    // apenas onde a proveniência canônica não alcança nada.
+    if (ocSupridoras.length) {
+      box.appendChild(buildOcSupridorasTable());
+      box.appendChild(el('div', { style: 'padding:11px 24px;border-top:1px solid var(--rv-border-soft);background:var(--rv-surface);font-size:11.5px;color:var(--rv-text-tertiary);' },
+        'A administração das ordens de compra (emitir, cancelar, itens) fica na tela dedicada — esta seção é apenas um resumo.'));
+      return box;
+    }
     if (!ordens.length) {
       box.appendChild(el('div', { style: 'padding:0 24px 18px;font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhuma ordem de compra de fio gerada.'));
       return box;
@@ -1571,12 +1698,22 @@
         box.appendChild(rec.scroll);
       }
 
-      const todasRecebidas = ordens.length > 0 && pendentes.length === 0;
-      if (!todasRecebidas) {
+      // O bloco de distribuição NÃO é mais condicionado à lista de ENTIDADE
+      // de Pedido de Compra. `ordens.length > 0 && pendentes.length === 0`
+      // era uma autoridade produtiva disfarçada de gate documental: com o
+      // fluxo canônico a lista plana fica vazia, a condição dá falso com ZERO
+      // pendentes e a tela anunciava "Aguardando recebimento de 0 fio(s)" —
+      // um estado impossível — enquanto escondia os sliders que já existiam.
+      //
+      // Quem decide teto produtivo é a projeção nativa oc_disponibilidade_op,
+      // e ela é entrada do dono compartilhado (buildDistribuicaoBlock), que
+      // por sua vez já se recusa honestamente quando a disponibilidade ou a
+      // revisão não carregaram. Recebimento PARCIAL, portanto, baixa o teto
+      // renderizado — nunca esconde o bloco.
+      if (pendentes.length > 0) {
         box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--rv-border);background:var(--rv-signal-caution-bg);' },
           svgEl(SVG_WARNING),
-          el('span', { style: 'font-size:12.5px;color:var(--rv-signal-caution);' }, `Aguardando recebimento de ${pendentes.length} fio(s) para calcular a proposta de ajuste.`)));
-        return box;
+          el('span', { style: 'font-size:12.5px;color:var(--rv-signal-caution);' }, `Aguardando recebimento de ${pendentes.length} fio(s). O teto de produção abaixo considera apenas o material já recebido.`)));
       }
       box.appendChild(buildProposta());
     } else {
@@ -1725,7 +1862,7 @@
       el('div', { style: 'display:flex;flex-direction:column;gap:11px;' },
         metricRow('Total pedido', window.fmtMetros(sumMetrosAbertos()), 'var(--rv-color-title)'),
         metricRow('Itens vinculados', String(opItensRaw.length), 'var(--rv-color-title)'),
-        metricRow('Ordens de fio', String(ordens.length), ordens.length ? 'var(--rv-color-accent)' : 'var(--rv-text-tertiary)'),
+        metricRow('Ordens de fio', String(totalOrdensCompraRelevantes()), totalOrdensCompraRelevantes() ? 'var(--rv-color-accent)' : 'var(--rv-text-tertiary)'),
         metricRow('Algodao estimado', window.fmtKg ? window.fmtKg(algodaoTotal) : (algodaoTotal.toFixed(3) + ' kg')),
         metricRow('Poliester estimado', window.fmtKg ? window.fmtKg(poliTotal) : (poliTotal.toFixed(3) + ' kg'))),
       hasLinkedPedido()
