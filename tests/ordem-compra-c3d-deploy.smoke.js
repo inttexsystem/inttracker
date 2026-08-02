@@ -166,6 +166,30 @@
 // terminal two become db/112/db/113. The fail-closed mechanism is unchanged
 // (mechanism preserved, only the terminal expectation advanced), and the
 // three reserved numbers are unchanged.
+//
+// CURRENT-SEQUENCE RECONCILIATION note
+// (C3D-DEPLOY-MIGRATION-MANIFEST-CURRENT-SEQUENCE-RECONCILIATION-R1): this
+// guard's MODEL of the migration topology, not the topology itself, had
+// drifted. Three accepted facts were unrepresentable here:
+//   - the accepted P4 authority switch (5d1adb4) CREATED db/104
+//     (`104_recebimento_lock_e_aceite_gate.sql`), so 104 is no longer an
+//     absent reservation;
+//   - the same commit created db/103b and, for the single accepted
+//     containment migration db/106, the ordered deployment pair db/106a +
+//     db/106b, so migration identities carry an optional single lowercase
+//     suffix and the old digits-only filename grammar silently DROPPED three
+//     accepted migrations;
+//   - db/114_pedido_alteracao_client_direct_select_column_acl.sql (ad4267d)
+//     is production-applied, so the terminal advances 113 -> 114 and the
+//     terminal two become db/113/db/114.
+// The corrected model is: a migration identity is `<base><suffix?>`, ordered
+// by base then by suffix with the unsuffixed identity first; base numbers must
+// still be contiguous except for DECLARED and GENUINELY ABSENT reservations;
+// duplicate identities, malformed identities, undeclared holes, unexpected
+// trailing migrations, hash divergence, non-ancestor artifacts and environment
+// mismatches all still fail closed. db/110 remains the one reservation: it was
+// NOT created and is NOT AUTHORIZED. No migration was added, renamed or
+// modified by this reconciliation.
 
 'use strict';
 
@@ -186,15 +210,37 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 113;
+const EXPECTED_TERMINAL = 114;
 
-// Migration numbers deliberately RESERVED by the accepted coordinated
-// native-receipt release and not present until a later phase:
-//   db/104 — recebimento lock protocol and acceptance gate (P4)
-//   db/106 — direct-DML containment (TD2) (P4)
-//   db/110 — legacy retirement, post-acceptance
-// Any gap OUTSIDE this set is still a hard failure.
-const RESERVED_MIGRATION_NUMBERS = new Set([104, 106, 110]);
+// Migration BASE numbers deliberately RESERVED and GENUINELY ABSENT from the
+// repository:
+//   db/110 — legacy retirement, post-acceptance; NOT created and NOT
+//            AUTHORIZED (docs/governance/current-state.json).
+// db/104 and db/106 were formerly reserved here; the accepted P4 authority
+// switch occupied both (db/104, and db/106 as the ordered pair db/106a +
+// db/106b), so neither is an absent reservation any more. A reservation only
+// ever means "this base number is intentionally absent": an OCCUPIED number is
+// a real migration and is never skipped. Any gap OUTSIDE this set is still a
+// hard failure.
+const RESERVED_MIGRATION_NUMBERS = new Set([110]);
+
+// Base numbers whose accepted identity set is NOT simply the bare base number.
+// Each entry is the exact ordered identity list the accepted repository
+// history proves, so a vanished or spuriously added variant still fails closed:
+//   103  — db/103 (P1 supplier queue) then db/103b (P4 emission/demotion)
+//   106  — the single accepted containment migration db/106 shipped as the
+//          ordered deployment pair db/106a then db/106b; there is no bare
+//          db/106 file.
+const SUFFIXED_MIGRATION_BASES = new Map([
+  [103, ['103', '103b']],
+  [106, ['106a', '106b']],
+]);
+
+// The full expected identity inventory, derived from the base range, the
+// reservation register and the suffix register rather than restated by hand.
+const EXPECTED_MIGRATION_IDENTITIES = Array.from({ length: EXPECTED_TERMINAL }, (_, i) => i + 1)
+  .filter((n) => !RESERVED_MIGRATION_NUMBERS.has(n))
+  .flatMap((n) => SUFFIXED_MIGRATION_BASES.get(n) || [String(n)]);
 const DB75_FILENAME = '75_ordem_compra_c3c_inactive_cutover.sql';
 const DB76_FILENAME = '76_ordem_compra_c3c_b_db_prerequisites.sql';
 const DB77_FILENAME = '77_ordem_compra_c5a_emission_readiness.sql';
@@ -225,6 +271,7 @@ const DB109_FILENAME = '109_estorno_tapete_e_correcao_entrega.sql';
 const DB111_FILENAME = '111_entrega_cima_acabamento_atomico.sql';
 const DB112_FILENAME = '112_cutover_snapshot_completeness_invariant.sql';
 const DB113_FILENAME = '113_pode_recuperar_op_acabamento_admin_guard.sql';
+const DB114_FILENAME = '114_pedido_alteracao_client_direct_select_column_acl.sql';
 const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
@@ -270,46 +317,89 @@ class ManifestError extends Error {
   }
 }
 
-const MIGRATION_FILENAME_RE = /^(\d+)_[A-Za-z0-9_]+\.sql$/;
+// Canonical migration identity: `<base><suffix?>_<name>.sql`, where
+//   <base>   is one or more digits and carries the ordering number, and
+//   <suffix> is AT MOST ONE lowercase letter, present only where accepted
+//            repository history split one logical migration number into an
+//            ordered deployment sequence (db/103b, db/106a, db/106b).
+// The grammar is deliberately no broader than the identities the repository
+// actually carries: no uppercase, no multi-letter and no numeric sub-parts.
+const MIGRATION_FILENAME_RE = /^(\d+)([a-z]?)_[A-Za-z0-9_]+\.sql$/;
 
-// Matches primary numbered migrations only -- excludes `.verify.sql`
-// siblings (an extra literal dot never matches `[A-Za-z0-9_]+`) and any
-// non-numbered file such as `setup_completo.sql`.
+// `NN[s]_<name>.verify.sql` siblings are deliberate non-migration companions
+// of a migration and are excluded, not treated as malformed.
+const MIGRATION_VERIFY_FILENAME_RE = /^(\d+)([a-z]?)_[A-Za-z0-9_]+\.verify\.sql$/;
+
+// Anything that BEGINS WITH A DIGIT and ends in `.sql` claims to be a
+// migration. If it matches neither grammar above it is malformed and the
+// manifest fails closed rather than silently dropping a possibly real
+// migration. Non-numbered files such as `setup_completo.sql` never make that
+// claim and are excluded quietly.
+const MIGRATION_CANDIDATE_RE = /^\d.*\.sql$/;
+
+// Deterministic total order: base ascending, then suffix ascending with the
+// UNSUFFIXED identity always first ('' < 'a' < 'b').
+function compareMigrationEntries(a, b) {
+  if (a.number !== b.number) return a.number - b.number;
+  if (a.suffix === b.suffix) return 0;
+  return a.suffix < b.suffix ? -1 : 1;
+}
+
 function filterMigrationFilenames(filenames) {
   const entries = [];
   for (const filename of filenames) {
     const match = MIGRATION_FILENAME_RE.exec(filename);
-    if (match) entries.push({ number: Number(match[1]), filename });
+    if (match) {
+      const number = Number(match[1]);
+      const suffix = match[2];
+      entries.push({ number, suffix, identity: `${number}${suffix}`, filename });
+      continue;
+    }
+    if (MIGRATION_VERIFY_FILENAME_RE.test(filename)) continue;
+    if (MIGRATION_CANDIDATE_RE.test(filename)) {
+      throw new ManifestError(
+        'MALFORMED_IDENTITY',
+        `migration-shaped filename ${filename} matches no accepted migration identity grammar`
+      );
+    }
   }
   return entries;
 }
 
-function resolveMigrationManifest(filenames, { expectedTerminal } = {}) {
+function resolveMigrationManifest(filenames, { expectedTerminal, reserved = RESERVED_MIGRATION_NUMBERS } = {}) {
   const entries = filterMigrationFilenames(filenames);
   if (entries.length === 0) {
     throw new ManifestError('EMPTY', 'no numbered migration files found');
   }
-  entries.sort((a, b) => a.number - b.number);
+  entries.sort(compareMigrationEntries);
 
   const seen = new Set();
   for (const entry of entries) {
-    if (seen.has(entry.number)) {
-      throw new ManifestError('DUPLICATE_NUMBER', `duplicate migration number ${entry.number} (${entry.filename})`);
+    if (seen.has(entry.identity)) {
+      throw new ManifestError('DUPLICATE_IDENTITY', `duplicate migration identity ${entry.identity} (${entry.filename})`);
     }
-    seen.add(entry.number);
+    seen.add(entry.identity);
   }
+
+  const observedBases = new Set(entries.map((entry) => entry.number));
 
   if (entries[0].number !== 1) {
     throw new ManifestError('MISSING_START', `migration sequence does not start at 1 (starts at ${entries[0].number})`);
   }
   for (let i = 1; i < entries.length; i += 1) {
-    let expectedNext = entries[i - 1].number + 1;
-    // Walk past declared reservations only; an undeclared hole still fails.
-    while (RESERVED_MIGRATION_NUMBERS.has(expectedNext)) expectedNext += 1;
-    if (entries[i].number !== expectedNext) {
+    const previous = entries[i - 1].number;
+    const current = entries[i].number;
+    // Suffix variants of the same base are one contiguity step, not a gap.
+    if (current === previous) continue;
+    let expectedNext = previous + 1;
+    // Walk past declared reservations ONLY while they are genuinely absent.
+    // An OCCUPIED reservation is a real migration and must never be skipped;
+    // an undeclared hole still fails.
+    while (reserved.has(expectedNext) && !observedBases.has(expectedNext)) expectedNext += 1;
+    if (current !== expectedNext) {
       throw new ManifestError(
         'GAP',
-        `non-contiguous migration sequence: expected ${expectedNext} after ${entries[i - 1].number}, found ${entries[i].number}`
+        `non-contiguous migration sequence: expected ${expectedNext} after ${previous}, found ${current}`
       );
     }
   }
@@ -390,11 +480,13 @@ function assertEnvironmentIdentity(actual, expected) {
 }
 
 // Assembles the deterministic C3D-A deployment manifest: application
-// artifact, ordered db/01..db/88 sequence, terminal two migrations with
+// artifact, the ordered db/01..db/114 identity sequence (suffix variants
+// included, db/110 reserved and absent), the terminal two migrations with
 // stable path/byte-size/hash evidence, and the ancestry/identity proofs.
 // Fails closed on every condition listed in the C3D-A order (missing
-// migration, duplicate number, gap, unexpected trailing migration, changed
-// terminal-migration hash, non-ancestor artifact, environment mismatch).
+// migration, duplicate identity, malformed identity, gap, unexpected trailing
+// migration, changed terminal-migration hash, non-ancestor artifact,
+// environment mismatch).
 function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICATION_ARTIFACT, expectedBranch = EXPECTED_BRANCH } = {}) {
   const filenames = fs.readdirSync(dbDir);
   const migrations = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL }).map((entry) => {
@@ -404,8 +496,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB112_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB113_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB113_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB114_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -424,26 +516,37 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/113 less the three reserved numbers', () => {
+test('deployment manifest resolves exactly db/01..db/114 less the one reserved number, including the accepted suffix identities', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  const expectedNumbers = Array.from({ length: EXPECTED_TERMINAL }, (_, i) => i + 1)
-    .filter((n) => !RESERVED_MIGRATION_NUMBERS.has(n));
-  assert.equal(entries.length, expectedNumbers.length);
-  assert.deepEqual(entries.map((entry) => entry.number), expectedNumbers);
+  assert.equal(entries.length, EXPECTED_MIGRATION_IDENTITIES.length);
+  assert.deepEqual(entries.map((entry) => entry.identity), EXPECTED_MIGRATION_IDENTITIES);
 });
 
-test('db/112 and db/113 are the terminal two migrations', () => {
+test('the formerly reserved numbers 104 and 106 are resolved as real migrations, and 110 stays absent', () => {
+  const filenames = fs.readdirSync(DB_DIR);
+  const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
+  const byIdentity = new Map(entries.map((entry) => [entry.identity, entry.filename]));
+  assert.equal(byIdentity.get('104'), '104_recebimento_lock_e_aceite_gate.sql');
+  assert.equal(byIdentity.get('106a'), '106a_escritores_canonicos.sql');
+  assert.equal(byIdentity.get('106b'), '106b_contencao_dml.sql');
+  assert.equal(byIdentity.get('103b'), '103b_emissao_aceite_e_democao.sql');
+  assert.equal(byIdentity.has('106'), false, 'there is no bare db/106 file; the accepted identity is the ordered pair');
+  assert.equal(entries.some((entry) => entry.number === 110), false, 'db/110 was not created and is not authorized');
+  assert.deepEqual([...RESERVED_MIGRATION_NUMBERS], [110]);
+});
+
+test('db/113 and db/114 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB112_FILENAME);
-  assert.equal(terminal.filename, DB113_FILENAME);
+  assert.equal(penultimate.filename, DB113_FILENAME);
+  assert.equal(terminal.filename, DB114_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
   const manifest = buildDeploymentManifest();
-  assert.equal(manifest.migrations.length, EXPECTED_TERMINAL - RESERVED_MIGRATION_NUMBERS.size);
+  assert.equal(manifest.migrations.length, EXPECTED_MIGRATION_IDENTITIES.length);
   assert.equal(manifest.applicationArtifact, APPLICATION_ARTIFACT);
   assert.equal(manifest.terminalTwo.length, 2);
   assert.ok(/^[0-9a-f]{40}$/.test(manifest.documentaryCheckpoint));
@@ -457,7 +560,60 @@ test('the full deployment manifest builds against the real repository', () => {
 test('fails closed on a duplicate migration number', () => {
   assert.throws(
     () => resolveMigrationManifest(['01_a.sql', '02_b.sql', '02_c.sql']),
-    (err) => err instanceof ManifestError && err.reason === 'DUPLICATE_NUMBER'
+    (err) => err instanceof ManifestError && err.reason === 'DUPLICATE_IDENTITY'
+  );
+});
+
+test('fails closed on a duplicate base+suffix identity', () => {
+  assert.throws(
+    () => resolveMigrationManifest(['01_a.sql', '02_b.sql', '02b_c.sql', '02b_d.sql']),
+    (err) => err instanceof ManifestError && err.reason === 'DUPLICATE_IDENTITY'
+  );
+});
+
+test('accepted suffix identities sort deterministically, unsuffixed first, regardless of directory order', () => {
+  const shuffled = ['03_d.sql', '02b_c.sql', '01_a.sql', '02a_e.sql', '02_b.sql'];
+  const entries = resolveMigrationManifest(shuffled);
+  assert.deepEqual(entries.map((entry) => entry.identity), ['1', '2', '2a', '2b', '3']);
+  // Stable under any input permutation: reversing the input must not move it.
+  const reversed = resolveMigrationManifest([...shuffled].reverse());
+  assert.deepEqual(reversed.map((entry) => entry.identity), ['1', '2', '2a', '2b', '3']);
+});
+
+test('a base carrying only suffixed identities is still one contiguity step', () => {
+  const entries = resolveMigrationManifest(['01_a.sql', '02a_b.sql', '02b_c.sql', '03_d.sql']);
+  assert.deepEqual(entries.map((entry) => entry.identity), ['1', '2a', '2b', '3']);
+});
+
+test('fails closed on a malformed suffix identity rather than silently dropping it', () => {
+  for (const malformed of ['02ab_b.sql', '02A_b.sql', '02-b.sql', '02b.sql']) {
+    assert.throws(
+      () => resolveMigrationManifest(['01_a.sql', malformed]),
+      (err) => err instanceof ManifestError && err.reason === 'MALFORMED_IDENTITY',
+      `${malformed} must fail closed`
+    );
+  }
+});
+
+test('an undeclared missing identity still fails even when the surrounding bases are suffixed', () => {
+  assert.throws(
+    () => resolveMigrationManifest(['01_a.sql', '02b_b.sql', '04a_c.sql']),
+    (err) => err instanceof ManifestError && err.reason === 'GAP'
+  );
+});
+
+test('a declared reservation is skipped only while genuinely absent; once occupied it is a real migration', () => {
+  const reserved = new Set([2]);
+  // Absent reservation: the sequence resolves across the declared hole.
+  const withHole = resolveMigrationManifest(['01_a.sql', '03_c.sql'], { reserved });
+  assert.deepEqual(withHole.map((entry) => entry.identity), ['1', '3']);
+  // Occupied reservation: the migration is resolved in place, not skipped.
+  const occupied = resolveMigrationManifest(['01_a.sql', '02_b.sql', '03_c.sql'], { reserved });
+  assert.deepEqual(occupied.map((entry) => entry.identity), ['1', '2', '3']);
+  // An occupied reservation does not license the NEXT number to disappear.
+  assert.throws(
+    () => resolveMigrationManifest(['01_a.sql', '02_b.sql', '04_d.sql'], { reserved }),
+    (err) => err instanceof ManifestError && err.reason === 'GAP'
   );
 });
 
@@ -486,10 +642,15 @@ test('the migration filename pattern excludes .verify.sql siblings and non-numbe
   const entries = filterMigrationFilenames([
     '44_partner_cnpj_registry.sql',
     '44_partner_cnpj_registry.verify.sql',
+    '106a_escritores_canonicos.sql',
+    '106a_escritores_canonicos.verify.sql',
     'setup_completo.sql',
   ]);
-  assert.equal(entries.length, 1);
-  assert.equal(entries[0].filename, '44_partner_cnpj_registry.sql');
+  assert.deepEqual(entries.map((entry) => entry.filename), [
+    '44_partner_cnpj_registry.sql',
+    '106a_escritores_canonicos.sql',
+  ]);
+  assert.deepEqual(entries.map((entry) => entry.identity), ['44', '106a']);
 });
 
 test('fails closed when a migration hash diverges from the repository checkpoint', () => {
