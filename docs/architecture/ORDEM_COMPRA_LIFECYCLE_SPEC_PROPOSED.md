@@ -3871,3 +3871,18 @@ only stops the read model from offering an action the writer would refuse.
 `Pedido › Planejamento de compras` (db/99) remains the sole authority over
 supplier and quantity. The Purchase Order detail gained a READ-ONLY
 provenance projection and no allocation-editing authority.
+
+### §R.32.7 Supervisor acceptance
+
+`PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1` is CLOSED / ACCEPTED at
+checkpoint `97d461ef07ddb422db0b22cea6436f593fdc657a` (parent
+`921236527155d7a8dd4207bf5d85d58a048798f7`). The acceptance scope is owned by
+`docs/governance/current-state.json` `accepted_checkpoints`; it is not
+restated here. The later `canonical_active`/`canonical` receipt availability
+introduced by `NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1` is EXPECTED
+EVOLUTION of §R.32.5's cutover-subordination predicate, not a contradiction
+of it: the predicate itself is unchanged, only the cutover state it reads
+moved. Likewise, `NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1`
+joining `cancelar_ordem_compra` and `excluir_ordem_compra` to the 9.9.B lock
+protocol preserved the §R.32.2/§R.32.3 bodies byte-exactly and did not amend
+this section's semantics.

@@ -4904,6 +4904,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11043,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "source_line": 19,
           "kind": "ROOT_REFERENCE",
@@ -32264,10 +32271,10 @@
     },
     {
       "path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
-      "git_object_id": "6af51ffe56ebd82e9b33ec3a79c3f5f1ceeaf92a",
-      "sha256": "c1ad835a822012f8c9b05de9794239fa6c83c73135fbf9f3dc0a6e3cdec542af",
-      "line_count": 3873,
-      "byte_count": 248147,
+      "git_object_id": "56c6822aa11279204bea726c1e4a8948a5e262dc",
+      "sha256": "9033032609b309b426f27e788bcc633afaa97283d94ce8e2a04cc99800c258e0",
+      "line_count": 3888,
+      "byte_count": 249033,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -33228,6 +33235,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11043,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/ORDEM_COMPRA_PHASE_A_2026-07-18.md",
           "source_line": 5,
           "kind": "ROOT_REFERENCE",
@@ -34171,6 +34185,12 @@
           "text": "§R.32.6 Planning ownership is unchanged",
           "anchor": "r326-planning-ownership-is-unchanged",
           "line": 3869
+        },
+        {
+          "level": 3,
+          "text": "§R.32.7 Supervisor acceptance",
+          "anchor": "r327-supervisor-acceptance",
+          "line": 3875
         }
       ]
     },
@@ -79253,10 +79273,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "9b69886cf60bb8e6402e8da4ecd42f490b73f1bc",
-      "sha256": "3bb15f6f00d7fef6650671aa5609e74964d1433f31b6c1b081591be6d7117559",
-      "line_count": 11035,
-      "byte_count": 1618882,
+      "git_object_id": "30e1e39aa0f4fc9d872d4831465b0bc6a94c2350",
+      "sha256": "f53d1f6ae81418d3332edee0da4a4aca92f98194e0a16dbbe880a8e52f33b0de",
+      "line_count": 11044,
+      "byte_count": 1621104,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86394,6 +86414,30 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 11034
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11043
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md`",
+          "target_path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11043
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11043
         }
       ],
       "inbound_references": [
@@ -88393,6 +88437,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11043,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "source_line": 8,
           "kind": "ROOT_REFERENCE",
@@ -90109,6 +90160,12 @@
           "text": "2026-08-01 — NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1 — SUPERVISOR ACCEPTANCE — docs: accept P5 cutover",
           "anchor": "2026-08-01-native-receipt-coordinated-release-p5-cutover-r1-supervisor-acceptance-docs-accept-p5-cutover",
           "line": 11027
+        },
+        {
+          "level": 2,
+          "text": "2026-08-01 — PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 — SUPERVISOR ACCEPTANCE — docs: accept db/100 post-generation stabilization",
+          "anchor": "2026-08-01-purchase-order-post-generation-stabilization-r1-supervisor-acceptance-docs-accept-db100-post-generation-stabilization",
+          "line": 11037
         }
       ]
     },
