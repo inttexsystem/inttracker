@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "db48a2afbc116312992770a646ead8bdc0906316",
-      "sha256": "76d8412e38e67cd39b8d391422df43ac82df246547c2987734304f560d1d5403",
+      "git_object_id": "1f6e2a70b592c190955a23a660bb0098567be6ea",
+      "sha256": "f83b6aac756b6a58a3ec1707fa0be0b4395a0e55a4530d5fb9e2f8284363714b",
       "line_count": 45,
-      "byte_count": 12421,
+      "byte_count": 12527,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -4906,6 +4906,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11043,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11055,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -36029,10 +36036,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "git_object_id": "393c64cca4de02ba44f986e196d2646a11964c1a",
-      "sha256": "d06f0a5a142fc5ace0a98520a71121efdd9e988d3585efcdd73b5ac33d06e78a",
-      "line_count": 3585,
-      "byte_count": 234816,
+      "git_object_id": "f799a54dd934f8f71b24456578118f27672bb610",
+      "sha256": "cc80f9881a4358d8a33c0a718734a1a0d1aa62e591001d2244f07075200afd61",
+      "line_count": 3620,
+      "byte_count": 236933,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -36936,6 +36943,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 10822,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11055,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -37936,40 +37950,46 @@
           "line": 3501
         },
         {
+          "level": 3,
+          "text": "Correction and supervisor acceptance — 2026-08-01 (6a0c043)",
+          "anchor": "correction-and-supervisor-acceptance-2026-08-01-6a0c043",
+          "line": 3513
+        },
+        {
           "level": 2,
           "text": "14. Purchase planning — the stage that had no entity (db/99)",
           "anchor": "14-purchase-planning-the-stage-that-had-no-entity-db99",
-          "line": 3515
+          "line": 3550
         },
         {
           "level": 3,
           "text": "14.1 The defect this closes",
           "anchor": "141-the-defect-this-closes",
-          "line": 3521
+          "line": 3556
         },
         {
           "level": 3,
           "text": "14.2 The two stages",
           "anchor": "142-the-two-stages",
-          "line": 3535
+          "line": 3570
         },
         {
           "level": 3,
           "text": "14.3 The planning entity",
           "anchor": "143-the-planning-entity",
-          "line": 3542
+          "line": 3577
         },
         {
           "level": 3,
           "text": "14.4 Numbering — D-OC15",
           "anchor": "144-numbering-d-oc15",
-          "line": 3560
+          "line": 3595
         },
         {
           "level": 3,
           "text": "14.5 Cancellation, deletion and the legacy writer",
           "anchor": "145-cancellation-deletion-and-the-legacy-writer",
-          "line": 3572
+          "line": 3607
         }
       ]
     },
@@ -79273,10 +79293,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "30e1e39aa0f4fc9d872d4831465b0bc6a94c2350",
-      "sha256": "f53d1f6ae81418d3332edee0da4a4aca92f98194e0a16dbbe880a8e52f33b0de",
-      "line_count": 11044,
-      "byte_count": 1621104,
+      "git_object_id": "783b0a6b7442292b1f6a7d2cb92c2f25cbcd25bf",
+      "sha256": "16cbf1a380992133242880aff03ce884ef310a6e89b642dcdfe632771bb59ce6",
+      "line_count": 11056,
+      "byte_count": 1625184,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86438,6 +86458,30 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 11043
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11055
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`",
+          "target_path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11055
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11055
         }
       ],
       "inbound_references": [
@@ -88444,6 +88488,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11055,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "source_line": 8,
           "kind": "ROOT_REFERENCE",
@@ -90166,6 +90217,12 @@
           "text": "2026-08-01 — PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 — SUPERVISOR ACCEPTANCE — docs: accept db/100 post-generation stabilization",
           "anchor": "2026-08-01-purchase-order-post-generation-stabilization-r1-supervisor-acceptance-docs-accept-db100-post-generation-stabilization",
           "line": 11037
+        },
+        {
+          "level": 2,
+          "text": "2026-08-01 — OP-CANONICAL-IDENTITY-PRODUCTION-CUTOVER-R1 — SUPERVISOR ACCEPTANCE — docs: accept OP canonical identity production cutover",
+          "anchor": "2026-08-01-op-canonical-identity-production-cutover-r1-supervisor-acceptance-docs-accept-op-canonical-identity-production-cutover",
+          "line": 11046
         }
       ]
     },

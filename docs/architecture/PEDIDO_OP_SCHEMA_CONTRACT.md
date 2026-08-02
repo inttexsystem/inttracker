@@ -3510,6 +3510,41 @@ from the former positional display; the backfill freezes the deterministic
 `(criado_em ASC, id ASC)` ordering of surviving rows as canonical from now on.
 This limit is recorded in the migration header, not inferred.
 
+### Correction and supervisor acceptance — 2026-08-01 (6a0c043)
+
+**FORWARD CORRECTION, not a rewrite of the above.** The "Boundary" paragraph's
+statement that an OP avulsa "keeps `OP {numero}/{ano}` as its visible identity"
+reflected only the FIRST implementation step (511ac23, this same db/95) and was
+never the ratified final policy. The corrective checkpoint
+`6a0c043c578245bbc01bbf94f963ed5e1826d965` removed `formatOpInternalLabel` and
+`formatOpLegacyCode` outright: the product cannot create an OP without a Pedido
+(creation refuses unconditionally, reinforced by the database on the latex
+route), so "OP avulsa shows numero/ano" was an UNREACHABLE branch, and an
+unreachable precaution is how a dual identity comes back. This inherited
+statement is classified `MEASUREMENT_OR_EVIDENCE_ERROR` — it is not a product
+defect and does not reopen or alter this phase's acceptance.
+
+**Ratified final visible-identity policy, binary, no third state:**
+1. `ops.identidade_operacional` (or `ordem_compra.identidade_operacional`) is
+   persisted → render that canonical identity.
+2. It is absent → render the explicit diagnostic identity-pending state.
+
+`ops.numero`/`ops.ano` (D-OC14) remain internal, immutable traceability fields
+and are NEVER rendered as an alternative visible OP identity, on any surface,
+including OP avulsa.
+
+**Supervisor acceptance.** `OP-CANONICAL-IDENTITY-PRODUCTION-CUTOVER-R1` is
+CLOSED / ACCEPTED at `6a0c043c578245bbc01bbf94f963ed5e1826d965`, absorbing the
+implementation chain `511ac236b1bcc2c2761b3d26c6459c7d45ba704e` ->
+`6a0c043c578245bbc01bbf94f963ed5e1826d965` as one checkpoint (parent
+`b6bbe4a69c583d255a1f6d993b01988be1646cbd`). No material OP identity defect
+remains. Two debts are carried forward unchanged and nonblocking, neither
+repaired by this closeout: `DB95-SEQUENCER-AUTHENTICATED-EXECUTE-GRANT` and
+`OP-IDENTITY-REFOUNDATION-CACHE-TOKEN-AND-FROZEN-ASSET-GUARD-EXCEPTION`, both
+owned by `docs/governance/current-state.json`. Full acceptance scope:
+`docs/governance/current-state.json` `accepted_checkpoints[]`, id
+`OP-CANONICAL-IDENTITY-PRODUCTION-CUTOVER-R1`.
+
 ---
 
 ## 14. Purchase planning — the stage that had no entity (db/99)
