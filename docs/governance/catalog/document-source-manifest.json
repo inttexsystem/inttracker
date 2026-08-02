@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "1a208914bd6281a163dbb7c0df2ff00d08cc06aa",
-      "sha256": "c6d3bd36e070525c183893a839ffbaf32902a9c3b14578d477a1a02c76a920f8",
+      "git_object_id": "4970bf0fe3311c6072bf38b68064f1f408bb5f28",
+      "sha256": "9bdc4cf21a67cd6db9a07a7c00943100845157df485e1d013818bbcc2114ac25",
       "line_count": 45,
-      "byte_count": 13267,
+      "byte_count": 11348,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -36050,10 +36050,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "git_object_id": "10962b8d057bc0d722de5060e9834b330950e690",
-      "sha256": "0fb621b94b769028f9e96657821d49a531a1b6c8c96f8d90f0acfa69cc0fbdfc",
-      "line_count": 3771,
-      "byte_count": 246583,
+      "git_object_id": "0d40e102a8e460f45aa77a4fdbb16c19d41cdc57",
+      "sha256": "7c4434c2ff9e0b014ec6f5576a1929a192c2fa96567faad8511b768033af106e",
+      "line_count": 3781,
+      "byte_count": 247110,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -37984,76 +37984,82 @@
           "line": 3438
         },
         {
+          "level": 4,
+          "text": "U17.6 Supervisor acceptance",
+          "anchor": "u176-supervisor-acceptance",
+          "line": 3506
+        },
+        {
           "level": 2,
           "text": "Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)",
           "anchor": "update-2026-07-29-pedido-item-mention-and-general-observation-ruling-pedido-item-mention-observation-ux-design-r1",
-          "line": 3506
+          "line": 3516
         },
         {
           "level": 2,
           "text": "Update 2026-07-29 — OP Canonical Identity Refoundation (db/95)",
           "anchor": "update-2026-07-29-op-canonical-identity-refoundation-db95",
-          "line": 3628
+          "line": 3638
         },
         {
           "level": 3,
           "text": "Superseded decisions",
           "anchor": "superseded-decisions",
-          "line": 3634
+          "line": 3644
         },
         {
           "level": 3,
           "text": "What replaces them (D-OC10 .. D-OC14)",
           "anchor": "what-replaces-them-d-oc10-d-oc14",
-          "line": 3642
+          "line": 3652
         },
         {
           "level": 3,
           "text": "Boundary",
           "anchor": "boundary",
-          "line": 3652
+          "line": 3662
         },
         {
           "level": 3,
           "text": "Correction and supervisor acceptance — 2026-08-01 (6a0c043)",
           "anchor": "correction-and-supervisor-acceptance-2026-08-01-6a0c043",
-          "line": 3664
+          "line": 3674
         },
         {
           "level": 2,
           "text": "14. Purchase planning — the stage that had no entity (db/99)",
           "anchor": "14-purchase-planning-the-stage-that-had-no-entity-db99",
-          "line": 3701
+          "line": 3711
         },
         {
           "level": 3,
           "text": "14.1 The defect this closes",
           "anchor": "141-the-defect-this-closes",
-          "line": 3707
+          "line": 3717
         },
         {
           "level": 3,
           "text": "14.2 The two stages",
           "anchor": "142-the-two-stages",
-          "line": 3721
+          "line": 3731
         },
         {
           "level": 3,
           "text": "14.3 The planning entity",
           "anchor": "143-the-planning-entity",
-          "line": 3728
+          "line": 3738
         },
         {
           "level": 3,
           "text": "14.4 Numbering — D-OC15",
           "anchor": "144-numbering-d-oc15",
-          "line": 3746
+          "line": 3756
         },
         {
           "level": 3,
           "text": "14.5 Cancellation, deletion and the legacy writer",
           "anchor": "145-cancellation-deletion-and-the-legacy-writer",
-          "line": 3758
+          "line": 3768
         }
       ]
     },
@@ -79357,10 +79363,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "8b9affc32720de558f41c917c45580ccb90fed5f",
-      "sha256": "624c0f4ed05a359007a9e7155b3b6bd70a106801c0729e611a9ce07acd731e6c",
-      "line_count": 11083,
-      "byte_count": 1639469,
+      "git_object_id": "6ddce7a12590205d87530d2fb3716242bb8e0e22",
+      "sha256": "d633ad4f4c12e39683e5474cc6995300fb5394ec843016a3b18355d889d356d5",
+      "line_count": 11110,
+      "byte_count": 1644665,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -90361,6 +90367,18 @@
           "text": "2026-08-02 — PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS-R1 — PRODUCTION ACL CORRECTION APPLIED — fix(db114): narrow direct authenticated SELECT on the Pedido change-request tables to the minimum column set",
           "anchor": "2026-08-02-pedido-alteracao-client-direct-select-internal-columns-r1-production-acl-correction-applied-fixdb114-narrow-direct-authenticated-select-on-the-pedido-change-request-tables-to-the-minimum-column-set",
           "line": 11068
+        },
+        {
+          "level": 2,
+          "text": "2026-08-02 — PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS-R1 — SUPERVISOR ACCEPTANCE CLOSEOUT",
+          "anchor": "2026-08-02-pedido-alteracao-client-direct-select-internal-columns-r1-supervisor-acceptance-closeout",
+          "line": 11085
+        },
+        {
+          "level": 2,
+          "text": "2026-08-02 — C3D-DEPLOY-MIGRATION-MANIFEST-CURRENT-SEQUENCE-RECONCILIATION-R1 — SUPERVISOR ACCEPTANCE CLOSEOUT",
+          "anchor": "2026-08-02-c3d-deploy-migration-manifest-current-sequence-reconciliation-r1-supervisor-acceptance-closeout",
+          "line": 11097
         }
       ]
     },
