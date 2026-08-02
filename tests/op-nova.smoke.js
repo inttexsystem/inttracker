@@ -2136,3 +2136,91 @@ test('91. R1: a proveniência canônica NÃO é lida do modelo plano e não deci
     assert.match(corpo, /disponibilidade/, nome + ' decide pela projeção nativa');
   }
 });
+
+// -------------------------------------------------------------------------
+// OP-CANONICAL-PURCHASE-ORDER-DISTINCT-COUNT-FIX-R1
+//
+// `ocSupridoras` tem grão de ITEM de ordem de compra (uma linha por eixo de
+// fio alocado à OP) — é isso que a tabela detalhada precisa. A métrica do
+// resumo contava LINHAS, então uma única ordem com quatro eixos aparecia como
+// "Ordens de fio: 4". A topologia real de OC-001-3-26 → OP-T001-1-26 é
+// exatamente essa: UMA ordem, quatro fios (PRETO, CRU, KRAFT, CINZA).
+//
+// O grão da tabela NÃO muda; quem passa a agrupar é só o contador.
+// -------------------------------------------------------------------------
+
+function alocacaoCanonica({ alocacaoId, itemId, ordemId, identidade, corId, corNome, kg }) {
+  return {
+    id: alocacaoId, op_id: 94, kg_alocado: kg,
+    item: {
+      id: itemId, ordem_id: ordemId, material: 'algodao', cor_id: corId, cor_poliester: null,
+      kg_pedido: kg, kg_recebido: kg, cores: { id: corId, nome: corNome },
+      ordem: {
+        id: ordemId, identidade_operacional: identidade, codigo: identidade,
+        pedido_id: 'ped-1', identidade_pedido_id: 'ped-1', fornecedor_id: 702,
+        legado: false, status_administrativo: 'emitida', status_aceite: 'nao_aplicavel',
+        status_recebimento: 'recebido',
+      },
+    },
+  };
+}
+
+// TOPOLOGIA REAL: UMA ordem de compra, QUATRO itens/eixos de fio, todos
+// alocados à MESMA OP.
+const OC_UMA_ORDEM_QUATRO_ITENS = [
+  alocacaoCanonica({ alocacaoId: 9001, itemId: 5001, ordemId: 105, identidade: 'OC-001-3-26', corId: 11, corNome: 'PRETO', kg: 860.1 }),
+  alocacaoCanonica({ alocacaoId: 9002, itemId: 5002, ordemId: 105, identidade: 'OC-001-3-26', corId: 12, corNome: 'CRU', kg: 120.5 }),
+  alocacaoCanonica({ alocacaoId: 9003, itemId: 5003, ordemId: 105, identidade: 'OC-001-3-26', corId: 15, corNome: 'KRAFT', kg: 64.25 }),
+  alocacaoCanonica({ alocacaoId: 9004, itemId: 5004, ordemId: 105, identidade: 'OC-001-3-26', corId: 16, corNome: 'CINZA', kg: 25.1 }),
+];
+
+// DUAS ordens distintas abastecendo a mesma OP — três itens no total, para
+// que "2" só possa vir da identidade da ordem, nunca da contagem de linhas.
+const OC_DUAS_ORDENS_DISTINTAS = [
+  alocacaoCanonica({ alocacaoId: 9001, itemId: 5001, ordemId: 105, identidade: 'OC-001-3-26', corId: 11, corNome: 'PRETO', kg: 860.1 }),
+  alocacaoCanonica({ alocacaoId: 9002, itemId: 5002, ordemId: 105, identidade: 'OC-001-3-26', corId: 12, corNome: 'CRU', kg: 120.5 }),
+  alocacaoCanonica({ alocacaoId: 9005, itemId: 5010, ordemId: 106, identidade: 'OC-002-3-26', corId: 16, corNome: 'CINZA', kg: 25.1 }),
+];
+
+test('92. C1: UMA ordem com QUATRO itens => tabela com quatro linhas, métrica "Ordens de fio: 1"', async () => {
+  const rendered = await renderOpNativa({
+    db: buildOpAbertaNativaFixture({ ordem_compra_item_alocacao: OC_UMA_ORDEM_QUATRO_ITENS }),
+  });
+  const reader = findNodeById(rendered.view, 'ordens-compra-reader');
+  const txt = collectNodeText(reader);
+
+  // O GRÃO DA TABELA NÃO MUDA: os quatro eixos continuam visíveis.
+  for (const cor of ['PRETO', 'CRU', 'KRAFT', 'CINZA']) {
+    assert.match(txt, new RegExp(cor), 'o eixo ' + cor + ' tem de continuar na tabela detalhada');
+  }
+  assert.match(txt, /OC-001-3-26/, 'a ordem canônica continua nomeada');
+
+  // A MÉTRICA CONTA ORDENS, NÃO LINHAS.
+  assert.match(rendered.text, /Ordens de fio\s*1\b/,
+    'uma única ordem com quatro fios é UMA ordem de fio');
+  assert.doesNotMatch(rendered.text, /Ordens de fio\s*4\b/,
+    'contar itens como ordens é exatamente o defeito corrigido aqui');
+  assert.doesNotMatch(rendered.text, /Aguardando recebimento de 0\b/,
+    'a reparação de alcance dos sliders continua válida nesta topologia');
+});
+
+test('93. C1: DUAS ordens distintas (três itens) => métrica "Ordens de fio: 2"', async () => {
+  const rendered = await renderOpNativa({
+    db: buildOpAbertaNativaFixture({ ordem_compra_item_alocacao: OC_DUAS_ORDENS_DISTINTAS }),
+  });
+  const txt = collectNodeText(findNodeById(rendered.view, 'ordens-compra-reader'));
+  assert.match(txt, /OC-001-3-26/);
+  assert.match(txt, /OC-002-3-26/, 'as duas ordens supridoras têm de aparecer');
+  assert.match(rendered.text, /Ordens de fio\s*2\b/,
+    'duas ordens distintas contam 2, mesmo com três itens no total');
+  assert.doesNotMatch(rendered.text, /Ordens de fio\s*3\b/,
+    'o total de itens não pode vazar para a métrica');
+});
+
+test('94. C1: sem proveniência canônica, a contagem plana permanece exatamente como era', async () => {
+  // buildOpReaderFixture traz QUATRO linhas planas e nenhuma alocação
+  // canônica — o caminho de fallback do leitor.
+  const rendered = await renderNovaOpForTest({ opId: 94, db: buildOpReaderFixture(false) });
+  assert.match(rendered.text, /Ordens de fio\s*4\b/,
+    'sem alocação canônica a métrica continua sendo a contagem plana existente');
+});

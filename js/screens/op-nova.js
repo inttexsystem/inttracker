@@ -1378,12 +1378,29 @@
     return { data: ocSupridoras, error: null };
   }
 
-  // Quantas ordens de compra são relevantes para esta OP. A proveniência
+  // Quantas ORDENS de compra são relevantes para esta OP. A proveniência
   // canônica é a autoridade quando resolve alguma coisa — ela alcança tanto a
   // ordem nativa quanto a legada, porque ambas alocam. As duas listas NUNCA
   // se somam: a mesma ordem legada aparece nas duas e seria contada em dobro.
+  //
+  // CONTA ORDENS DISTINTAS, NÃO LINHAS. `ocSupridoras` tem grão de ITEM de
+  // ordem de compra — uma linha por eixo de fio alocado a esta OP — e uma
+  // única ordem traz vários eixos: OC-001-3-26 sozinha carrega PRETO, CRU,
+  // KRAFT e CINZA. Contar linhas diria "4 ordens de fio" onde existe UMA. A
+  // tabela detalhada continua no grão de item; quem agrupa é a métrica, não
+  // o leitor.
+  //
+  // Uma linha sem `ordem_id` identificável não é fundida com nenhuma outra:
+  // ela conta por si, porque afirmar que duas ordens desconhecidas são a
+  // mesma seria inventar identidade.
   function totalOrdensCompraRelevantes() {
-    return ocSupridoras.length || ordens.length;
+    if (!ocSupridoras.length) return ordens.length;
+    var identidades = new Set();
+    for (var i = 0; i < ocSupridoras.length; i++) {
+      var linha = ocSupridoras[i];
+      identidades.add(linha.ordem_id == null ? 'item:' + linha.item_id : 'oc:' + linha.ordem_id);
+    }
+    return identidades.size;
   }
 
   // P2-A (§9.9.A): carga da DISPONIBILIDADE NATIVA. É a única leitura que
