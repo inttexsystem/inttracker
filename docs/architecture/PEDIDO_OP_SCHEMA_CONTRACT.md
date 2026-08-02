@@ -3503,6 +3503,16 @@ the six server-owned functions remain `SECURITY DEFINER` of `postgres` and
 preflight. No row was created, updated or deleted, and no mutation RPC was
 invoked.
 
+#### U17.6 Supervisor acceptance
+
+**2026-08-02.** `PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS-R1` is
+`CLOSED / ACCEPTED`. The accepted operational checkpoint is
+`ad4267d10f65f26901d8a5c87dce9703b28286fb`. The production application
+`20260802020804 / 114_pedido_alteracao_client_direct_select_column_acl` is
+accepted. The debt `PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS` is
+closed. `db/92`'s `PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE`
+remains `OPEN / NONBLOCKING`.
+
 ## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)
 
 **Status.** RATIFIED product ruling. Binding on the administrative Pedido

@@ -11081,3 +11081,15 @@ product file they depend on, was modified by this pass or the prior one):
 - **Continuidade.** `accepted_operational_checkpoint` NAO se move e permanece `d9bc3787afacfb51f7fbe60c1c2189667f00b688`. Nenhuma entrada nova foi criada em `accepted_checkpoints`: **o executor nao se auto-aceita** e o fechamento permanece sujeito a revisao do supervisor. P6 continua NAO AUTORIZADO, o PONR continua NAO CRUZADO, `db/110` continua NAO AUTORIZADO e a Fase 6 de U11 nao e encadeada.
 - **Escopo alterado.** `db/114_pedido_alteracao_client_direct_select_column_acl.sql` (novo), `tests/pedido-alteracao-client-direct-select-acl-invariant.mjs` (novo), `tests/pedido-alteracao-client-direct-select-acl.smoke.js` (novo), `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` (U9 e a nova secao U17), `docs/governance/current-state.json`, `docs/ledgers/G28_LEDGER.md`, `AGENT_HANDOFF.md` (regenerado pelo renderizador canonico) e os metadados derivados de catalogo mecanicamente exigidos pelos validadores existentes. Nenhum arquivo de produto, JavaScript, CSS ou HTML foi alterado, e nenhuma migracao existente foi modificada.
 - **Owner of the full record.** This ledger entry and `docs/governance/current-state.json`.
+
+## 2026-08-02 — PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS-R1 — SUPERVISOR ACCEPTANCE CLOSEOUT
+
+- **Gate.** `CLOSED / ACCEPTED`. Accepted checkpoint: `ad4267d10f65f26901d8a5c87dce9703b28286fb` (parent `3e38776a3cf5890462f4e59fcfe0f46082f1ac85`).
+- **Producao.** `db/114_pedido_alteracao_client_direct_select_column_acl` aplicada exatamente uma vez em `20260802020804` ao projeto definitivo de producao `ucrjtfswnfdlxwtmxnoo`.
+- **Conjunto exato de colunas.** `authenticated` tem `SELECT` direto somente sobre `public.pedido_alteracao_solicitacoes(id, pedido_id, status, criado_em)`. `public.pedido_alteracao_solicitacao_itens` nao expoe nenhum `SELECT` direto.
+- **RLS inalterada.** Nenhuma politica criada, alterada ou removida. O escopo de linha permanece identico.
+- **Nenhuma mutacao de linha de negocio.** Contagens identicas ao preflight: `pedido_alteracao_solicitacoes=0`, `pedido_alteracao_solicitacao_itens=0`, `pedidos=5`, `pedido_itens=36`.
+- **Divida fechada.** `PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS` esta `CLOSED / ACCEPTED / CORRECTED IN PRODUCTION BY db/114`. Nao ha copia duplicada aberta.
+- **Divida preservada.** `PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE` permanece `OPEN / NONBLOCKING BACKEND SEMANTIC DEBT`. `db/92` nao e reparado por esta aceitacao.
+- **Continuidade.** P6, U11 Phase 6 e `db/110` permanecem NAO AUTORIZADOS. PONR NAO CRUZADO.
+- **Owner of the full record.** This ledger entry and `docs/governance/current-state.json`.
