@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "6c58fe93eecf50835400030cc3302cb874dc8394",
-      "sha256": "bec7fd30119e200bd8566a3ee556d51ab2c57a33b9863f4f4412f5aae4d38d1c",
+      "git_object_id": "1a208914bd6281a163dbb7c0df2ff00d08cc06aa",
+      "sha256": "c6d3bd36e070525c183893a839ffbaf32902a9c3b14578d477a1a02c76a920f8",
       "line_count": 45,
-      "byte_count": 12555,
+      "byte_count": 13267,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -1286,7 +1286,7 @@
         },
         {
           "source_path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-          "source_line": 2911,
+          "source_line": 2912,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -4920,6 +4920,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11065,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11082,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -36043,10 +36050,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "git_object_id": "9e058dddb7918fb806545449400c8b81b36bf3a7",
-      "sha256": "c8648e756194ab9fe10a66c1a05727d4b68fb005e37e7bd3f121e0aa898406c3",
-      "line_count": 3633,
-      "byte_count": 237879,
+      "git_object_id": "10962b8d057bc0d722de5060e9834b330950e690",
+      "sha256": "0fb621b94b769028f9e96657821d49a531a1b6c8c96f8d90f0acfa69cc0fbdfc",
+      "line_count": 3771,
+      "byte_count": 246583,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -36159,7 +36166,7 @@
           "target_path": "AGENT_HANDOFF.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 2911
+          "source_line": 2912
         }
       ],
       "inbound_references": [
@@ -36964,6 +36971,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11065,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11082,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -37811,199 +37825,235 @@
           "level": 3,
           "text": "U10. UI architecture contract",
           "anchor": "u10-ui-architecture-contract",
-          "line": 2700
+          "line": 2701
         },
         {
           "level": 4,
           "text": "U10.1 Reusable seams",
           "anchor": "u101-reusable-seams",
-          "line": 2702
+          "line": 2703
         },
         {
           "level": 4,
           "text": "U10.2 Administrative editor — `#/pedidos/<uuid>/editar`",
           "anchor": "u102-administrative-editor-pedidoseditar",
-          "line": 2734
+          "line": 2735
         },
         {
           "level": 4,
           "text": "U10.3 Client editor — `#/cliente/pedidos/<uuid>/editar`",
           "anchor": "u103-client-editor-clientepedidoseditar",
-          "line": 2756
+          "line": 2757
         },
         {
           "level": 4,
           "text": "U10.4 Approval screen — `#/pedidos/<uuid>/alteracoes/<request-id>`",
           "anchor": "u104-approval-screen-pedidosalteracoes",
-          "line": 2777
+          "line": 2778
         },
         {
           "level": 4,
           "text": "U10.5 Disposition of `#/pedidos/<uuid>/itens`",
           "anchor": "u105-disposition-of-pedidositens",
-          "line": 2796
+          "line": 2797
         },
         {
           "level": 3,
           "text": "U11. Bounded implementation sequence",
           "anchor": "u11-bounded-implementation-sequence",
-          "line": 2810
+          "line": 2811
         },
         {
           "level": 3,
           "text": "U12. Out-of-scope findings recorded by this design",
           "anchor": "u12-out-of-scope-findings-recorded-by-this-design",
-          "line": 2917
+          "line": 2918
         },
         {
           "level": 3,
           "text": "U13. Ratified supervisor rulings",
           "anchor": "u13-ratified-supervisor-rulings",
-          "line": 2931
+          "line": 2932
         },
         {
           "level": 3,
           "text": "U14. Schema implementation evidence",
           "anchor": "u14-schema-implementation-evidence",
-          "line": 2996
+          "line": 2997
         },
         {
           "level": 3,
           "text": "U15. Security correction C1 — internal helper execution (db/93)",
           "anchor": "u15-security-correction-c1-internal-helper-execution-db93",
-          "line": 3065
+          "line": 3066
         },
         {
           "level": 4,
           "text": "U15.1 The defect",
           "anchor": "u151-the-defect",
-          "line": 3071
+          "line": 3072
         },
         {
           "level": 4,
           "text": "U15.2 Binding rule — the authenticated API is a closed allowlist",
           "anchor": "u152-binding-rule-the-authenticated-api-is-a-closed-allowlist",
-          "line": 3116
+          "line": 3117
         },
         {
           "level": 4,
           "text": "U15.3 Correction to U8 and U9",
           "anchor": "u153-correction-to-u8-and-u9",
-          "line": 3140
+          "line": 3141
         },
         {
           "level": 4,
           "text": "U15.4 Evidence",
           "anchor": "u154-evidence",
-          "line": 3148
+          "line": 3149
         },
         {
           "level": 3,
           "text": "U16. Client structural capability (db/94)",
           "anchor": "u16-client-structural-capability-db94",
-          "line": 3188
+          "line": 3189
         },
         {
           "level": 4,
           "text": "U16.1 The gap this closes",
           "anchor": "u161-the-gap-this-closes",
-          "line": 3196
+          "line": 3197
         },
         {
           "level": 4,
           "text": "U16.2 The exact response addition",
           "anchor": "u162-the-exact-response-addition",
-          "line": 3217
+          "line": 3218
         },
         {
           "level": 4,
           "text": "U16.3 Ownership and security",
           "anchor": "u163-ownership-and-security",
-          "line": 3249
+          "line": 3250
         },
         {
           "level": 4,
           "text": "U16.4 Consumer rule",
           "anchor": "u164-consumer-rule",
-          "line": 3266
+          "line": 3267
         },
         {
           "level": 4,
           "text": "U16.5 Evidence",
           "anchor": "u165-evidence",
-          "line": 3282
+          "line": 3283
+        },
+        {
+          "level": 3,
+          "text": "U17. Column-level ACL correction of the request tables (db/114)",
+          "anchor": "u17-column-level-acl-correction-of-the-request-tables-db114",
+          "line": 3369
+        },
+        {
+          "level": 4,
+          "text": "U17.1 The defect this closes",
+          "anchor": "u171-the-defect-this-closes",
+          "line": 3371
+        },
+        {
+          "level": 4,
+          "text": "U17.2 Why the correction has this shape",
+          "anchor": "u172-why-the-correction-has-this-shape",
+          "line": 3390
+        },
+        {
+          "level": 4,
+          "text": "U17.3 The minimum authenticated column set",
+          "anchor": "u173-the-minimum-authenticated-column-set",
+          "line": 3402
+        },
+        {
+          "level": 4,
+          "text": "U17.4 Consumer rule",
+          "anchor": "u174-consumer-rule",
+          "line": 3428
+        },
+        {
+          "level": 4,
+          "text": "U17.5 Evidence",
+          "anchor": "u175-evidence",
+          "line": 3438
         },
         {
           "level": 2,
           "text": "Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)",
           "anchor": "update-2026-07-29-pedido-item-mention-and-general-observation-ruling-pedido-item-mention-observation-ux-design-r1",
-          "line": 3368
+          "line": 3506
         },
         {
           "level": 2,
           "text": "Update 2026-07-29 — OP Canonical Identity Refoundation (db/95)",
           "anchor": "update-2026-07-29-op-canonical-identity-refoundation-db95",
-          "line": 3490
+          "line": 3628
         },
         {
           "level": 3,
           "text": "Superseded decisions",
           "anchor": "superseded-decisions",
-          "line": 3496
+          "line": 3634
         },
         {
           "level": 3,
           "text": "What replaces them (D-OC10 .. D-OC14)",
           "anchor": "what-replaces-them-d-oc10-d-oc14",
-          "line": 3504
+          "line": 3642
         },
         {
           "level": 3,
           "text": "Boundary",
           "anchor": "boundary",
-          "line": 3514
+          "line": 3652
         },
         {
           "level": 3,
           "text": "Correction and supervisor acceptance — 2026-08-01 (6a0c043)",
           "anchor": "correction-and-supervisor-acceptance-2026-08-01-6a0c043",
-          "line": 3526
+          "line": 3664
         },
         {
           "level": 2,
           "text": "14. Purchase planning — the stage that had no entity (db/99)",
           "anchor": "14-purchase-planning-the-stage-that-had-no-entity-db99",
-          "line": 3563
+          "line": 3701
         },
         {
           "level": 3,
           "text": "14.1 The defect this closes",
           "anchor": "141-the-defect-this-closes",
-          "line": 3569
+          "line": 3707
         },
         {
           "level": 3,
           "text": "14.2 The two stages",
           "anchor": "142-the-two-stages",
-          "line": 3583
+          "line": 3721
         },
         {
           "level": 3,
           "text": "14.3 The planning entity",
           "anchor": "143-the-planning-entity",
-          "line": 3590
+          "line": 3728
         },
         {
           "level": 3,
           "text": "14.4 Numbering — D-OC15",
           "anchor": "144-numbering-d-oc15",
-          "line": 3608
+          "line": 3746
         },
         {
           "level": 3,
           "text": "14.5 Cancellation, deletion and the legacy writer",
           "anchor": "145-cancellation-deletion-and-the-legacy-writer",
-          "line": 3620
+          "line": 3758
         }
       ]
     },
@@ -79307,10 +79357,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "c92e29155a256245e19fd293d7a9fb1827689a79",
-      "sha256": "27ad979d45b00db17bdf442700b658cccf1bebdb6376442d81df71552516178b",
-      "line_count": 11066,
-      "byte_count": 1629575,
+      "git_object_id": "8b9affc32720de558f41c917c45580ccb90fed5f",
+      "sha256": "624c0f4ed05a359007a9e7155b3b6bd70a106801c0729e611a9ce07acd731e6c",
+      "line_count": 11083,
+      "byte_count": 1639469,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86520,6 +86570,30 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 11065
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11082
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`",
+          "target_path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11082
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11082
         }
       ],
       "inbound_references": [
@@ -88540,6 +88614,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11082,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "source_line": 8,
           "kind": "ROOT_REFERENCE",
@@ -90274,6 +90355,12 @@
           "text": "2026-08-01 — PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 — SUPERVISOR ACCEPTANCE — docs: accept the administrative change-request comparison and approval screen",
           "anchor": "2026-08-01-pedido-admin-change-request-comparison-approval-r1-supervisor-acceptance-docs-accept-the-administrative-change-request-comparison-and-approval-screen",
           "line": 11058
+        },
+        {
+          "level": 2,
+          "text": "2026-08-02 — PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS-R1 — PRODUCTION ACL CORRECTION APPLIED — fix(db114): narrow direct authenticated SELECT on the Pedido change-request tables to the minimum column set",
+          "anchor": "2026-08-02-pedido-alteracao-client-direct-select-internal-columns-r1-production-acl-correction-applied-fixdb114-narrow-direct-authenticated-select-on-the-pedido-change-request-tables-to-the-minimum-column-set",
+          "line": 11068
         }
       ]
     },

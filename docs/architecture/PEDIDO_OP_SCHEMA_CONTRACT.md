@@ -2679,7 +2679,8 @@ ordering in source.
 | Client cannot approve or reject | `aprovar_*` and `rejeitar_*` require `is_admin()` and raise `42501` otherwise |
 | Client cannot directly update an accepted Pedido or its items | Unchanged: no client `UPDATE` or `DELETE` policy exists on `pedidos` or `pedido_itens`, and none is added |
 | Admin can review and decide | `is_admin()` `ALL` policy on both new tables, matching the existing `*_admin_all` pattern |
-| Direct DML on the request tables is closed to every application role | `REVOKE ALL ... FROM PUBLIC, anon, authenticated` then `GRANT SELECT ... TO authenticated`. This revoke is load-bearing: the Supabase project carries `ALTER DEFAULT PRIVILEGES` granting full DML on every new `public` table to `anon`, `authenticated` and `service_role`, which is why `pedidos` and `pedido_itens` show `DELETE/INSERT/UPDATE` for both roles. Without it an administrator could write requests and decisions by raw DML, bypassing the RPCs, the before-image immutability and the single-pending index. |
+| Direct DML on the request tables is closed to every application role | `REVOKE ALL ... FROM PUBLIC, anon, authenticated`. This revoke is load-bearing: the Supabase project carries `ALTER DEFAULT PRIVILEGES` granting full DML on every new `public` table to `anon`, `authenticated` and `service_role`, which is why `pedidos` and `pedido_itens` show `DELETE/INSERT/UPDATE` for both roles. Without it an administrator could write requests and decisions by raw DML, bypassing the RPCs, the before-image immutability and the single-pending index. |
+| Direct `SELECT` by `authenticated` is limited to the columns a legitimate direct consumer actually uses | **U17 owns this row.** `db/92` granted table-level `SELECT` on both request tables; `db/114` replaced it with a column-level grant of exactly `(id, pedido_id, status, criado_em)` on `pedido_alteracao_solicitacoes` and NO direct `SELECT` at all on `pedido_alteracao_solicitacao_itens`. RLS owns row scope; ACL owns column scope. |
 | Sanitized client readers never expose internal production data | `cliente_alteracao_resumo()` returns an explicit whitelist; no `SELECT *`, per `PORTAL_B2B_ARCHITECTURE_RULES.md` §8 |
 | `service_role` is not exposed | No new surface receives it; the RPC bodies still require a real admin or client JWT |
 | No anonymous access is introduced | `EXECUTE` revoked from `anon` on every new function; no `anon` policy on either new table; no `anon` table privilege |
@@ -3364,6 +3365,143 @@ owner-only with no capability text in its own body (it is the helper, not the
 RPC); the public inventory count for the eight accepted RPC names is still `8`;
 and all eleven table row counts are **identical** to preflight. No row was
 created, updated or deleted.
+
+### U17. Column-level ACL correction of the request tables (db/114)
+
+#### U17.1 The defect this closes
+
+`db/92` closed direct DML on both request tables and then granted
+`SELECT` **at table level** to `authenticated`. Combined with the client RLS
+policy `pedido_alteracao_cliente_select`, which admits the rows of the Client's
+own Pedidos, a Client could hand-write a PostgREST query against its own
+request row and read internal columns: `base_snapshot` (the complete immutable
+before-image of the Pedido), `base_revisao`, `solicitante_id`,
+`solicitante_papel`, `falha_identificador`, `decidido_por`, `atualizado_em` and
+the operational `proposto_*` fields — plus the whole proposed item collection.
+
+The sanctioned Client reader `cliente_alteracao_resumo()` (U16) deliberately
+returns a **narrower sanitized payload** that omits exactly those columns. The
+ACL therefore contradicted the accepted Phase 4 Client information boundary: the
+Client must not gain visibility over internal data merely by owning the row.
+
+Recorded as `PEDIDO-ALTERACAO-CLIENT-DIRECT-SELECT-INTERNAL-COLUMNS` in
+`docs/governance/current-state.json`.
+
+#### U17.2 Why the correction has this shape
+
+A table-level `GRANT` cannot coexist with an effective column restriction: with
+table-level `SELECT` the role reads every column and a column grant restricts
+nothing. The correction is therefore necessarily `REVOKE` of the table-level
+`SELECT` followed by a `GRANT` of the approved columns only.
+
+**RLS keeps row scope. ACL takes column scope.** No policy is created, altered
+or dropped by `db/114`, and no administrative browser bypass is introduced: the
+administrator also enters through `authenticated` and is subject to the same
+column scope.
+
+#### U17.3 The minimum authenticated column set
+
+Derived from the active direct-consumer call graph, not arbitrated:
+
+| Table | Direct browser consumer | Minimum `authenticated` `SELECT` |
+| --- | --- | --- |
+| `public.pedido_alteracao_solicitacoes` | `js/screens/pedido-detail-data.js` — the bounded admin pending-request discovery of the Pedido detail hub: `.select('id, status, criado_em').eq('pedido_id', …).eq('status','pendente').limit(1)` | `(id, pedido_id, status, criado_em)` |
+| `public.pedido_alteracao_solicitacao_itens` | **none** | **nothing** |
+
+`id`, `status` and `criado_em` are the projection; `pedido_id` is in the set
+because PostgreSQL requires `SELECT` on a column referenced in `WHERE`. The item
+collection is narrowed by its **own** measurement, not by analogy with the
+header: it has no direct browser consumer at all, so its minimum set is empty.
+
+Every other reader is server-owned and unaffected, because a `SECURITY DEFINER`
+function executes as its owner `postgres` and does not depend on the caller's
+privilege: the Client surfaces read only `cliente_alteracao_resumo()`, the
+administrative review screen reads only `admin_alteracao_comparacao()`, and
+`js/delete-helpers.js` merely **labels** counts returned by
+`diagnosticar_impacto_pedido()` without querying either table.
+
+The four granted columns are a **subset** of what the sanctioned Client reader
+already returns (`solicitacao_id`/`id`, `status`, `criado_em`), plus `pedido_id`,
+which is the identifier the Client itself supplies. No internal column survives
+the cut.
+
+#### U17.4 Consumer rule
+
+A new direct consumer of either request table is a **contract change**, not an
+implementation detail: the minimum column set must be re-derived and `db/114`
+superseded by a further forward migration before that consumer ships.
+`tests/pedido-alteracao-client-direct-select-acl.smoke.js` fails when a second
+direct consumer appears, when the projection changes, when any Client surface
+reads either table directly, or when a browser surface names a raw
+server-internal column.
+
+#### U17.5 Evidence
+
+**Migration.** `db/114_pedido_alteracao_client_direct_select_column_acl.sql`,
+forward-only, idempotent, one transaction, self-verifying. `db/92` is not
+rewritten. Its gate fails closed and names the divergence: missing table,
+missing consumer column, changed table owner, disabled RLS, missing or divergent
+`db/92` policy, a server owner that is no longer `SECURITY DEFINER` of
+`postgres`, a non-`SELECT` privilege already held by `authenticated`, any
+`anon`/`PUBLIC` privilege, a `service_role` regression, and any ACL shape that is
+neither the `db/92` PRE state nor the `db/114` POS state. A terminal `DO` block
+re-reads the reached state, including a **per-column** denial check of all
+seventeen internal columns and a per-column positive check of the four approved
+ones. Privilege is measured with `has_table_privilege` (table level only),
+`has_any_column_privilege` (the union) and `has_column_privilege`; `aclexplode`
+is deliberately not used because it refuses an empty ACL array.
+
+**Disposable-cluster proof.**
+`tests/pedido-alteracao-client-direct-select-acl-invariant.mjs`, one fresh
+PostgreSQL 18.4 cluster per run, destroyed in Part Z. It applies `db/01..db/94`
+and then `db/114`. It **reproduces the defect before correcting it**: with the
+table grant alive all 21 header columns are readable and the Client directly
+reads `base_snapshot`, `base_revisao`, `solicitante_id`, `falha_identificador`
+and the two proposed item rows. After `db/114` it proves: no table-level
+`SELECT` survives; exactly `criado_em, id, pedido_id, status` are readable and
+exactly four column grants exist; nothing on the item collection; all seventeen
+internal columns, `SELECT *`, the item collection and a `WHERE` on an internal
+column are each refused with `permission denied`; the bounded admin discovery
+still returns its exact three columns under its exact two filters and the
+administrator is likewise denied internal columns; `cliente_alteracao_resumo()`
+still answers and still carries only the sanitized payload;
+`admin_alteracao_comparacao()` still serves the administrator and still refuses
+the Client; submit, withdraw and reject still work end to end while the caller
+holds only column-level `SELECT`, and the server owner still writes the internal
+columns the caller cannot read; RLS row scope is unchanged (own rows visible,
+another Client's invisible); no write privilege exists, `anon` has nothing and
+`service_role`/`postgres` are intact; and `db/114` replays twice with an
+identical ACL fingerprint while its gate fails closed on both an injected column
+grant and a disabled RLS.
+
+**Static guards.** `tests/pedido-alteracao-client-direct-select-acl.smoke.js`
+proves the migration creates no object, alters no table, drops nothing, revokes
+the table-level `SELECT` on both tables, issues exactly one column `GRANT` with
+exactly the four approved columns on the header table only, introduces no
+mutation privilege, no `anon` grant and no RLS statement, carries every
+fail-closed anchor, and verifies itself per column. It also pins the
+direct-consumer inventory the column set rests on.
+
+**Production application.** Applied **once** to `ucrjtfswnfdlxwtmxnoo`
+(`system_identifier 7642734024280108049`). Preflight: terminal
+`112_cutover_snapshot_completeness_invariant` with 66 migrations;
+`authenticated=r/postgres` (table-level `SELECT`) on both request tables; zero
+column-level grants; RLS enabled with the four `db/92` policies; `anon` holding
+nothing; no `INSERT`/`UPDATE`/`DELETE` for `authenticated`; row counts
+`pedido_alteracao_solicitacoes=0`, `pedido_alteracao_solicitacao_itens=0`,
+`pedidos=5`, `pedido_itens=36`. Post-apply: the migration is registered exactly
+once, terminal `114_pedido_alteracao_client_direct_select_column_acl` with 67
+migrations; `has_table_privilege('authenticated', …, 'SELECT')` is `false` on
+**both** tables; the readable header columns are exactly
+`criado_em, id, pedido_id, status` with four column grants; zero readable
+columns and zero column grants on the item collection; **none** of the
+seventeen internal columns is readable; no write privilege exists for
+`authenticated` or `anon`; `anon` holds no column `SELECT`; `service_role`
+retains full access; the four RLS policies and the enabled state are unchanged;
+the six server-owned functions remain `SECURITY DEFINER` of `postgres` and
+`authenticated`-executable; and all four row counts are **identical** to
+preflight. No row was created, updated or deleted, and no mutation RPC was
+invoked.
 
 ## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)
 
