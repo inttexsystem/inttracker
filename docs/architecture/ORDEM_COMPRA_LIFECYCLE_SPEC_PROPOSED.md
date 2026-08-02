@@ -3886,3 +3886,124 @@ moved. Likewise, `NATIVE-RECEIPT-COORDINATED-RELEASE-P4-AUTHORITY-SWITCH-R1`
 joining `cancelar_ordem_compra` and `excluir_ordem_compra` to the 9.9.B lock
 protocol preserved the §R.32.2/§R.32.3 bodies byte-exactly and did not amend
 this section's semantics.
+
+---
+
+## §R.33 Native-receipt provenance and multi-origin ruling — CLOSED / ACCEPTED
+
+`NATIVE-RECEIPT-P6-PROVENANCE-AND-MULTI-ORIGIN-BLOCKER-RESOLUTION-R1` completed
+as a READ-ONLY reconciliation against the definitive production project
+`ucrjtfswnfdlxwtmxnoo` (cluster `system_identifier 7642734024280108049`,
+PostgreSQL 17.6, terminal migration `20260802130337 / db/115`), with no
+repository and no production mutation. This section records the supervisor
+ruling it produced. It closes two canonical blockers and states one binding
+architecture boundary. It rewrites no prior section; everything not named here
+is unchanged.
+
+### §R.33.1 `HISTORICAL_SALDO_FIOS_PROVENANCE_UNAVAILABLE` — RESOLVED BY ARCHITECTURE RULING
+
+The causal provenance of the historical `public.saldo_fios` population is
+PERMANENTLY UNKNOWABLE from surviving evidence, and that is a measured fact
+rather than an unfinished investigation. `saldo_fios` carries no source, actor,
+order or OP dimension — its identity is `(tipo, cor_id | cor_poliester)` and its
+only payload is `kg_total` — it has no audit or event sibling, the flat model
+holds zero rows with a cutover source snapshot of zero, and the client-side
+writers that historically touched it were retired in
+`NATIVE-RECEIPT-COORDINATED-RELEASE-P2`. The balances therefore cannot be
+attributed to historical purchase-order receipts even in principle.
+
+The ruling is that this provenance is NOT REQUIRED for native-receipt
+correctness. What is known is preserved as an accepted invariant in
+`ordem_compra_cutover`: `inventory_baseline_count`, `inventory_baseline_total_kg`
+and `inventory_baseline_hash`, with a per-row serialization.
+
+NO SYNTHETIC PURCHASE RECEIPT, ORDER, OP, ALLOCATION OR ADJUSTMENT HISTORY MAY
+EVER BE INVENTED TO EXPLAIN THESE BALANCES.
+
+### §R.33.2 `saldo_fios` IS NOT AN AVAILABILITY AUTHORITY — BINDING BOUNDARY
+
+`public.saldo_fios` is a multi-origin cache of free material. It is NOT an
+availability authority, and no current or future code may use its aggregate
+historical-plus-native-surplus balance as OP material availability WITHOUT A NEW
+EXPLICIT ARCHITECT DECISION and an explicit migration or product order.
+
+OP material availability continues to derive from the canonical native
+need/allocation/ledger authority: `_oc_disponibilidade_linhas`,
+`_oc_material_recebido_liquido` and `oc_disponibilidade_op`. None of them reads
+`saldo_fios`, and no view, materialized view or front-end consumer reads it
+either.
+
+### §R.33.3 Forward-only provenance boundary
+
+PRE-PONR. The historical `saldo_fios` balances are preserved EXACTLY as
+historical state. Their causal provenance is UNKNOWN / UNRECOVERABLE and stays
+that way.
+
+POST-PONR. Every native receipt kilogram is represented by the canonical native
+receipt and ledger model. Allocation-bearing kilograms carry the real
+allocation / need / OP relationship; surplus kilograms carry NO fabricated
+allocation and NO fabricated OP. `saldo_fios` may receive the native surplus
+delta through its accepted trigger `trg_native_lancamento_derive_state`, under
+the boundary of §R.33.2.
+
+The two sets are STRUCTURALLY DISJOINT, and the disjointness is enforced by a
+database constraint rather than by convention. `ordem_compra_fio_lancamentos_native_shape`
+admits exactly two shapes for a native line — `ordem_compra_item_alocacao_id IS
+NOT NULL AND kg_excesso = 0`, or `ordem_compra_item_alocacao_id IS NULL AND
+op_id IS NULL AND kg_excesso = kg_recebido` — the availability ceiling reads only
+the first, and `saldo_fios` receives only the second. Direct mutation of
+`saldo_fios` outside that nested trigger path is refused by
+`trg_c3c_protected_mutation_guard` with SQLSTATE `55000` while the cutover is
+`canonical_active`.
+
+### §R.33.4 `NATIVE_RECEIPT_COMPATIBILITY_MULTI_ORIGIN_UNRESOLVED` — RESOLVED BY EXECUTABLE FACT
+
+- Native `algodao` with an OP-origin allocation is SUPPORTED.
+- Native `poliester` with a Pedido-origin allocation is SUPPORTED.
+- Receipt identity is LINE AND ALLOCATION BASED, never one OP per order:
+  `p_linhas` carries one line per `(item_id, destino, alocacao_id)` and `op_id`
+  is derived per line from that line's allocation.
+- Multiple allocations are represented as INDEPENDENT RECEIPT LINES, subject to
+  the existing allocation and item invariants (`excede_alocacao` per allocation,
+  `excede_item` for the allocated total against `kg_pedido`).
+- Surplus REQUIRES NO OP.
+- Representative-OP fabrication is FORBIDDEN, and the `native_shape` constraint
+  makes it structurally impossible on a surplus line.
+- Flat compatibility is NOT REQUIRED for native P6.
+- Native and flat receipt parentage remain STRUCTURALLY EXCLUSIVE
+  (`ordem_compra_fio_lancamentos_um_pai_apenas`, and `ordem_compra_fio_id IS
+  NULL` on every native line).
+
+The origin classes are determined by material rather than chosen:
+`necessidade_material_origem` requires native `algodao` to be OP-origin and
+native `poliester` to be Pedido-origin.
+
+THIS RULING COVERS THE ACCEPTED NATIVE MODEL AND THE ORIGIN TOPOLOGY IT
+STRUCTURALLY REPRESENTS. It does NOT state that every hypothetical future
+purchase-order architecture is supported.
+
+### §R.33.5 Outside the current native model
+
+One purchase shared across MULTIPLE Pedidos is outside the current native model:
+`ordem_compra` carries a single `pedido_id` and the receipt command scopes
+allocation provenance to it. No production instance exists and no business
+requirement was established. A future requirement needs a separate product and
+architecture decision; it is NOT a receipt defect and it does NOT justify a
+representative OP.
+
+### §R.33.6 Supervisor acceptance and P6 state
+
+Both blockers are CLOSED and removed from the OPEN blocking debt set, with their
+historical existence preserved in `docs/governance/current-state.json` and in
+`docs/ledgers/G28_LEDGER.md`. Two nonblocking debts were opened by supervisor
+classification: `NATIVE-RECEIPT-SALDO-FIOS-DIRECT-GRANT-DEFENSE-IN-DEPTH-GAP`
+and `NATIVE-OC-PEDIDO-ID-NULLABILITY-ENFORCEMENT-GAP`. No grant, constraint,
+trigger, migration, product or test file was changed by the ruling.
+
+P6 TECHNICAL READINESS IS READY. P6 EXECUTION IS NOT AUTHORIZED BY THIS RULING:
+it remains a separately authorized real-business event whose Purchase Order,
+material/item/allocation destination, received quantity and document or origin
+reference must be supplied by Kleber from a genuine business receipt. A
+supervisor or executor must not choose them. THE PONR IS NOT CROSSED
+(`productive_receipt_started_at IS NULL`), and `db/110` remains ABSENT and NOT
+AUTHORIZED.

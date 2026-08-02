@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "322caa6b6c0887ebe4d51cc260ce353f89e2aa37",
-      "sha256": "b4d879db632dd776874d2e1b337ede8b3f6baa9042ccf84f83f4fa59677394a9",
+      "git_object_id": "5b3902ad9a3b244eebbb1d5bc5ae62a4070fc074",
+      "sha256": "734da27560b680b1a43a1791de37dee9f2f84af1df9714e6c4cd906c668fb6bd",
       "line_count": 45,
-      "byte_count": 11323,
+      "byte_count": 11370,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -4934,6 +4934,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11128,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11156,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -32299,10 +32306,10 @@
     },
     {
       "path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
-      "git_object_id": "56c6822aa11279204bea726c1e4a8948a5e262dc",
-      "sha256": "9033032609b309b426f27e788bcc633afaa97283d94ce8e2a04cc99800c258e0",
-      "line_count": 3888,
-      "byte_count": 249033,
+      "git_object_id": "9d24cb7a9e27113f7548eea6362a385ca30b4eea",
+      "sha256": "29b9db29a3962d906ac2297571d01aebb80a75dd40ee6a8d98b5046179616324",
+      "line_count": 4009,
+      "byte_count": 255625,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -32440,6 +32447,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 3736
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 3998
         }
       ],
       "inbound_references": [
@@ -33265,6 +33280,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11043,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11156,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -34219,6 +34241,48 @@
           "text": "§R.32.7 Supervisor acceptance",
           "anchor": "r327-supervisor-acceptance",
           "line": 3875
+        },
+        {
+          "level": 2,
+          "text": "§R.33 Native-receipt provenance and multi-origin ruling — CLOSED / ACCEPTED",
+          "anchor": "r33-native-receipt-provenance-and-multi-origin-ruling-closed-accepted",
+          "line": 3892
+        },
+        {
+          "level": 3,
+          "text": "§R.33.1 `HISTORICAL_SALDO_FIOS_PROVENANCE_UNAVAILABLE` — RESOLVED BY ARCHITECTURE RULING",
+          "anchor": "r331-historical_saldo_fios_provenance_unavailable-resolved-by-architecture-ruling",
+          "line": 3903
+        },
+        {
+          "level": 3,
+          "text": "§R.33.2 `saldo_fios` IS NOT AN AVAILABILITY AUTHORITY — BINDING BOUNDARY",
+          "anchor": "r332-saldo_fios-is-not-an-availability-authority-binding-boundary",
+          "line": 3923
+        },
+        {
+          "level": 3,
+          "text": "§R.33.3 Forward-only provenance boundary",
+          "anchor": "r333-forward-only-provenance-boundary",
+          "line": 3936
+        },
+        {
+          "level": 3,
+          "text": "§R.33.4 `NATIVE_RECEIPT_COMPATIBILITY_MULTI_ORIGIN_UNRESOLVED` — RESOLVED BY EXECUTABLE FACT",
+          "anchor": "r334-native_receipt_compatibility_multi_origin_unresolved-resolved-by-executable-fact",
+          "line": 3959
+        },
+        {
+          "level": 3,
+          "text": "§R.33.5 Outside the current native model",
+          "anchor": "r335-outside-the-current-native-model",
+          "line": 3985
+        },
+        {
+          "level": 3,
+          "text": "§R.33.6 Supervisor acceptance and P6 state",
+          "anchor": "r336-supervisor-acceptance-and-p6-state",
+          "line": 3994
         }
       ]
     },
@@ -79437,10 +79501,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "93bc2f4a9e94edebeb6ddceac14d4b25dff63bb4",
-      "sha256": "7542505697be0d475f1874da32359d16f99d8a26d8dbe6aca4026223cdc77ff4",
-      "line_count": 11141,
-      "byte_count": 1657971,
+      "git_object_id": "80fcbeaa3f65048e0241068bf8fb4468abccde88",
+      "sha256": "b0d2b54b819298c9c72b944e0ae5fb431632dea926eb15b93522964963bb8e3c",
+      "line_count": 11157,
+      "byte_count": 1665105,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86698,6 +86762,30 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 11128
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11156
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md`",
+          "target_path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11156
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11156
         }
       ],
       "inbound_references": [
@@ -86907,6 +86995,13 @@
         {
           "source_path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
           "source_line": 1304,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
+          "source_line": 3998,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -88732,6 +88827,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11156,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "source_line": 8,
           "kind": "ROOT_REFERENCE",
@@ -90496,6 +90598,12 @@
           "text": "2026-08-02 — PEDIDO-ALTERACAO-EXPECTED-REFUSAL-SEMANTICS-CORRECTION-R1 — SUPERVISOR ACCEPTANCE CLOSEOUT",
           "anchor": "2026-08-02-pedido-alteracao-expected-refusal-semantics-correction-r1-supervisor-acceptance-closeout",
           "line": 11131
+        },
+        {
+          "level": 2,
+          "text": "2026-08-02 — NATIVE-RECEIPT-P6-PROVENANCE-AND-MULTI-ORIGIN-BLOCKER-RESOLUTION-R1 — DECISAO DE ARQUITETURA DO SUPERVISOR E FECHAMENTO",
+          "anchor": "2026-08-02-native-receipt-p6-provenance-and-multi-origin-blocker-resolution-r1-decisao-de-arquitetura-do-supervisor-e-fechamento",
+          "line": 11143
         }
       ]
     },
