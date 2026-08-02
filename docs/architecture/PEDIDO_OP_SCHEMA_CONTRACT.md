@@ -3711,6 +3711,43 @@ letting the prologue diverge silently from the rule owner. It is not a second
 authority: `definir_prioridade_pedido` remains the only priority writer and
 still raises the same refusal.
 
+#### U18.9 Supervisor acceptance
+
+**2026-08-02.** `PEDIDO-ALTERACAO-EXPECTED-REFUSAL-SEMANTICS-CORRECTION-R1` is
+`CLOSED / ACCEPTED`. The accepted implementation checkpoint is
+`bf55c8f2ae52dffa61ec1010ecc3ac0e8c1c34ac`, entry parent
+`3a964781e170b846251d961d96ecf583bfc288ba`. The production application
+`20260802130337 / 115_pedido_alteracao_expected_refusal_semantics` on
+`ucrjtfswnfdlxwtmxnoo` is accepted. The accepted operational checkpoint advances
+to `bf55c8f2ae52dffa61ec1010ecc3ac0e8c1c34ac`.
+
+**Final U8.3 semantics.** An expected refusal — including
+`PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP` and
+`PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED` — returns its stable
+identifier, leaves the request **`pendente`** and mutates no live Pedido state.
+An unexpected failure of the application stage is still rolled back by the
+`BEGIN ... EXCEPTION WHEN OTHERS` subtransaction and still becomes
+**`falha_aplicacao`** with `falha_identificador`. The production-impact
+confirmation retry on the **same** request, with `p_confirmar_impacto = true`,
+is reachable.
+
+**Historical blast radius, clarified.** The original canonical debt prose
+understated the priority path: it described the failure principally as
+affecting a *priority-change* approval. The measured executable fact is broader.
+`pedido_alteracao_solicitacoes.proposto_prioridade_habilitada` is `NOT NULL` and
+defaults to `false`, and the approval application path delegated through
+`pedido_prioridade_aplicar` even when the request was otherwise header-only.
+Before `db/115`, therefore, an approval of a Pedido in status `produzindo` could
+reach `PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED` even when the
+requested business change itself was header-only. This is a clarification of the
+**closed** debt's historical reach, derived from the executable owner; it is not
+a new debt and opens nothing.
+
+`PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE`
+is `CLOSED / ACCEPTED / CORRECTED IN PRODUCTION BY db/115` and is removed from
+the open debt set with no duplicate open copy. `db/91` and `db/92` historical
+migration text is unchanged. No material defect remains in this correction.
+
 ## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)
 
 **Status.** RATIFIED product ruling. Binding on the administrative Pedido

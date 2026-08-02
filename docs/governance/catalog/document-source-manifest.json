@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "c7fb44de64b04cc0c6cf895d1bf28cb9ac900107",
-      "sha256": "e8bf1c86784e5b1c557d25398727c57d49172cd18e6e532a6a82a299ae27822f",
+      "git_object_id": "322caa6b6c0887ebe4d51cc260ce353f89e2aa37",
+      "sha256": "b4d879db632dd776874d2e1b337ede8b3f6baa9042ccf84f83f4fa59677394a9",
       "line_count": 45,
-      "byte_count": 11643,
+      "byte_count": 11323,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -36057,10 +36057,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "git_object_id": "2fad69e6afd6db9aff35e4374328eced5bc772bd",
-      "sha256": "975c0dcb349ee60c69ab94c84b676af2ce05b5ddefeb5b307490454705361639",
-      "line_count": 3979,
-      "byte_count": 258438,
+      "git_object_id": "5bf83c095a604bb9830a98e34ceac88361c14d55",
+      "sha256": "b5603110fe98095d7ba47d5bc303c4a65aa2e3f46ac60035e6d12ef1c7c85021",
+      "line_count": 4016,
+      "byte_count": 260636,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -38058,76 +38058,82 @@
           "line": 3705
         },
         {
+          "level": 4,
+          "text": "U18.9 Supervisor acceptance",
+          "anchor": "u189-supervisor-acceptance",
+          "line": 3714
+        },
+        {
           "level": 2,
           "text": "Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)",
           "anchor": "update-2026-07-29-pedido-item-mention-and-general-observation-ruling-pedido-item-mention-observation-ux-design-r1",
-          "line": 3714
+          "line": 3751
         },
         {
           "level": 2,
           "text": "Update 2026-07-29 — OP Canonical Identity Refoundation (db/95)",
           "anchor": "update-2026-07-29-op-canonical-identity-refoundation-db95",
-          "line": 3836
+          "line": 3873
         },
         {
           "level": 3,
           "text": "Superseded decisions",
           "anchor": "superseded-decisions",
-          "line": 3842
+          "line": 3879
         },
         {
           "level": 3,
           "text": "What replaces them (D-OC10 .. D-OC14)",
           "anchor": "what-replaces-them-d-oc10-d-oc14",
-          "line": 3850
+          "line": 3887
         },
         {
           "level": 3,
           "text": "Boundary",
           "anchor": "boundary",
-          "line": 3860
+          "line": 3897
         },
         {
           "level": 3,
           "text": "Correction and supervisor acceptance — 2026-08-01 (6a0c043)",
           "anchor": "correction-and-supervisor-acceptance-2026-08-01-6a0c043",
-          "line": 3872
+          "line": 3909
         },
         {
           "level": 2,
           "text": "14. Purchase planning — the stage that had no entity (db/99)",
           "anchor": "14-purchase-planning-the-stage-that-had-no-entity-db99",
-          "line": 3909
+          "line": 3946
         },
         {
           "level": 3,
           "text": "14.1 The defect this closes",
           "anchor": "141-the-defect-this-closes",
-          "line": 3915
+          "line": 3952
         },
         {
           "level": 3,
           "text": "14.2 The two stages",
           "anchor": "142-the-two-stages",
-          "line": 3929
+          "line": 3966
         },
         {
           "level": 3,
           "text": "14.3 The planning entity",
           "anchor": "143-the-planning-entity",
-          "line": 3936
+          "line": 3973
         },
         {
           "level": 3,
           "text": "14.4 Numbering — D-OC15",
           "anchor": "144-numbering-d-oc15",
-          "line": 3954
+          "line": 3991
         },
         {
           "level": 3,
           "text": "14.5 Cancellation, deletion and the legacy writer",
           "anchor": "145-cancellation-deletion-and-the-legacy-writer",
-          "line": 3966
+          "line": 4003
         }
       ]
     },
@@ -79431,10 +79437,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "0ecfb2f20562bfd03e88b1d0bfeacbffbe0f7ded",
-      "sha256": "0ec1e35da90cce589186a602a18786c8452f8a261b075f7aab6ca06090af377a",
-      "line_count": 11129,
-      "byte_count": 1654874,
+      "git_object_id": "93bc2f4a9e94edebeb6ddceac14d4b25dff63bb4",
+      "sha256": "7542505697be0d475f1874da32359d16f99d8a26d8dbe6aca4026223cdc77ff4",
+      "line_count": 11141,
+      "byte_count": 1657971,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -90484,6 +90490,12 @@
           "text": "2026-08-02 — PEDIDO-ALTERACAO-EXPECTED-REFUSAL-SEMANTICS-CORRECTION-R1 — recusas esperadas deixam de virar falha de aplicacao (db/115)",
           "anchor": "2026-08-02-pedido-alteracao-expected-refusal-semantics-correction-r1-recusas-esperadas-deixam-de-virar-falha-de-aplicacao-db115",
           "line": 11112
+        },
+        {
+          "level": 2,
+          "text": "2026-08-02 — PEDIDO-ALTERACAO-EXPECTED-REFUSAL-SEMANTICS-CORRECTION-R1 — SUPERVISOR ACCEPTANCE CLOSEOUT",
+          "anchor": "2026-08-02-pedido-alteracao-expected-refusal-semantics-correction-r1-supervisor-acceptance-closeout",
+          "line": 11131
         }
       ]
     },
