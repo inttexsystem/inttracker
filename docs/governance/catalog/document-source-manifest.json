@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "8de13c1ffb2d65eda810c2d19a20012d72160cca",
-      "sha256": "e1fc71be71ee1dfaee8bcf734bc5df93096439071faaad9fc692c276f40ebea7",
+      "git_object_id": "27a761e6757234796be932431157535c5a313aa9",
+      "sha256": "cc2f084dd3d4c5f27d61ed2ed5d6d71e701e8c972ec690c97f4a0b8735bfb420",
       "line_count": 45,
-      "byte_count": 11841,
+      "byte_count": 11864,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -4955,6 +4955,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11198,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11216,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -79530,10 +79537,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "b9b6b36e77505b846eecb4601c24575138facb26",
-      "sha256": "6f0f4b75637157d8eb87c716f042b553801914f17621bac6c0ccbc3f1cd33966",
-      "line_count": 11199,
-      "byte_count": 1681075,
+      "git_object_id": "9a44b9ce654ac1c7b54ea3529ce57f0b1e3f2efe",
+      "sha256": "167acb61e26429ba90f9ab0cd383786c8c7300f9ac967a6a54be4854cb1b0319",
+      "line_count": 11217,
+      "byte_count": 1687684,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86847,6 +86854,22 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 11198
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11216
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ledgers/G28_LEDGER.md`",
+          "target_path": "docs/ledgers/G28_LEDGER.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11216
         }
       ],
       "inbound_references": [
@@ -88909,6 +88932,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11216,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "source_line": 8,
           "kind": "ROOT_REFERENCE",
@@ -90691,6 +90721,12 @@
           "text": "2026-08-02 — SALDO-FIOS-TRUNCATE-AND-MAINTAIN-CONTAINMENT-R1 — FECHAMENTO DE ACEITACAO DO SUPERVISOR",
           "anchor": "2026-08-02-saldo-fios-truncate-and-maintain-containment-r1-fechamento-de-aceitacao-do-supervisor",
           "line": 11178
+        },
+        {
+          "level": 2,
+          "text": "2026-08-02 — RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1 — FECHAMENTO DE ACEITACAO DO SUPERVISOR",
+          "anchor": "2026-08-02-restore-original-received-material-slider-semantics-r1-fechamento-de-aceitacao-do-supervisor",
+          "line": 11201
         }
       ]
     },

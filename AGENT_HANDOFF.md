@@ -9,7 +9,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 - Workspace: `D:\Programação\controle-tapetes-g28`
 - Branch: `dev`
 - Publication boundary: `staging/dev`; EXPLICIT_SINGLE_FAST_FORWARD_ONLY
-- Accepted operational checkpoint: `9499255fd2ada97bc0ff6d30866736d0ae3cf29e`
+- Accepted operational checkpoint: `78c35c4e762ec05a6815be7d70f806cde97fbf04`
 
 ## Environment
 
@@ -21,8 +21,8 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `CLOSED / ACCEPTED. db/117 is accepted as an implementation checkpoint and accepted_operational_checkpoint ADVANCES from 17c77cccbba19d37a96a880bf3d85ccf65ecda84 to 9499255fd2ada97bc0ff6d30866736d0ae3cf29e. The named debt SALDO-FIOS-TRUNCATE-AND-MAINTAIN-SURVIVE is CLOSED and removed from the OPEN debt set with no duplicate OPEN copy. FIVE nonblocking debts remain OPEN in this domain and NONE is repaired by this closeout.`
-- Objective: Direct TRUNCATE and MAINTAIN authority is removed from anon, authenticated and service_role on BOTH public.saldo_fios and public.saldo_fios_op, proved by catalogue and effective-privilege measurement rather than by executing TRUNCATE, leaving the two tables byte-identical at rxt for every client role while postgres keeps full access. No residual client-role destructive SQL authority on either containment table is now known.
+- Status: `CLOSED / ACCEPTED. RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1 is CLOSED / ACCEPTED, db/118 is PRODUCTION APPLIED / VERIFIED / ACCEPTED, and accepted_operational_checkpoint ADVANCES from 9499255fd2ada97bc0ff6d30866736d0ae3cf29e to 78c35c4e762ec05a6815be7d70f806cde97fbf04. P6 REMAINS NOT AUTHORIZED and no implementation phase is started by this closeout.`
+- Objective: Actual received material is the production input again: real receipt surplus raises the productive ceiling of its (Pedido, material, colour) axis through public._oc_excedente_pool, bounded by public._oc_excedente_consumido so one physical kilogram raises only one OP ceiling, and public._oc_teto_disponivel is the single executable ceiling owner shared by the client projection, the adjustment writer and the production-start revalidation. The semantic is installed in production and the PONR is not crossed.
 - Next authorizable action: `NATIVE-RECEIPT-COORDINATED-RELEASE-P6-FIRST-NATIVE-RECEIPT` / `SEPARATE EXPLICIT ARCHITECT ORDER REQUIRED; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
