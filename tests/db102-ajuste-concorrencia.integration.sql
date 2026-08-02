@@ -42,13 +42,25 @@ BEGIN
 
   -- =================================================================
   -- B. THE CEILING IS ENFORCED, AND NOTHING IS WRITTEN ON REFUSAL
-  --    OP1 cotton ceiling is 100.000 kg; 300 m would reserve 150.000.
+  --
+  --    Under db/118 the fixture's 999.000 kg of REAL surplus is
+  --    production material, so OP1's cotton ceiling is 100.000 allocated
+  --    + 999.000 shared = 1099.000 kg and the BINDING axis is the
+  --    Pedido-origin polyester pool of 200.000 kg, which carries no
+  --    surplus. 900 m reserves 225.000 kg of PRETO against that 200.000
+  --    kg pool (and 450.000 kg of cotton, which fits), so the refusal is
+  --    the ceiling doing its job on the axis that is genuinely short.
+  --
+  --    COALESCE is deliberate: `codigo` is NULL on success, and a bare
+  --    `<> 'AJUSTE_EXCEDE_DISPONIVEL'` compares to NULL and silently
+  --    passes, which would turn an ACCEPTED over-ceiling adjustment into
+  --    a green assertion.
   -- =================================================================
   SELECT metros_ajustados INTO v_metros FROM public.op_itens WHERE id = v_item1;
   v_res := public.salvar_ajuste_producao_op(v_op1, 0,
-             format('[{"op_item_id":%s,"metros_ajustados":300.00}]', v_item1)::JSONB);
-  IF v_res ->> 'codigo' <> 'AJUSTE_EXCEDE_DISPONIVEL' THEN
-    RAISE EXCEPTION 'not ok - B1: 150.000 kg against a 100.000 kg ceiling was accepted (%)', v_res;
+             format('[{"op_item_id":%s,"metros_ajustados":900.00}]', v_item1)::JSONB);
+  IF COALESCE(v_res ->> 'codigo', '') <> 'AJUSTE_EXCEDE_DISPONIVEL' THEN
+    RAISE EXCEPTION 'not ok - B1: 225.000 kg against a 200.000 kg polyester ceiling was accepted (%)', v_res;
   END IF;
   IF (SELECT metros_ajustados FROM public.op_itens WHERE id = v_item1) IS DISTINCT FROM v_metros THEN
     RAISE EXCEPTION 'not ok - B2: a refused adjustment wrote to op_itens';
@@ -56,7 +68,7 @@ BEGIN
   IF (SELECT ajuste_revisao FROM public.ops WHERE id = v_op1) <> 0 THEN
     RAISE EXCEPTION 'not ok - B3: a refused adjustment bumped ajuste_revisao';
   END IF;
-  RAISE NOTICE 'ok - B: the origin-aware ceiling refuses 150.000 kg against 100.000 with ZERO writes';
+  RAISE NOTICE 'ok - B: the origin-aware ceiling refuses 225.000 kg against 200.000 with ZERO writes';
 
   -- =================================================================
   -- C. A VALID ADJUSTMENT APPLIES ATOMICALLY
@@ -92,8 +104,8 @@ BEGIN
   --    A kg field in the payload is ignored; the server derives it.
   -- =================================================================
   v_res := public.salvar_ajuste_producao_op(v_op1, 1,
-             format('[{"op_item_id":%s,"metros_ajustados":300.00,"kg":1.000}]', v_item1)::JSONB);
-  IF v_res ->> 'codigo' <> 'AJUSTE_EXCEDE_DISPONIVEL' THEN
+             format('[{"op_item_id":%s,"metros_ajustados":900.00,"kg":1.000}]', v_item1)::JSONB);
+  IF COALESCE(v_res ->> 'codigo', '') <> 'AJUSTE_EXCEDE_DISPONIVEL' THEN
     RAISE EXCEPTION 'not ok - D: a client-supplied kg overrode the server-derived quantity (%)', v_res;
   END IF;
   RAISE NOTICE 'ok - D: a client-supplied kg is ignored; the server derives kilograms from metres';
@@ -140,15 +152,17 @@ BEGIN
   END IF;
 
   -- saldo_fios_op is the AUTHORITATIVE start snapshot, written here and
-  -- nowhere else. Cotton: 100.000 ceiling - 50.000 reserved = 50.000.
-  -- Polyester: 200.000 ceiling - 25.000 reserved = 175.000.
+  -- nowhere else. Under db/118 the cotton ceiling is the real received
+  -- material — 100.000 allocated + 999.000 shared surplus = 1099.000 —
+  -- so cotton: 1099.000 ceiling - 50.000 reserved = 1049.000.
+  -- Polyester carries no surplus: 200.000 ceiling - 25.000 = 175.000.
   SELECT count(*) INTO v_n FROM public.saldo_fios_op WHERE op_id = v_op1;
   IF v_n <> 2 THEN
     RAISE EXCEPTION 'not ok - G4: expected 2 saldo_fios_op snapshot rows, got %', v_n;
   END IF;
   IF (SELECT kg_sobra FROM public.saldo_fios_op
-       WHERE op_id = v_op1 AND tipo = 'algodao' AND cor_id = 940000201) <> 50.000 THEN
-    RAISE EXCEPTION 'not ok - G5: the cotton start snapshot is not 50.000';
+       WHERE op_id = v_op1 AND tipo = 'algodao' AND cor_id = 940000201) <> 1049.000 THEN
+    RAISE EXCEPTION 'not ok - G5: the cotton start snapshot is not 1049.000';
   END IF;
   IF (SELECT kg_sobra FROM public.saldo_fios_op
        WHERE op_id = v_op1 AND tipo = 'poliester' AND cor_poliester = 'PRETO') <> 175.000 THEN

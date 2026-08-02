@@ -1145,6 +1145,17 @@ it**, as are rulings **R1–R13** and **D1–D7**. This section converts the
 **accepted** functional specification of §9.1–§9.8 into an exact implementation
 plan and does not modify it.
 
+**FORWARD CORRECTION —
+`RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1`.** §9.9.A.1, §9.9.A.2,
+§9.9.A.3, §9.9.A.4 and §9.9.A.5 are corrected by architect decision: the rule
+*"surplus is selected separately and never enters an OP ceiling"* is
+**WITHDRAWN**, and **actual received material is the production input**. Its
+executable owner is `db/118_excedente_disponivel_pool_compartilhado.sql`.
+**TD1, TD2 and TD3 are unchanged by it**, as are rulings **R1–R13** and
+**D1–D7**, the 9.9.B lock protocol, the 9.9.C revision model, the receipt and
+reversal writers, and every provenance rule: surplus still carries no
+allocation and no OP, and `saldo_fios` is still not an availability authority.
+
 ### 9.9.0 Measured facts this design rests on
 
 | # | Fact (measured read-only 2026-07-31) | Consequence |
@@ -1183,14 +1194,53 @@ Reversal rows need no special case: they carry `tipo='estorno'`, negative
 `kg_recebido`, `kg_excesso = 0` when their source was allocation-destined, and are
 therefore included with the correct sign.
 
-**Surplus is selected separately and never enters an OP ceiling:**
+**Surplus is a SHARED PRODUCTION POOL, not a report-only column
+(corrected by `RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1`,
+executable owner `db/118`):**
 
 ```sql
-surplus_net = SUM(l.kg_excesso) WHERE l.recebimento_id IS NOT NULL
+surplus_pool(Pedido, material, colour)
+  = SUM(l.kg_excesso)
+    WHERE l.recebimento_id IS NOT NULL
+      AND l.kg_excesso <> 0
+      AND the line's ordem_compra.pedido_id = Pedido
+      AND the line's material/colour matches the axis
 ```
 
-reported as its own column and reconciled against
-`ordem_compra_fio_movimentos_estoque`.
+reported as its own column, reconciled against
+`ordem_compra_fio_movimentos_estoque`, **and a term of the ceiling** in
+§9.9.A.2 and §9.9.A.3.
+
+**WITHDRAWN RULE.** This section previously read *"surplus is selected
+separately and never enters an OP ceiling"*. That rule is **WITHDRAWN by
+architect decision**: it changed product behaviour without a product
+decision. In the legacy product the production recalculation consumed the
+FULL actual received quantity — the bottleneck factor was
+`actual received / originally required` and was explicitly allowed to
+exceed 1, so a larger receipt increased feasible production metres
+(`js/calculo-op.js::recalcularOP`, proved by
+`tests/calculo-op.test.js` *"recalcularOP fator > 1 escala metros pra
+cima"*, factor 1.5).
+
+**THE BINDING PRODUCT SEMANTIC IS: ACTUAL RECEIVED MATERIAL IS THE
+PRODUCTION INPUT.** Per material/colour, shortage reduces production
+availability, excess receipt increases it, and the whole real received
+quantity stays economically usable. Classifying part of a receipt as
+`excesso` preserves **provenance only**; it never makes physically
+received yarn unusable.
+
+**What is NOT changed by that correction.** Surplus keeps NO allocation
+and NO OP — `ordem_compra_fio_lancamentos_native_shape` still forbids
+both, and no representative OP, allocation or provenance may be
+fabricated. `public.saldo_fios` is still NOT an availability authority
+(**TD1**, §9.9.H, and §R.33.2 of the lifecycle specification): the
+surplus term is read from the native receipt **ledger**, never from the
+balance cache.
+
+**Reversal needs no special case here either.** A reversal of a
+surplus-destined line carries `kg_excesso = -kg` (`db/70`
+`estornar_recebimento_ordem_compra`), so the sum above nets it out with
+the correct sign and leaves no phantom surplus availability.
 
 `SUM(kg_recebido - kg_excesso)` is **withdrawn**: it would be arithmetically equal
 only while the invariant `kg_excesso ∈ {0, kg_recebido}` holds, and the design must
@@ -1201,16 +1251,34 @@ not depend on an invariant no constraint enforces.
 For needs with `origem_tipo='op'` and `op_id = <target OP>`:
 
 ```
-ceiling_op_origin(OP, material, colour)
+own_net(OP)
   = productive_net over allocations whose necessidade_id resolves to a need with
     origem_tipo='op' AND op_id = OP
+
+surplus_draw(j)                       -- what sibling OP j takes from the pool
+  = GREATEST(0, active_reservation(j) − own_net(j))
+
+ceiling_op_origin(OP, material, colour)
+  = own_net(OP)
+  + GREATEST(0, surplus_pool(Pedido, material, colour)
+                − SUM(surplus_draw(j)) for every non-cancelled OP j <> OP)
 ```
 
-**Sibling OP reservations do not reduce this quantity**, even for the same colour —
-the material is committed to that OP by its own need. Only the target OP's own
-current reservation is returned before a replacement adjustment is validated,
-which is achieved by validating the *replacement* payload against the raw ceiling
-rather than against `ceiling − own_reservation`.
+**Sibling OP reservations do not reduce the OP's OWN allocated quantity**, even
+for the same colour — that material is committed to that OP by its own need. Only
+the target OP's own current reservation is returned before a replacement
+adjustment is validated, which is achieved by validating the *replacement* payload
+against the raw ceiling rather than against `ceiling − own_reservation`.
+
+The **only** contended quantity is the shared surplus pool, and a sibling draws on
+it exactly for the part of its reservation its own allocated net cannot cover.
+Summing the bound over every OP of the axis gives
+`SUM(reservation) <= SUM(own_net) + surplus_pool`, which is the invariant
+
+> **ONE PHYSICAL KG MAY INCREASE PRODUCTION CAPACITY ONLY ONCE.**
+
+With `surplus_pool = 0` this expression is algebraically `own_net(OP)`, the
+pre-correction formula, so allocated-receipt behaviour is unchanged.
 
 #### A.3 Pedido-origin shared material (currently polyester)
 
@@ -1223,10 +1291,16 @@ pool(Pedido, material, colour)
 
 ceiling_pedido_origin(OP, material, colour)
   = pool(Pedido, material, colour)
+  + surplus_pool(Pedido, material, colour)
   − active_reservation_of_OTHER_OPs(Pedido, material, colour, exclude => OP)
 ```
 
-No representative OP is created and the pool is never pre-split into per-OP
+The allocated pool and the surplus pool are ONE shared quantity here, and the
+other OPs' active reservations already subtract from it in full, so no separate
+draw term is needed and the one-kilogram-once invariant holds by construction.
+With `surplus_pool = 0` this is the pre-correction formula unchanged.
+
+No representative OP is created and neither pool is ever pre-split into per-OP
 allocations.
 
 #### A.4 The nine reported quantities
@@ -1238,10 +1312,10 @@ allocations.
 | purchased under active coverage | `SUM(ordem_compra_item_alocacao.kg_alocado)` where `public.oc_cobertura_ativa(ordem_id)` (db/100, reused) |
 | net received (productive) | A.1 predicate |
 | reversed | `-SUM(l.kg_recebido) WHERE l.tipo='estorno'`, reported only |
-| surplus | A.1 surplus expression, reported only |
+| surplus | A.1 `surplus_pool`; reported **and** a ceiling term (A.2 / A.3) |
 | allocated to OP | productive net restricted per A.2 / A.3 |
 | reserved / committed-consumed | `oc_reserva_ativa`, split by OP status |
-| available ceiling | A.2 or A.3 by origin |
+| available ceiling | A.2 or A.3 by origin, through the single owner `_oc_teto_disponivel` |
 
 **Reservation authority (D2):** `op_itens.metros_ajustados` where NOT NULL,
 converted through `parametros_largura` keyed by `modelos.largura`.
@@ -1263,6 +1337,18 @@ guarded `SECURITY DEFINER` wrapper.
 | `public._oc_disponibilidade_linhas(p_op_id BIGINT)` | SECURITY DEFINER, `search_path=''` | `postgres` | `ALL FROM PUBLIC, anon, authenticated, service_role` | none | unreachable by clients | base tables |
 | `public._oc_material_recebido_liquido(...)` | SECURITY DEFINER | `postgres` | idem | none | unreachable | ledger |
 | `public._oc_reserva_ativa(...)` | SECURITY DEFINER | `postgres` | idem | none | unreachable | `op_itens`, `ops` |
+| `public._oc_excedente_pool(...)` (db/118) | SECURITY DEFINER | `postgres` | idem | none | unreachable | ledger |
+| `public._oc_excedente_consumido(...)` (db/118) | SECURITY DEFINER | `postgres` | idem | none | unreachable | `ops`, `_oc_reserva_ativa`, `_oc_material_recebido_liquido` |
+| `public._oc_teto_disponivel(...)` (db/118) — **the single ceiling owner** | SECURITY DEFINER | `postgres` | idem | none | unreachable | the four helpers above |
+
+**One ceiling owner (db/118).** `oc_disponibilidade_op`,
+`salvar_ajuste_producao_op` and `iniciar_producao_op` previously carried the
+ceiling arithmetic in four separate places. They now all call
+`public._oc_teto_disponivel`, and `db/118` asserts at migration time that each of
+the three reaches it, so the client projection, the adjustment writer and the
+production-start revalidation cannot drift apart. The client slider owns **no
+second calculation**: `js/screens/op-recalculo.js::maxMetrosItem` reads
+`kg_disponivel` and only converts kilograms to metres.
 
 **Public mutation writers — all `SECURITY DEFINER` (C3 §2.2).** A `SECURITY
 INVOKER` writer is impossible here, because §9.9.L and §9.9.N remove direct DML on
@@ -3050,5 +3136,7 @@ correction.
 | 2026-08-01 | `NATIVE-RECEIPT-COORDINATED-RELEASE-P5-CUTOVER-R1` | 9.9.V (new), 14, 16 | P5 CUTOVER EXECUTED AGAINST PRODUCTION, PRE-PONR, NOT SELF-ACCEPTED. The freshness gate was re-proved rather than assumed: production identity re-measured through the mutating connection (system_identifier 7642734024280108049, PostgreSQL 17.6, current_user postgres), the retained LR-12 artifact re-hashed byte-exact to 2afdc7f4...5952 at 1,993,135 bytes, and every load-bearing fact LR-12 captured remeasured against live production with ZERO DRIFT, so no refresh capture was taken. A focused rehearsal (`tests/p5-cutover-rehearsal.integration.mjs`, new) restored that exact artifact into a disposable PostgreSQL 18.4 cluster proved distinct from production, applied db/112, drove the whole P5 sequence and then drove the pre-PONR recovery contract from the activated state: 35 assertions, 0 failures. It also proved the db/112 defect is real on that image — without db/112 `fence_and_snapshot` refuses the empty-but-complete source set with `snapshot_mapping_count_mismatch`, leaving the only canonical transition into `maintenance_fenced` unreachable. db/112 was then applied to production EXACTLY ONCE as `supabase_migrations` version 20260801225433 (66 applied migrations) and verified after application: both replaced bodies are BYTE-IDENTICAL to the committed file (md5(prosrc) 5015ec66c027798a1cc6f1d00ffe003a / 8728 bytes and 3781eec3c25577e5da2ad3e5798cec40 / 4753 bytes), the frozen 51 is gone, both remain postgres-owned SECURITY DEFINER with a pinned search_path, no client role reached either, and the cutover row was left untouched. The eight-step state machine ran under cutover generation 20260801 in ONE session — forced by the session-held advisory lock, and therefore also ONE transaction, so any failed assertion would have rolled production back to legacy_active with no residue. Each transition asserted its expected predecessor, the generation identity and a NULL PONR: fence_and_snapshot (mapping_count 0, inventory_count 5, inventory_total_kg 2685.020), lock_import_resources + assert_snapshot_and_live, import_and_reconcile (0 headers, 0 ledger lines, 0.000 kg, 0 inventory movements), set_canonical_read, capture_acl_manifest (201 rows: 168 table + 20 column + 11 policy + 2 function grants), close_final_acl (flat client grants 0) and activate (canonical_active/canonical at 2026-08-01T22:57:32.467248Z). The zero-row import is a REAL transition, not a skipped one: the flat corpus is legitimately empty so the snapshot is empty AND complete, which is exactly what db/112's C5 completeness rule makes enforceable, while the inventory baseline captured all five TD1 rows. TD1 held — the saldo_fios fingerprint is unchanged at 72c789986ce94c9edfe82fc9916acd76, the native ledger holds 0 rows, and the productive predicate `_oc_material_recebido_liquido` does not reference saldo_fios at all, so historical stock became no OP availability. Independently verified afterwards in a fresh session: business rows unchanged at 5/36/1/2/0/0, both protected Purchase Orders intact as emitida/nao_aplicavel/nao_recebido/legado=false, ZERO native receipt commands, P4 containment intact (OBS-4 = 0, four fences, 84-row baseline), zero disabled receipt-writer guards, canonical application authorities still reachable by authenticated, and no unrelated privilege moved (77 policies remain overall, 0 on the protected set). Native receipt reachability was proved WITHOUT executing one: the db/100 `acoes.receber` predicate now evaluates true for both protected orders where it was false before. Pre-PONR recovery remains reachable with its preconditions re-proved, and the LR-12 capture remains RETAINED as the external anchor. productive_receipt_started_at IS STILL NULL; db/110 was NOT created; the flat model was NOT retired. P5 is NOT self-accepted and P6 REMAINS NOT AUTHORIZED. |
 
 | 2026-08-01 | `NATIVE-RECEIPT-P5-SUPERVISOR-ACCEPTANCE-CLOSEOUT-R1` | 14, 16 | SUPERVISOR ACCEPTANCE CLOSEOUT. P5 (the native receipt production cutover) is CLOSED / ACCEPTED at checkpoint `d9bc3787afacfb51f7fbe60c1c2189667f00b688`, the same commit recorded in `docs/governance/current-state.json`. This reconciliation is NOT a separate functional checkpoint: the accepted scope is owned by `accepted_checkpoints` and the implementation evidence remains section 9.9.V, neither restated nor re-proved here. Section 14 is updated to reflect P5 as CLOSED / ACCEPTED rather than awaiting review; the current production position is unchanged from the P5 execution: `ordem_compra_cutover` is `canonical_active / canonical` at `cutover_generation` 20260801, `reconciliation_status` `reconciled`, final ACL closed, and `productive_receipt_started_at` STILL NULL, so the PONR IS NOT CROSSED. The next real operational event is P6 — the first successful native receipt command, INCLUDING a surplus-only one, which crosses the PONR — and it REMAINS NOT AUTHORIZED, requiring a separate explicit architect order carrying the real Purchase Order / material / quantity context; no synthetic or fabricated receipt data is authorized to reach it. `db/110` remains separate, post-acceptance, legacy-retirement work and is not authorized or implied by this closeout. The retained LR-12 capture remains `EVIDENCE_LOAD_BEARING` and is NOT released by this acceptance; it must stay available through the pre-PONR recovery boundary. No product, migration, test, UI, configuration or database file changed; no production mutation occurred. |
+
+| 2026-08-02 | `RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1` | 9.9 (header), 9.9.A.1, 9.9.A.2, 9.9.A.3, 9.9.A.4, 9.9.A.5 | FORWARD PRODUCT CORRECTION OF AN INCORRECTLY RATIFIED ARCHITECTURE RULE, NOT A NEW FEATURE AND NOT SELF-ACCEPTED. The C1 rule *"surplus is selected separately and never enters an OP ceiling"* is WITHDRAWN by architect decision: it changed product behaviour without a product decision. The legacy product recalculated production from the FULL actual received quantity through a bottleneck factor of `actual received / originally required` that was explicitly allowed to exceed 1 (`js/calculo-op.js::recalcularOP`, proved by `tests/calculo-op.test.js` "recalcularOP fator > 1 escala metros pra cima", factor 1.5). THE BINDING SEMANTIC IS NOW: ACTUAL RECEIVED MATERIAL IS THE PRODUCTION INPUT — shortage reduces production availability, excess receipt increases it, and classifying part of a receipt as `excesso` preserves PROVENANCE ONLY. Unallocated surplus is a SHARED pool scoped to the real (Pedido, material, colour) identity, bounded by `draw(j) = GREATEST(0, reservation(j) - own_net(j))` on OP-origin axes and by the pre-existing full subtraction of other OPs' reservations on Pedido-origin axes, so that ONE PHYSICAL KG MAY INCREASE PRODUCTION CAPACITY ONLY ONCE. With zero surplus every corrected expression reduces algebraically to the C1 expression it replaces, so allocated-receipt behaviour and Pedido-origin shared-pool behaviour are unchanged. The executable owner is `db/118_excedente_disponivel_pool_compartilhado.sql`, which also makes `public._oc_teto_disponivel` the SINGLE ceiling owner for the client projection, the adjustment writer and the production-start revalidation, and asserts at migration time that all three reach it. NOT CHANGED: TD1, TD2, TD3, rulings R1-R13 and D1-D7, the 9.9.B lock protocol, the 9.9.C revision model, the receipt and reversal writers, the `native_shape` constraint, and every provenance rule — surplus still carries no allocation, no OP and no fabricated provenance, no representative OP is created, and `saldo_fios` is still NOT an availability authority: the surplus term is read from the native receipt ledger `kg_excesso`. `db/110` remains absent and NOT AUTHORIZED, the migration refuses to apply after the PONR, it was NOT applied to production, and P6 remains NOT AUTHORIZED. |
 
 **Every future executor report must identify the exact sections changed here.**

@@ -519,6 +519,106 @@ test('22. a chave de saldo foi retirada junto com as escritas diretas em saldo_f
     'a implementacao da chave de saldo tem de estar retirada');
 });
 
+// -------------------------------------------------------------------------
+// 4b. CONSISTENCIA CLIENTE/SERVIDOR DO TETO PRODUTIVO
+//     (RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1, db/118)
+//
+// O material realmente recebido e a entrada de producao: falta reduz,
+// excedente real aumenta. Quem decide isso e UM dono no servidor,
+// public._oc_teto_disponivel, lido pelas tres consumidoras (a projecao
+// oc_disponibilidade_op, o escritor salvar_ajuste_producao_op e a
+// revalidacao de iniciar_producao_op).
+//
+// O slider NAO pode ter um segundo calculo: ele consome kg_disponivel e
+// apenas converte kg em metros. Estes dois casos provam exatamente isso —
+// que o cliente ACOMPANHA o teto do servidor e que nenhuma outra coluna
+// da projecao entra na conta.
+// -------------------------------------------------------------------------
+test('27. o slider acompanha o teto do servidor: kg_disponivel maior => mais metros', () => {
+  const sandbox = makeUnitSandbox();
+  const modelosById = {
+    1: { id: 1, nome: 'Test', largura: 1.40, cor_1: { id: 10, nome: 'Azul' }, cor_2: { id: 11, nome: 'Branco' } },
+  };
+  const parametrosByLargura = {
+    '1.40': { algodao_por_ml: 0.5, poliester_por_ml: 0.25, valor_x: 1 },
+  };
+  sandbox.modelosByIdArr = modelosById;
+  sandbox.parametrosArr = parametrosByLargura;
+
+  // Sem excedente: o teto do servidor e o liquido alocado, 100 kg por cor.
+  sandbox.semExcedente = [
+    { material: 'algodao', cor_id: 10, cor_poliester: null, kg_recebido_liquido: 100, kg_excedente: 0, kg_disponivel: 100 },
+    { material: 'algodao', cor_id: 11, cor_poliester: null, kg_recebido_liquido: 100, kg_excedente: 0, kg_disponivel: 100 },
+    { material: 'poliester', cor_id: null, cor_poliester: 'PRETO', kg_recebido_liquido: 500, kg_excedente: 0, kg_disponivel: 500 },
+    { material: 'poliester', cor_id: null, cor_poliester: 'BRANCO', kg_recebido_liquido: 500, kg_excedente: 0, kg_disponivel: 500 },
+  ];
+  // Com 50 kg de excedente real na cor 10, o servidor devolve 150.
+  sandbox.comExcedente = JSON.parse(JSON.stringify(sandbox.semExcedente));
+  sandbox.comExcedente[0].kg_excedente = 50;
+  sandbox.comExcedente[0].kg_disponivel = 150;
+
+  const capSem = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, semExcedente)', sandbox);
+  const capCom = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, comExcedente)', sandbox);
+
+  // 0.5 kg/m por cor: 100 kg => 200 m; a cor 11 continua sendo o gargalo.
+  assert.equal(capSem, 200, 'sem excedente o cap deveria ser 200 m');
+  assert.equal(capCom, 200, 'o gargalo continua na cor 11, que nao recebeu excedente');
+
+  // Excedente nas DUAS cores de algodao: o teto do servidor sobe nas duas
+  // e o slider acompanha, exatamente como o fator legado > 1.
+  sandbox.ambas = JSON.parse(JSON.stringify(sandbox.comExcedente));
+  sandbox.ambas[1].kg_excedente = 50;
+  sandbox.ambas[1].kg_disponivel = 150;
+  const capAmbas = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, ambas)', sandbox);
+  assert.equal(capAmbas, 300, '150 kg em cada cor deveriam liberar 300 m (fator 1.5)');
+});
+
+test('28. o slider nao tem um segundo calculo de teto: so kg_disponivel entra na conta', () => {
+  const sandbox = makeUnitSandbox();
+  const modelosById = {
+    1: { id: 1, nome: 'Test', largura: 1.40, cor_1: { id: 10, nome: 'Azul' }, cor_2: { id: 11, nome: 'Branco' } },
+  };
+  const parametrosByLargura = {
+    '1.40': { algodao_por_ml: 0.5, poliester_por_ml: 0.25, valor_x: 1 },
+  };
+  sandbox.modelosByIdArr = modelosById;
+  sandbox.parametrosArr = parametrosByLargura;
+
+  const base = [
+    { material: 'algodao', cor_id: 10, cor_poliester: null, kg_disponivel: 100 },
+    { material: 'algodao', cor_id: 11, cor_poliester: null, kg_disponivel: 100 },
+    { material: 'poliester', cor_id: null, cor_poliester: 'PRETO', kg_disponivel: 500 },
+    { material: 'poliester', cor_id: null, cor_poliester: 'BRANCO', kg_disponivel: 500 },
+  ];
+  sandbox.base = base;
+  // Mesmo kg_disponivel, mas TODAS as outras colunas da projecao mudadas
+  // para valores absurdos. Se o cliente recalculasse qualquer coisa, o cap
+  // mudaria.
+  sandbox.ruidoso = base.map((l) => Object.assign({}, l, {
+    kg_necessario: 9999, kg_planejado: 9999, kg_comprado_cobertura_ativa: 9999,
+    kg_recebido_liquido: 1, kg_estornado: 9999, kg_excedente: 9999,
+    kg_alocado_op: 1, kg_reservado_propria_op: 9999,
+    kg_reservado_outras_ops: 9999, kg_comprometido_outras_ops: 9999,
+  }));
+
+  const capBase = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, base)', sandbox);
+  const capRuidoso = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, ruidoso)', sandbox);
+  assert.equal(capRuidoso, capBase,
+    'o cap mudou sem que kg_disponivel mudasse — existe um segundo calculo no cliente');
+
+  // E o modulo do slider nao pode aritmetizar nenhuma outra coluna do eixo.
+  for (const coluna of ['kg_excedente', 'kg_recebido_liquido', 'kg_reservado_outras_ops',
+                        'kg_comprometido_outras_ops', 'kg_alocado_op', 'kg_estornado']) {
+    assert.equal(oprSrc.includes(coluna), false,
+      `js/screens/op-recalculo.js referencia ${coluna}: o teto tem UM dono, no servidor`);
+  }
+});
+
 test('23. nenhum filtro de totalizador de saldo resta no modulo', () => {
   // Os dois eixos que a chave montava: eq(cor_id) para algodao e
   // is(cor_id, null) + eq(cor_poliester) para poliester.

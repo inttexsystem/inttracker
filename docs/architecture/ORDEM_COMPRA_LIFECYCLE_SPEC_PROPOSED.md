@@ -3950,11 +3950,29 @@ The two sets are STRUCTURALLY DISJOINT, and the disjointness is enforced by a
 database constraint rather than by convention. `ordem_compra_fio_lancamentos_native_shape`
 admits exactly two shapes for a native line — `ordem_compra_item_alocacao_id IS
 NOT NULL AND kg_excesso = 0`, or `ordem_compra_item_alocacao_id IS NULL AND
-op_id IS NULL AND kg_excesso = kg_recebido` — the availability ceiling reads only
-the first, and `saldo_fios` receives only the second. Direct mutation of
-`saldo_fios` outside that nested trigger path is refused by
-`trg_c3c_protected_mutation_guard` with SQLSTATE `55000` while the cutover is
-`canonical_active`.
+op_id IS NULL AND kg_excesso = kg_recebido` — and `saldo_fios` receives only the
+second. Direct mutation of `saldo_fios` outside that nested trigger path is
+refused by `trg_c3c_protected_mutation_guard` with SQLSTATE `55000` while the
+cutover is `canonical_active`.
+
+**PROVENANCE DISJOINTNESS IS NOT ECONOMIC UNUSABILITY (forward correction,
+`RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1`, executable owner
+`db/118`).** This paragraph previously added *"the availability ceiling reads
+only the first"*. That clause is **WITHDRAWN**. **ACTUAL RECEIVED MATERIAL IS
+THE PRODUCTION INPUT:** the availability ceiling reads BOTH shapes — the
+allocation-bearing lines as the OP's own committed net, and the surplus lines as
+a SHARED pool scoped to the real `(Pedido, material, colour)` identity, bounded
+so that ONE PHYSICAL KILOGRAM MAY INCREASE PRODUCTION CAPACITY ONLY ONCE.
+
+The **structural** disjointness above is untouched and remains binding. A surplus
+kilogram becoming SPENDABLE does not make it ALLOCATED: it still carries no
+allocation, no OP and no fabricated provenance, the `native_shape` constraint
+still forbids all three, and representative-OP fabrication remains forbidden.
+§R.33.2 is likewise unchanged — the surplus term is read from
+`public.ordem_compra_fio_lancamentos.kg_excesso`, the native receipt ledger, and
+**never** from the `saldo_fios` balance cache. The normative owner of the
+corrected ceiling formula is
+`docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md` §9.9.A.
 
 ### §R.33.4 `NATIVE_RECEIPT_COMPATIBILITY_MULTI_ORIGIN_UNRESOLVED` — RESOLVED BY EXECUTABLE FACT
 

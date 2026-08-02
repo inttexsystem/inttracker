@@ -667,6 +667,22 @@
       "owner": "Governance evidence practice",
       "evidence": "docs/ledgers/G28_LEDGER.md :: the P2 closeout entry of 2026-07-31",
       "note": "The P2 closeout recorded its consolidated validation as a COUNT of 37 test files, not as a LIST, so the exact manifest is not reproducible from the repository. The stabilization therefore ran a Git-derived superset of 38 files and declared that openly instead of reconstructing the list by inference. Closing it requires recording validation manifests nominally in future closeouts; it does not invalidate the P2 or stabilization evidence."
+    },
+    {
+      "id": "INTEGRATION-SUITE-CODIGO-ASSERTIONS-FAIL-OPEN",
+      "status": "OPEN / NONBLOCKING MATERIAL DEBT",
+      "blocking": false,
+      "owner": "the tests/*.integration.sql refusal-assertion family",
+      "evidence": "A canonical RPC returns JSONB without a codigo key on success, so `v_res ->> 'codigo'` is NULL and the idiom `IF v_res ->> 'codigo' <> 'X' THEN RAISE` evaluates to NULL, which PL/pgSQL treats as false: the assertion PASSES when the call was ACCEPTED. Measured directly during RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1 - tests/db102-ajuste-concorrencia.integration.sql assertion B1 reported ok while salvar_ajuste_producao_op had actually accepted the payload, and only the separate B2 write check exposed it. Counted across tests/*.integration.sql on 2026-08-02: 42 occurrences of the bare form against 8 of the COALESCE-guarded form, spread over db102 (5), db103 (3), db105 (8), db108 (3), db109 (5), db111 atomic (7), db111 idempotencia (1), c3c-b-db-prerequisites (7), c3c-inactive (2) and c3d-deploy (1)",
+      "note": "These are REFUSAL assertions: each is meant to prove a writer refuses something, and each currently fails OPEN rather than closed. The two occurrences this order had to touch anyway (db102 B1 and D) were corrected to COALESCE(v_res ->> 'codigo', ''); the other 40 were NOT touched, because a blanket sweep of accepted suites is outside this order's authorized scope. Directly caused by the current change: NO - the idiom predates it, and the change merely made one instance observable. Classified NONBLOCKING_MATERIAL_DEBT rather than blocking because every affected suite pairs its refusal check with an independent state check often enough that no accepted conclusion is presently known to rest on a fail-open assertion alone; that is a bounded observation, not a proof that none does. Recommended future action: a separate order sweeps the 40 remaining occurrences to the COALESCE form and re-runs the affected suites, comparing failure identities."
+    },
+    {
+      "id": "NATIVE-SURPLUS-IS-BOTH-FREE-STOCK-AND-OP-AVAILABILITY",
+      "status": "OPEN / NONBLOCKING MATERIAL DEBT",
+      "blocking": false,
+      "owner": "the native receipt surplus domain (public.saldo_fios via trg_native_lancamento_derive_state, and db/118 public._oc_excedente_pool)",
+      "evidence": "db/70 routes a surplus line's kg_excesso into public.saldo_fios and into ordem_compra_fio_movimentos_estoque; db/118 additionally makes that same kilogram a term of the OP production ceiling through public._oc_excedente_pool, read from the ledger. The two readings are therefore of the SAME physical kilogram from two different tables",
+      "note": "THIS IS NOT A PRODUCTION DOUBLE-SPEND AND NOT A TD1 OR R.33.2 BREACH. saldo_fios is not an availability authority, db/118 never reads it, and db/118 re-asserts that structurally at migration time; the production ceiling counts the kilogram exactly once, bounded by _oc_excedente_consumido across sibling OPs and proved by tests/db118-excedente-disponivel.integration.sql. The debt is a REPORTING semantic: once an OP commits part of the shared surplus, the saldo_fios balance still presents the whole quantity as free material, so a future free-stock report built on saldo_fios would overstate what is genuinely uncommitted. Directly caused by the current change: PARTLY - the second reading is new, the saldo_fios write is not. Recommended future action: a separate order decides whether saldo_fios gains a committed/free distinction, or whether free-stock reporting derives from the ledger like availability does; no saldo_fios semantic change is authorized here."
     }
   ],
   "open_architect_decisions": [
