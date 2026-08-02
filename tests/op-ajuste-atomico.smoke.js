@@ -488,3 +488,213 @@ test('H6. sintaxe válida dos dois módulos', () => {
   cp.execSync(`node --check "${OPR}"`, { stdio: 'pipe' });
   cp.execSync(`node --check "${ODU}"`, { stdio: 'pipe' });
 });
+
+// ---------------------------------------------------------------------
+// I. O MÁXIMO RENDERIZADO DO SLIDER SEGUE O MATERIAL REALMENTE RECEBIDO
+//    (RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1-C1)
+//
+// Provado pelo CONSTRUTOR COMPARTILHADO REAL — buildDistribuicaoBlock —, não
+// por maxMetrosItem isolado: é o construtor que decide o `max` do controle e
+// o rótulo "máx individual" que o operador lê.
+//
+// Receita do fixture: largura 1.40, algodao_por_ml 0.5, valor_x 1 e
+// poliester_por_ml 0 (só algodão limita). O modelo tem DUAS cores DISTINTAS,
+// então cada cor é creditada uma vez. Um item de 200 m exige 100 kg por cor.
+// ---------------------------------------------------------------------
+
+const MODELOS_C1 = {
+  7: { id: 7, nome: 'C1', largura: 1.40, cor_1: { id: 21, nome: 'X' }, cor_2: { id: 22, nome: 'Y' } },
+};
+const PARAMS_C1 = { '1.40': { algodao_por_ml: 0.5, poliester_por_ml: 0, valor_x: 1 } };
+
+// 200 m -> 100.000 kg em CADA cor.
+const METROS_PEDIDOS_C1 = 200;
+
+function dispC1(kg) {
+  return [
+    { necessidade_id: 1, origem_tipo: 'op', material: 'algodao', cor_id: 21, cor_poliester: null, kg_disponivel: kg },
+    { necessidade_id: 2, origem_tipo: 'op', material: 'algodao', cor_id: 22, cor_poliester: null, kg_disponivel: kg },
+  ];
+}
+
+// Constrói o bloco REAL e devolve o único slider e seu rótulo de máximo.
+function sliderC1(disponibilidade, metrosAjustados) {
+  const { sandbox } = makeSandbox(() => ({ data: { ok: true, ajuste_revisao: 2 }, error: null }));
+  const node = sandbox.buildDistribuicaoBlock({
+    op: { id: 900777, status: 'aberta', ajuste_revisao: 1 },
+    opItens: [{ id: 700, modelo_id: 7, metros_pedidos: METROS_PEDIDOS_C1, metros_ajustados: metrosAjustados }],
+    disponibilidade: disponibilidade,
+    modelosById: MODELOS_C1,
+    parametrosByLargura: PARAMS_C1,
+    variant: 'full',
+  });
+  const sliders = flatten(node).filter(function (n) { return n && n.tagName === 'INPUT' && n.max != null; });
+  assert.equal(sliders.length, 1, 'o bloco real tem de renderizar exatamente um slider para um item');
+  return { node: node, slider: sliders[0], texto: textOf(node), sandbox: sandbox };
+}
+
+test('I1. FALTA — 80% do fio recebido reduz o máximo renderizado abaixo da metragem original', () => {
+  // 80.000 kg por cor / 0.5 kg por metro = 160 m, contra 200 m pedidos.
+  const r = sliderC1(dispC1(80));
+  assert.strictEqual(r.slider.max, '160',
+    'o máximo do slider tem de cair para os 160 m fisicamente possíveis');
+  assert.ok(Number(r.slider.max) < METROS_PEDIDOS_C1,
+    'a falta TEM de reduzir o máximo abaixo da metragem original');
+  assert.ok(r.texto.includes('máx individual: 160 m'),
+    'o rótulo lido pelo operador tem de anunciar 160 m, não a metragem original');
+  assert.equal(r.texto.includes('máx individual: 200 m'), false,
+    'um valor impossível não pode ser apresentado como o máximo individual verdadeiro');
+});
+
+test('I2. EXATO — recebido igual ao exigido preserva a capacidade original', () => {
+  // 100.000 kg por cor / 0.5 = 200 m = exatamente a metragem pedida.
+  const r = sliderC1(dispC1(100));
+  assert.strictEqual(r.slider.max, '200', 'recebimento exato preserva os 200 m planejados');
+  assert.ok(r.texto.includes('máx individual: 200 m'));
+});
+
+test('I3. EXCEDENTE / FATOR > 1 — material real acima do exigido AUMENTA o máximo', () => {
+  // 150.000 kg por cor / 0.5 = 300 m = 1.5x a metragem pedida.
+  const r = sliderC1(dispC1(150));
+  assert.strictEqual(r.slider.max, '300',
+    'excedente real tem de elevar o máximo acima da metragem original');
+  assert.ok(Number(r.slider.max) > METROS_PEDIDOS_C1,
+    'o piso antigo tornava isto invisível quando o teto ficava abaixo do pedido');
+  assert.ok(r.texto.includes('máx individual: 300 m'));
+});
+
+test('I4. o piso `metros_pedidos` NÃO sobrevive em nenhuma direção', () => {
+  // Falta severa: 10.000 kg por cor = 20 m. Sem o piso, 20 m.
+  const r = sliderC1(dispC1(10));
+  assert.strictEqual(r.slider.max, '20', 'o piso da metragem do pedido não pode reaparecer');
+
+  // E o mecanismo saiu do código executável do construtor compartilhado.
+  const duExec = executavel(fs.readFileSync(ODU, 'utf8'));
+  assert.equal(/Math\.max\s*\([^)]*maxMetrosItem/.test(duExec), false,
+    'o construtor compartilhado não pode voltar a pisar o teto com metros_pedidos');
+  assert.equal(/Math\.max\s*\([^)]*metros_pedidos/.test(duExec), false,
+    'nenhum piso de metragem do pedido pode voltar a limitar o teto por baixo');
+});
+
+test('I5. teto DESCONHECIDO não vira teto zero nem teto infinito', () => {
+  // Projeção vazia: nenhum eixo se aplica. O servidor também não recusa nada
+  // nesse caso (sem eixos não há o que validar), então a tela mantém a
+  // metragem do pedido como limite de conveniência — e NÃO zera o controle.
+  const vazio = sliderC1([]);
+  assert.strictEqual(vazio.slider.max, String(METROS_PEDIDOS_C1),
+    'sem eixo aplicável o controle não pode travar em 0');
+
+  // Eixo presente e genuinamente zerado: aí sim o máximo é 0.
+  const zerado = sliderC1(dispC1(0));
+  assert.strictEqual(zerado.slider.max, '0',
+    'disponibilidade genuinamente zero tem de zerar o controle');
+});
+
+test('I6. SERVIDOR É A ÚNICA AUTORIDADE — só kg_disponivel entra na conta', () => {
+  const base = dispC1(80);
+  // Mesmo kg_disponivel, todas as demais colunas da projeção em valores
+  // absurdos. Se a tela recalculasse qualquer coisa, o máximo mudaria.
+  const ruidoso = base.map(function (d) {
+    return Object.assign({}, d, {
+      kg_necessario: 9999, kg_planejado: 9999, kg_comprado_cobertura_ativa: 9999,
+      kg_recebido_liquido: 1, kg_estornado: 9999, kg_excedente: 9999,
+      kg_alocado_op: 1, kg_reservado_propria_op: 9999,
+      kg_reservado_outras_ops: 9999, kg_comprometido_outras_ops: 9999,
+    });
+  });
+  assert.strictEqual(sliderC1(ruidoso).slider.max, sliderC1(base).slider.max,
+    'o máximo mudou sem que kg_disponivel mudasse — existe uma segunda autoridade');
+
+  // E nenhuma dessas colunas é sequer lida pelo construtor compartilhado.
+  const duSrc = fs.readFileSync(ODU, 'utf8');
+  ['kg_excedente', 'kg_recebido_liquido', 'kg_estornado', 'kg_alocado_op',
+   'kg_reservado_propria_op', 'kg_reservado_outras_ops', 'kg_comprometido_outras_ops',
+   'saldo_fios', 'ordens_compra_fio'].forEach(function (coluna) {
+    assert.equal(executavel(duSrc).includes(coluna), false,
+      'op-distribuicao-ui.js referencia ' + coluna + ': o teto tem UM dono, no servidor');
+  });
+});
+
+test('I7. um ajuste salvo que deixou de caber é ceifado, e o payload envia o valor ceifado', async () => {
+  // 300 m salvos; um estorno derrubou a disponibilidade para 80 kg (160 m).
+  const r = sliderC1(dispC1(80), 300);
+  assert.strictEqual(r.slider.max, '160');
+  assert.strictEqual(r.slider.value, '160',
+    'o valor inicial não pode ficar acima do próprio máximo do controle');
+  assert.ok(r.texto.includes('160 m'), 'o rótulo tem de mostrar o valor ceifado');
+
+  // E o que é enviado ao escritor é o MESMO valor que o operador vê.
+  const { sandbox, rpcCalls } = makeSandbox(() => ({ data: { ok: true, ajuste_revisao: 2 }, error: null }));
+  const node = sandbox.buildDistribuicaoBlock({
+    op: { id: 900778, status: 'aberta', ajuste_revisao: 1 },
+    opItens: [{ id: 701, modelo_id: 7, metros_pedidos: METROS_PEDIDOS_C1, metros_ajustados: 300 }],
+    disponibilidade: dispC1(80),
+    modelosById: MODELOS_C1,
+    parametrosByLargura: PARAMS_C1,
+    variant: 'full',
+  });
+  const btn = findBtn(node, /Salvar distribuição/);
+  assert.ok(btn, 'botão "Salvar distribuição" não encontrado');
+  assert.equal(btn.disabled, false,
+    'o ceifamento é uma mudança real contra o salvo, então Salvar tem de habilitar');
+  await btn._listeners.click();
+  const chamada = rpcCalls.find(function (c) { return c.fn === 'salvar_ajuste_producao_op'; });
+  assert.ok(chamada, 'salvar_ajuste_producao_op não foi chamada');
+  assert.strictEqual(Number(chamada.params.p_itens[0].metros_ajustados), 160,
+    'o payload tem de enviar exatamente o valor exibido, nunca o valor obsoleto');
+});
+
+test('I9. sob falta, a persistência da metragem original JÁ era bloqueada — e continua', () => {
+  // Contexto honesto do achado: o piso mentia no RÓTULO, mas nunca deixou a
+  // falta ser gravada. "Manter pedido" avalia a metragem do pedido contra o
+  // teto real e se desabilita sozinho quando ela excede. Isto vale antes e
+  // depois da correção, e é o que separa "máximo enganoso" de "falta aceita".
+  const r = sliderC1(dispC1(80));
+  const manter = findBtn(r.node, /Manter pedido/);
+  assert.ok(manter, 'botão "Manter pedido" não encontrado');
+  assert.strictEqual(manter.disabled, true,
+    'a metragem original excede o fio recebido: persistir isso tem de estar bloqueado');
+
+  // O painel de consumo declara os quilos REAIS do eixo para a distribuição
+  // corrente. Sob falta a proposta proporcional já cai para o teto (fator
+  // 80/100 = 0.8 -> 160 m), então o que se lê é consumo igual ao disponível —
+  // não um excesso. O excesso do PEDIDO é comunicado pelo botão desabilitado,
+  // que é o controle que o persistiria.
+  assert.ok(r.texto.includes('80 kg / 80 kg'),
+    'o painel tem de declarar consumo e disponível reais por eixo');
+
+  // Com recebimento exato o mesmo botão volta a funcionar.
+  const ok = sliderC1(dispC1(100));
+  const manterOk = findBtn(ok.node, /Manter pedido/);
+  assert.strictEqual(manterOk.disabled, false,
+    'com material suficiente a metragem original tem de ser persistível');
+});
+
+test('I8. CONSTRUTOR COMPARTILHADO — as TRÊS montagens consomem o mesmo dono', () => {
+  const montagens = [
+    ['js/screens/op-nova.js', 'buildDistribuicaoBlock'],
+    ['js/screens/pedido-detail-events.js', 'buildDistribuicaoBlock'],
+    ['js/screens/pedido-producao-panel.js', 'buildDistribuicaoBlock'],
+  ];
+  montagens.forEach(function (par) {
+    const src = executavel(fs.readFileSync(path.join(ROOT, par[0]), 'utf8'));
+    assert.ok(src.includes(par[1]),
+      par[0] + ' não consome o construtor compartilhado');
+    // Nenhuma montagem pode construir seu próprio slider nem seu próprio teto.
+    assert.equal(/rangeInput\s*\(/.test(src), false,
+      par[0] + ' constrói um slider próprio — o teto voltaria a divergir');
+    assert.equal(src.includes('maxMetrosItem'), false,
+      par[0] + ' calcula teto por conta própria — o dono é op-distribuicao-ui.js');
+  });
+
+  // E existe exatamente UM ponto no produto que lê o teto por item.
+  const chamadas = [];
+  ['js/screens/op-distribuicao-ui.js', 'js/screens/op-nova.js',
+   'js/screens/pedido-detail-events.js', 'js/screens/pedido-producao-panel.js'].forEach(function (rel) {
+    const src = executavel(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
+    const m = src.match(/maxMetrosItem\s*\(/g);
+    if (m) chamadas.push([rel, m.length]);
+  });
+  assert.deepEqual(chamadas, [['js/screens/op-distribuicao-ui.js', 1]],
+    'o teto por item tem de ser lido em um único lugar');
+});

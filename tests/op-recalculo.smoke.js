@@ -454,7 +454,12 @@ test('19. maxMetrosItem com disponibilidade nativa retorna cap numérico esperad
 });
 
 
-test('20. maxMetrosItem sem ordens correspondentes retorna 0', () => {
+// R1-C1: "nenhum eixo se aplica" e "o eixo diz zero" deixaram de ser a MESMA
+// resposta. A projecao vazia significa que o servidor tambem nao impoe teto
+// (salvar_ajuste_producao_op percorre exatamente os eixos de
+// _oc_disponibilidade_linhas), e o chamador precisa poder distinguir isso de
+// uma disponibilidade genuinamente zerada.
+test('20. maxMetrosItem sem eixo aplicavel retorna null (teto DESCONHECIDO, nao zero)', () => {
   const sandbox = makeUnitSandbox();
   const modelosById = {
     1: { id: 1, nome: 'Test', largura: 1.40, cor_1: { id: 10, nome: 'Azul' }, cor_2: { id: 11, nome: 'Branco' } },
@@ -472,10 +477,11 @@ test('20. maxMetrosItem sem ordens correspondentes retorna 0', () => {
     'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, ordensArr)',
     sandbox
   );
-  assert.equal(cap, 0, 'sem ordens, cap deve ser 0');
+  assert.strictEqual(cap, null,
+    'sem eixo aplicavel o teto e DESCONHECIDO; devolver 0 confundiria com falta total');
 });
 
-test('21. maxMetrosItem com ordens de kg_recebido = 0 retorna 0', () => {
+test('21. maxMetrosItem com linhas do modelo PLANO (nao nativas) retorna null', () => {
   const sandbox = makeUnitSandbox();
   const modelosById = {
     1: { id: 1, nome: 'Test', largura: 1.40, cor_1: { id: 10, nome: 'Azul' }, cor_2: { id: 11, nome: 'Branco' } },
@@ -498,7 +504,10 @@ test('21. maxMetrosItem com ordens de kg_recebido = 0 retorna 0', () => {
     'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, ordensArr)',
     sandbox
   );
-  assert.equal(cap, 0, 'com ordens zeradas, cap deve ser 0 (floor(0))');
+  // Estas linhas usam `tipo`/`kg_recebido` — o vocabulario PLANO aposentado.
+  // Nenhuma casa com um eixo nativo, entao o teto e DESCONHECIDO, nao zero.
+  assert.strictEqual(cap, null,
+    'linha plana nao e eixo nativo: o teto tem de sair DESCONHECIDO');
 });
 
 // -------------------------------------------------------------------------
@@ -617,6 +626,73 @@ test('28. o slider nao tem um segundo calculo de teto: so kg_disponivel entra na
     assert.equal(oprSrc.includes(coluna), false,
       `js/screens/op-recalculo.js referencia ${coluna}: o teto tem UM dono, no servidor`);
   }
+});
+
+// R1-C1: o par que fecha a ambiguidade. `null` = o servidor nao impoe teto
+// neste item; `0` = existe eixo e ele nao tem material. Confundir os dois foi
+// o que obrigou o chamador a inventar o piso `metros_pedidos`.
+test('29. um eixo nativo com kg_disponivel = 0 devolve 0, nao null', () => {
+  const sandbox = makeUnitSandbox();
+  sandbox.modelosByIdArr = {
+    1: { id: 1, nome: 'Test', largura: 1.40, cor_1: { id: 10, nome: 'Azul' }, cor_2: { id: 11, nome: 'Branco' } },
+  };
+  sandbox.parametrosArr = { '1.40': { algodao_por_ml: 0.5, poliester_por_ml: 0.25, valor_x: 1 } };
+
+  // Eixo nativo presente e genuinamente zerado numa das cores.
+  sandbox.zerado = [
+    { material: 'algodao', cor_id: 10, cor_poliester: null, kg_disponivel: 0 },
+    { material: 'algodao', cor_id: 11, cor_poliester: null, kg_disponivel: 500 },
+  ];
+  const capZero = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, zerado)', sandbox);
+  assert.strictEqual(capZero, 0, 'falta total tem de ser 0 — um numero, nao "desconhecido"');
+
+  // Eixo nativo presente para OUTRO material/cor: nenhum se aplica a este
+  // item, entao continua DESCONHECIDO.
+  sandbox.outroEixo = [
+    { material: 'algodao', cor_id: 99, cor_poliester: null, kg_disponivel: 500 },
+  ];
+  const capOutro = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, modelosByIdArr, parametrosArr, outroEixo)', sandbox);
+  assert.strictEqual(capOutro, null, 'eixo de outra cor nao limita este item');
+});
+
+// R1-C1: a conversao kg -> metros tem de espelhar a receita do servidor.
+// calcularFiosOP soma kgAlg uma vez por OCORRENCIA em [cor_1, cor_2], e
+// _oc_reserva_ativa / _op_reserva_proposta multiplicam por
+// ((cor_1_id = cor) + (cor_2_id = cor)). Um modelo de cor UNICA consome o
+// dobro naquela cor, entao seu teto em metros e a METADE.
+test('30. modelo de cor unica: o teto respeita a multiplicidade da receita', () => {
+  const sandbox = makeUnitSandbox();
+  sandbox.parametrosArr = { '1.40': { algodao_por_ml: 0.5, poliester_por_ml: 0, valor_x: 1 } };
+  sandbox.disp = [
+    { material: 'algodao', cor_id: 10, cor_poliester: null, kg_disponivel: 100 },
+    { material: 'algodao', cor_id: 11, cor_poliester: null, kg_disponivel: 100 },
+  ];
+
+  // cor_1 === cor_2: 1 m consome 0.5 kg DUAS vezes na cor 10 => 100 m.
+  sandbox.mUnica = { 1: { id: 1, largura: 1.40, cor_1: { id: 10 }, cor_2: { id: 10 } } };
+  const capUnica = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, mUnica, parametrosArr, disp)', sandbox);
+  assert.strictEqual(capUnica, 100,
+    'cor unica consome em dobro; anunciar 200 m ofereceria o dobro do material que existe');
+
+  // cores distintas: 1 m consome 0.5 kg em cada cor => 200 m.
+  sandbox.mDupla = { 1: { id: 1, largura: 1.40, cor_1: { id: 10 }, cor_2: { id: 11 } } };
+  const capDupla = vm.runInContext(
+    'window.maxMetrosItem({ modelo_id: 1 }, mDupla, parametrosArr, disp)', sandbox);
+  assert.strictEqual(capDupla, 200, 'cores distintas nao sofrem ponderacao');
+
+  // Conferencia INDEPENDENTE pela propria receita compartilhada: no teto o
+  // consumo bate exatamente com o disponivel, e um metro a mais excede.
+  const consumo = (modelos, metros) => {
+    sandbox.__m = modelos; sandbox.__x = metros;
+    const c = vm.runInContext(
+      'window.calcularFiosOP([{ modeloId: 1, metros: __x }], __m, parametrosArr)', sandbox);
+    return c.algodaoPorCor[10].kg;
+  };
+  assert.strictEqual(consumo(sandbox.mUnica, capUnica), 100, 'no teto o consumo tem de fechar em 100 kg');
+  assert.ok(consumo(sandbox.mUnica, capUnica + 1) > 100, 'um metro alem do teto tem de exceder');
 });
 
 test('23. nenhum filtro de totalizador de saldo resta no modulo', () => {

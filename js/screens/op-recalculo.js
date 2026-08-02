@@ -116,24 +116,65 @@
   // Limite individual de metros de um item assumindo os demais em zero: para
   // cada cor que o item consome, kg_disponivel daquela cor / kg por metro.
   //
-  // `disponibilidade` são as linhas de oc_disponibilidade_op. Ausente ou vazia
-  // => 0, e o chamador aplica seu próprio piso (Math.max com metros_pedidos),
-  // exatamente como antes. Um teto ausente NUNCA vira teto infinito.
+  // `disponibilidade` são as linhas de oc_disponibilidade_op. NÃO se calcula
+  // teto aqui: kg_disponivel já é o teto do servidor (dono único
+  // public._oc_teto_disponivel). O que se faz é converter kg em metros pela
+  // receita e devolver o eixo mais escasso.
+  //
+  // DUAS RESPOSTAS DIFERENTES, E A DIFERENÇA IMPORTA
+  // (RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1-C1):
+  //   * NÚMERO  — existe pelo menos um eixo aplicável a este item, e o
+  //               servidor VAI limitar por ele. Zero é uma resposta legítima:
+  //               significa "não há material", não "não sei".
+  //   * null    — NENHUM eixo de oc_disponibilidade_op se aplica a este item
+  //               (projeção vazia, item sem necessidade nativa, ou receita com
+  //               consumo zero). O servidor também não impõe teto nesse caso:
+  //               salvar_ajuste_producao_op percorre exatamente os eixos de
+  //               _oc_disponibilidade_linhas, e sem eixos não há recusa.
+  //
+  // Antes as duas respostas eram o MESMO 0, e o chamador compensava com um
+  // piso `Math.max(..., metros_pedidos)`. Esse piso transformava
+  // `metros_pedidos` em disponibilidade — exatamente o que a decisão aceita em
+  // P2A-OBS-6 proíbe — e escondia a falta: com 80% do fio recebido o slider
+  // continuava anunciando a metragem original como "máx individual". Devolver
+  // null separa "sem teto" de "teto zero" e dispensa o piso.
   function maxMetrosItem(item, modelosById, parametrosByLargura, disponibilidade) {
     const modelo = modelosById[item.modelo_id];
     const p = parametrosByLargura[window.larguraKey(modelo.largura)];
     const rAlg = p.algodao_por_ml * p.valor_x;
     const rPol = p.poliester_por_ml * p.valor_x;
     let cap = Infinity;
+
+    // MULTIPLICIDADE DA COR — a receita cobra por OCORRÊNCIA, não por cor
+    // distinta. `calcularFiosOP` soma kgAlg uma vez para cada entrada de
+    // [cor_1, cor_2], e o servidor faz exatamente o mesmo:
+    // _oc_reserva_ativa e _op_reserva_proposta multiplicam por
+    // ((cor_1_id = cor) + (cor_2_id = cor)). Um modelo com cor_1_id =
+    // cor_2_id consome, portanto, o DOBRO naquela cor.
+    //
+    // Percorrer [cor_1, cor_2] tomando o mínimo de kg_disponivel/rAlg avaliava
+    // o MESMO eixo duas vezes com a taxa SIMPLES e devolvia o dobro dos metros
+    // realmente possíveis. Agrupar por cor e dividir pela taxa PONDERADA é o
+    // que faz esta conversão espelhar a autoridade do servidor em vez de
+    // divergir dela.
+    const ocorrenciasPorCor = new Map();
     for (const cor of [modelo.cor_1, modelo.cor_2]) {
-      const d = linhaDisponibilidade(disponibilidade, 'algodao', cor && cor.id, null);
-      if (d && rAlg > 0) cap = Math.min(cap, Number(d.kg_disponivel) / rAlg);
+      if (!cor || cor.id == null) continue;
+      ocorrenciasPorCor.set(cor.id, (ocorrenciasPorCor.get(cor.id) || 0) + 1);
     }
+    for (const [corId, ocorrencias] of ocorrenciasPorCor) {
+      const d = linhaDisponibilidade(disponibilidade, 'algodao', corId, null);
+      const taxa = rAlg * ocorrencias;
+      if (d && taxa > 0) cap = Math.min(cap, Number(d.kg_disponivel) / taxa);
+    }
+
+    // Poliéster é creditado uma vez em PRETO e uma vez em BRANCO, sempre —
+    // são eixos distintos, sem multiplicidade a ponderar.
     for (const corP of ['PRETO', 'BRANCO']) {
       const d = linhaDisponibilidade(disponibilidade, 'poliester', null, corP);
       if (d && rPol > 0) cap = Math.min(cap, Number(d.kg_disponivel) / rPol);
     }
-    return Number.isFinite(cap) ? Math.floor(cap) : 0;
+    return Number.isFinite(cap) ? Math.floor(cap) : null;
   }
 
   // "Salvar distribuição" — UMA chamada, UM payload ABSOLUTO e COMPLETO.

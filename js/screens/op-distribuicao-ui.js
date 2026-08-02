@@ -407,19 +407,50 @@
     }
 
     itensCalc.forEach(function (c) {
-      // Teto individual do item pela DISPONIBILIDADE NATIVA. Um teto ausente
-      // nunca vira teto infinito: cai no piso da própria metragem do pedido.
-      var maxCalc = c.metros_pedidos;
+      // TETO INDIVIDUAL DO ITEM — MATERIAL REALMENTE RECEBIDO
+      // (RESTORE-ORIGINAL-RECEIVED-MATERIAL-SLIDER-SEMANTICS-R1-C1).
+      //
+      // O teto tem UM dono, no servidor (public._oc_teto_disponivel, db/118),
+      // e chega aqui como kg_disponivel em oc_disponibilidade_op.
+      // `maxMetrosItem` só converte kg em metros pela receita; nada aqui
+      // recalcula disponibilidade.
+      //
+      // O PISO `Math.max(..., metros_pedidos)` FOI RETIRADO. Ele fazia da
+      // metragem do pedido um teto mínimo, o que:
+      //   * contradiz a decisão aceita P2A-OBS-6 — `metros_pedidos` NUNCA é
+      //     disponibilidade produtiva (ver o comentário do contexto nativo
+      //     acima, que já dizia exatamente isso);
+      //   * escondia a FALTA: recebido 80% do exigido, o rótulo continuava
+      //     anunciando "máx individual" = metragem original, um valor que o
+      //     servidor recusa. Agora falta reduz o máximo, recebimento exato o
+      //     preserva e excedente real o aumenta.
+      //
+      // null = NENHUM eixo nativo se aplica a este item. O servidor também
+      // não impõe teto nesse caso (sem eixos, salvar_ajuste_producao_op não
+      // tem o que recusar), então a tela não inventa um: mantém a metragem do
+      // pedido como limite de conveniência do controle. Um teto DESCONHECIDO
+      // nunca vira teto infinito, e um teto CONHECIDO nunca é inflado.
+      var tetoServidor = null;
       if (typeof window.maxMetrosItem === 'function') {
-        try { maxCalc = Math.max(window.maxMetrosItem(c, modelosById, parametrosByLargura, disponibilidade), c.metros_pedidos); }
-        catch (e) { maxCalc = c.metros_pedidos; }
+        try { tetoServidor = window.maxMetrosItem(c, modelosById, parametrosByLargura, disponibilidade); }
+        catch (e) { tetoServidor = null; }
       }
+      var maxCalc = (tetoServidor == null) ? c.metros_pedidos : Number(tetoServidor);
+
+      // O valor inicial nunca pode ficar acima do próprio máximo do controle.
+      // Um ajuste salvo pode ter deixado de caber (um estorno derruba o teto
+      // depois do salvamento), e o FakeNode dos testes não faz o clamp que o
+      // <input type=range> real faria — sem este ajuste explícito o rótulo
+      // mostraria um número e o payload enviaria outro.
+      var valorInicial = Math.min(Math.round(metrosOverride[c.op_item_id] || 0), maxCalc);
+      metrosOverride[c.op_item_id] = valorInicial;
+
       var modelo = modelosById[c.modelo_id];
       var slider = window.rangeInput({
         min: '0',
         max: String(maxCalc),
         step: '1',
-        value: String(Math.round(metrosOverride[c.op_item_id] || 0)),
+        value: String(valorInicial),
         ariaLabel: 'Metros — ' + rotuloModelo(modelo),
       });
       slider.style.background = trackBg(slider);
