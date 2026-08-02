@@ -159,34 +159,6 @@
   // do not invent new visual language"). Read-only labels; no business rule.
   var OCF_SELECT_LEGACY = 'id, tipo, cor_id, cor_poliester, kg_pedido, kg_recebido, status, fornecedor_id, cores:cor_id(id, nome)';
   var OCF_SELECT_DIM = 'id, tipo, cor_id, cor_poliester, kg_pedido, kg_recebido, status, fornecedor_id, status_administrativo, status_aceite, status_recebimento, aceite_exigido_na_emissao, legado_recebimento_automatico, cores:cor_id(id, nome)';
-  // PROVENIÊNCIA CANÔNICA DE COMPRA -> OP. `ordens_compra_fio` (acima) é a
-  // projeção PLANA/compat e, por construção, NUNCA pode conter um Pedido de
-  // Compra canônico de origem Pedido: db/76 Component A filtra
-  // `oc.legado = TRUE` e exige mapeamento em ordem_compra_item_compat_fio.
-  // O dono executável de "qual Pedido de Compra abastece ESTA OP" é
-  // public.ordem_compra_item_alocacao.op_id (db/67 §R.3/§R.4) — a MESMA
-  // relação pela qual o próprio db/76 escopa seu grão item x OP e a mesma que
-  // db/101 percorre para montar a disponibilidade nativa. As três tabelas têm
-  // SELECT direto para o administrador (db/67:
-  // ordem_compra_admin_select / ordem_compra_item_admin_select /
-  // ordem_compra_item_alocacao_admin_select), então o leitor não precisa de
-  // RPC nova nem de posse legada por `op_id`.
-  //
-  // SÃO DUAS ROTAS, NÃO UMA. `ordem_compra_item_alocacao.op_id` só é
-  // preenchido para necessidade de ORIGEM OP: os dois escritores canônicos
-  // (db/96 definir_alocacao_necessidade_compra_fio e db/99
-  // gerar_ordem_compra_do_planejamento) gravam
-  //     CASE WHEN origem_tipo = 'op' THEN op_id ELSE NULL END
-  // e a própria tabela de necessidade proíbe a outra forma
-  //     CONSTRAINT necessidade_origem_shape CHECK (
-  //          (origem_tipo = 'op'     AND op_id IS NOT NULL)
-  //       OR (origem_tipo = 'pedido' AND op_id IS NULL))
-  // Material de ORIGEM PEDIDO (hoje o poliéster) é um pool COMPARTILHADO do
-  // Pedido — db/101 §9.9.A escopa o líquido produtivo dele por
-  // `n.pedido_id`, não por OP. Filtrar só por `op_id` deixaria a ordem que
-  // abastece o poliéster desta OP estruturalmente invisível, que é
-  // exatamente o defeito de posse-por-op_id que esta tela veio corrigir.
-  var OC_ALOCACAO_SELECT = 'id, op_id, necessidade_id, kg_alocado, item:item_id(id, ordem_id, material, cor_id, cor_poliester, kg_pedido, kg_recebido, cores:cor_id(id, nome), ordem:ordem_id(id, identidade_operacional, codigo, pedido_id, identidade_pedido_id, fornecedor_id, legado, status_administrativo, status_aceite, status_recebimento))';
   var OCF_ADMIN_LABEL = { rascunho: 'Rascunho', emitida: 'Emitida', cancelada: 'Cancelada' };
   var OCF_ACEITE_LABEL = { nao_aplicavel: 'Aceite dispensado', pendente: 'Aguardando aceite', aceita: 'Aceita', rejeitada: 'Rejeitada' };
   var OCF_RECEB_LABEL = { nao_recebido: 'Nao recebido', parcial: 'Recebimento parcial', recebido: 'Recebido' };
@@ -445,6 +417,10 @@
   // serve ao resumo read-only e à métrica. O teto continua sendo
   // exclusivamente `disponibilidade` (oc_disponibilidade_op).
   let ocSupridoras = [];
+  // Erro da leitura de proveniência. Existe para que uma FALHA nunca seja
+  // renderizada como "não há ordem de compra": vazio verdadeiro e leitura
+  // quebrada são estados diferentes e a tela precisa dizer qual é.
+  let ocSupridorasErro = null;
   // ORDEM-COMPRA-B1: is the db/65 dimension layer present on this database?
   // Set by fetchOrdensCompraFio's extended-select-with-fallback. When false
   // (pre-db/65 database, e.g. production before Phase A lands there), the
@@ -1338,107 +1314,157 @@
     return await supa.from('ordens_compra_fio').select(OCF_SELECT_LEGACY).eq('op_id', opId);
   }
 
-  // Uma linha por ITEM de Pedido de Compra que abastece esta OP. Duas
-  // alocações do MESMO item para a MESMA OP somam; itens de ordens diferentes
-  // nunca se misturam. A identidade da ordem vem do dono canônico de exibição
-  // (js/op-display.js), nunca da chave primária.
-  //
-  // As duas rotas de proveniência são lidas em consultas separadas, então a
-  // MESMA alocação pode chegar aqui duas vezes. Ela é contada UMA vez: o
-  // desempate é a chave primária da alocação, nunca o par ordem/item, para
-  // que duas alocações legítimas do mesmo item continuem somando.
-  function mapAlocacoesParaOrdensSupridoras(linhas) {
-    var porItem = new Map();
-    var alocacoesVistas = new Set();
-    for (var i = 0; i < (linhas || []).length; i++) {
-      var alocacao = linhas[i];
-      var item = alocacao && alocacao.item;
-      var ordem = item && item.ordem;
-      if (!item || !ordem || item.id == null) continue;
-      if (alocacao.id != null) {
-        if (alocacoesVistas.has(String(alocacao.id))) continue;
-        alocacoesVistas.add(String(alocacao.id));
-      }
-      var chave = String(item.id);
-      var linha = porItem.get(chave);
-      if (!linha) {
-        linha = {
-          ordem_id: ordem.id,
-          ordem_identidade: window.RAVATEX_OP_DISPLAY.formatOcOperationalCode(ordem),
-          item_id: item.id,
-          // `tipo` e `cores` reproduzem a forma que window.rotuloFio já lê,
-          // para que o rótulo do fio tenha um dono só nas duas projeções.
-          tipo: item.material,
-          cor_id: item.cor_id,
-          cor_poliester: item.cor_poliester,
-          cores: item.cores || null,
-          kg_recebido: Number(item.kg_recebido || 0),
-          fornecedor_id: ordem.fornecedor_id,
-          legado: ordem.legado === true,
-          status_administrativo: ordem.status_administrativo,
-          status_aceite: ordem.status_aceite,
-          status_recebimento: ordem.status_recebimento,
-          kg_alocado: 0,
-        };
-        porItem.set(chave, linha);
-      }
-      linha.kg_alocado = Math.round((linha.kg_alocado + Number(alocacao.kg_alocado || 0)) * 1000) / 1000;
-    }
-    return Array.from(porItem.values());
+  // ABASTECE ESTA OP? As duas rotas de proveniência que os donos executáveis
+  // já mantêm — nenhuma terceira é inventada aqui.
+  //   Rota 1 — a alocação carrega o op_id desta OP (necessidade de origem
+  //            'op'; hoje o algodão).
+  //   Rota 2 — a alocação tem op_id NULL. Por
+  //            db/67 necessidade_origem_shape isso só acontece em necessidade
+  //            de ORIGEM PEDIDO, o pool COMPARTILHADO (hoje o poliéster), que
+  //            db/101 §9.9.A escopa por pedido_id e não por OP. A lista já vem
+  //            escopada ao Pedido desta OP, então esse pool abastece esta OP.
+  function alocacaoAbasteceOP(alocacao, opId) {
+    if (!alocacao) return false;
+    if (alocacao.op_id == null) return true;
+    return Number(alocacao.op_id) === Number(opId);
   }
 
-  // Carga da proveniência canônica de compra desta OP, pelas DUAS rotas que os
-  // donos executáveis já mantêm (ver OC_ALOCACAO_SELECT). Nenhuma proveniência
-  // nova é inventada aqui.
+  // Uma linha por ITEM de Pedido de Compra que abastece esta OP, montada a
+  // partir da projeção de obter_distribuicao_ordem_compra. Só o kg REALMENTE
+  // destinado a esta OP é somado: uma alocação para uma OP irmã não entra.
+  function linhaSupridoraDoItem(item, ordemCtx, opId) {
+    var relevantes = (item.alocacoes || []).filter(function (a) {
+      return alocacaoAbasteceOP(a, opId);
+    });
+    if (!relevantes.length) return null;
+    var kg = relevantes.reduce(function (acc, a) {
+      return acc + Number(a.kg_alocado || 0);
+    }, 0);
+    return {
+      ordem_id: ordemCtx.ordem_id,
+      ordem_identidade: ordemCtx.ordem_identidade,
+      item_id: item.item_id,
+      // `tipo` e `cores` reproduzem a forma que window.rotuloFio já lê, para
+      // que o rótulo do fio tenha um dono só nas duas projeções.
+      tipo: item.material,
+      cor_id: item.cor_id,
+      cor_poliester: item.cor_poliester,
+      cores: item.cor_nome ? { id: item.cor_id, nome: item.cor_nome } : null,
+      kg_recebido: Number(item.kg_recebido || 0),
+      fornecedor_id: ordemCtx.fornecedor_id,
+      fornecedor_nome: ordemCtx.fornecedor_nome || null,
+      legado: ordemCtx.legado === true,
+      status_administrativo: ordemCtx.status_administrativo,
+      status_aceite: ordemCtx.status_aceite,
+      status_recebimento: ordemCtx.status_recebimento,
+      kg_alocado: Math.round(kg * 1000) / 1000,
+    };
+  }
+
+  // Normaliza a resposta de uma RPC canônica: erro de transporte OU envelope
+  // {ok:false}. As duas são falha; nenhuma pode virar "não há ordem".
+  // Três desfechos, não dois:
+  //   { indisponivel: true } — a RPC não respondeu envelope nenhum. O leitor
+  //     canônico não existe neste ambiente; cai para a projeção plana em
+  //     silêncio, como antes deste leitor existir.
+  //   { erro }               — erro de transporte OU envelope {ok:false}
+  //     (sem_permissao etc). É FALHA e tem de aparecer como falha.
+  //   {}                     — sucesso.
+  function avaliarRespostaCompra(res) {
+    if (res && res.error) return { erro: res.error };
+    if (!res || !res.data) return { indisponivel: true };
+    if (res.data.ok !== true) {
+      return { erro: Object.assign(
+        new Error(res.data.erro || res.data.codigo || 'Leitura de compra recusada'),
+        { codigo: res.data.codigo }) };
+    }
+    return {};
+  }
+
+  // Carga da proveniência canônica de compra desta OP.
   //
-  // Falha NÃO é silenciosa e NÃO inventa ausência: qualquer erro esvazia a
-  // lista, registra no console e devolve o erro. Uma leitura PARCIAL nunca é
-  // apresentada como completa — seria pior que a ausência, porque a métrica
-  // afirmaria um total que não mediu.
+  // POR QUE RPC E NÃO LEITURA DIRETA DE TABELA: ordem_compra,
+  // ordem_compra_item, ordem_compra_item_alocacao e necessidade_compra_fio
+  // estão com RLS HABILITADA e NENHUMA policy no ambiente de produção. RLS
+  // ligada sem policy nega toda linha ao papel `authenticated`, e o PostgREST
+  // devolve [] SEM erro — um vazio que parece verdade e não é. Os leitores
+  // SECURITY DEFINER abaixo (db/77, db/69, db/100) já são os donos aceitos
+  // dessa leitura, já têm EXECUTE para `authenticated` e não dependem de
+  // policy nenhuma.
+  //
+  // Falha NÃO é silenciosa e NÃO vira ausência: qualquer erro esvazia a lista,
+  // registra no console e devolve o erro. Uma leitura PARCIAL nunca é
+  // apresentada como completa — a métrica afirmaria um total que não mediu.
   async function carregarOrdensCompraSupridoras(opId) {
-    // Rota 1 — proveniência DIRETA de OP: necessidade de origem 'op', cuja
-    // alocação carrega o op_id.
-    const direta = await supa.from('ordem_compra_item_alocacao')
-      .select(OC_ALOCACAO_SELECT)
-      .eq('op_id', opId);
-    if (direta.error) {
-      ocSupridoras = [];
-      console.error('op-nova: ordem_compra_item_alocacao (op)', direta.error);
-      return { data: null, error: direta.error };
-    }
-    var linhas = direta.data || [];
+    ocSupridoras = [];
+    ocSupridorasErro = null;
+    if (!pedidoIdState) return { data: [], error: null };
 
-    // Rota 2 — proveniência de ORIGEM PEDIDO: o pool compartilhado. A
-    // necessidade é do Pedido (op_id NULL por constraint), então o alcance se
-    // faz pela necessidade, com o MESMO escopo de Pedido que db/101 usa para
-    // o teto (ops -> lotes.pedido_id, aqui já resolvido em pedidoIdState).
-    if (pedidoIdState) {
-      const necRes = await supa.from('necessidade_compra_fio')
-        .select('id')
-        .eq('pedido_id', pedidoIdState)
-        .eq('origem_tipo', 'pedido');
-      if (necRes.error) {
-        ocSupridoras = [];
-        console.error('op-nova: necessidade_compra_fio (pedido)', necRes.error);
-        return { data: null, error: necRes.error };
-      }
-      var necIds = (necRes.data || [])
-        .map(function (n) { return n && n.id; })
-        .filter(function (id) { return id != null; });
-      if (necIds.length) {
-        const pool = await supa.from('ordem_compra_item_alocacao')
-          .select(OC_ALOCACAO_SELECT)
-          .in('necessidade_id', necIds);
-        if (pool.error) {
-          ocSupridoras = [];
-          console.error('op-nova: ordem_compra_item_alocacao (pedido)', pool.error);
-          return { data: null, error: pool.error };
-        }
-        linhas = linhas.concat(pool.data || []);
-      }
+    // 1. As ordens canônicas DESTE Pedido (dono: db/77).
+    const listaRes = await supa.rpc('listar_ordens_compra_admin', { p_pedido_id: pedidoIdState });
+    const lista = avaliarRespostaCompra(listaRes);
+    if (lista.indisponivel) return { data: [], error: null };
+    if (lista.erro) {
+      ocSupridorasErro = lista.erro;
+      console.error('op-nova: listar_ordens_compra_admin', lista.erro);
+      return { data: null, error: lista.erro };
     }
 
-    ocSupridoras = mapAlocacoesParaOrdensSupridoras(linhas);
+    var supridoras = [];
+    var ordensPedido = listaRes.data.ordens || [];
+    for (var i = 0; i < ordensPedido.length; i++) {
+      var oc = ordensPedido[i];
+      if (!oc || oc.ordem_id == null) continue;
+
+      // 2. A distribuição da ordem (dono: db/69) — a ÚNICA leitura concedida
+      //    que projeta op_id por alocação.
+      const distRes = await supa.rpc('obter_distribuicao_ordem_compra', { p_ordem_id: oc.ordem_id });
+      const dist = avaliarRespostaCompra(distRes);
+      if (dist.indisponivel) return { data: [], error: null };
+      if (dist.erro) {
+        ocSupridorasErro = dist.erro;
+        console.error('op-nova: obter_distribuicao_ordem_compra ' + oc.ordem_id, dist.erro);
+        return { data: null, error: dist.erro };
+      }
+
+      var ctx = {
+        ordem_id: oc.ordem_id,
+        ordem_identidade: null,
+        fornecedor_id: oc.fornecedor_id,
+        fornecedor_nome: oc.fornecedor_nome,
+        legado: oc.legado,
+        status_administrativo: oc.status_administrativo,
+        status_aceite: oc.status_aceite,
+        status_recebimento: oc.status_recebimento,
+      };
+      var linhasDaOrdem = [];
+      var itens = (distRes.data.itens || []);
+      for (var j = 0; j < itens.length; j++) {
+        var linha = linhaSupridoraDoItem(itens[j], ctx, opId);
+        if (linha) linhasDaOrdem.push(linha);
+      }
+      if (!linhasDaOrdem.length) continue;
+
+      // 3. Só para as ordens que REALMENTE abastecem esta OP: a identidade de
+      //    negócio (dono: db/100). db/77 e db/69 são anteriores a db/95 e não
+      //    projetam identidade — sem este passo a seção mostraria a identidade
+      //    pendente em vez de OC-001-3-26.
+      const detRes = await supa.rpc('obter_ordem_compra_admin', { p_ordem_id: oc.ordem_id });
+      const det = avaliarRespostaCompra(detRes);
+      if (det.erro) {
+        ocSupridorasErro = det.erro;
+        console.error('op-nova: obter_ordem_compra_admin ' + oc.ordem_id, det.erro);
+        return { data: null, error: det.erro };
+      }
+      // Sem identidade a linha não é omitida: o dono de exibição declara o
+      // estado diagnóstico e a ordem continua visível.
+      var identidade = window.RAVATEX_OP_DISPLAY.formatOcOperationalCode(
+        (detRes && detRes.data && detRes.data.ordem) || null);
+      for (var k = 0; k < linhasDaOrdem.length; k++) linhasDaOrdem[k].ordem_identidade = identidade;
+      supridoras = supridoras.concat(linhasDaOrdem);
+    }
+
+    ocSupridoras = supridoras;
     return { data: ocSupridoras, error: null };
   }
 
@@ -1636,7 +1662,9 @@
     var t = tableScroll(el('div', { style: 'min-width:800px;' }));
     t.grid.appendChild(thRow(cols, ['ORDEM', 'FIO', 'FORNECEDOR', 'ALOCADO (KG)', 'SITUAÇÃO'], { numericCols: [3] }));
     ocSupridoras.forEach(function (linha) {
-      var forn = ocfFornecedorNome(linha);
+      // O nome vem da própria leitura canônica; a lista local `forns` é
+      // carregada por etapa e não contém necessariamente o fornecedor de fio.
+      var forn = linha.fornecedor_nome || ocfFornecedorNome(linha);
       t.grid.appendChild(gridRow(cols, [
         el('div', { style: 'font-size:13.5px;font-weight:600;color:var(--rv-text-primary);' }, linha.ordem_identidade),
         el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(linha)),
@@ -1672,6 +1700,15 @@
       box.appendChild(buildOcSupridorasTable());
       box.appendChild(el('div', { style: 'padding:11px 24px;border-top:1px solid var(--rv-border-soft);background:var(--rv-surface);font-size:11.5px;color:var(--rv-text-tertiary);' },
         'A administração das ordens de compra (emitir, cancelar, itens) fica na tela dedicada — esta seção é apenas um resumo.'));
+      return box;
+    }
+    // Uma leitura QUEBRADA não pode ser renderizada como ausência. O vazio só
+    // é afirmado quando a leitura respondeu e respondeu vazio.
+    if (ocSupridorasErro) {
+      box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:8px;margin:0 24px 18px;padding:11px 14px;border-radius:var(--rv-radius);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);' },
+        svgEl(SVG_WARNING),
+        el('span', { style: 'font-size:12.5px;color:var(--rv-signal-caution);' },
+          'Não foi possível carregar as ordens de compra desta OP. Isto NÃO significa que não existam — recarregue a tela.')));
       return box;
     }
     if (!ordens.length) {

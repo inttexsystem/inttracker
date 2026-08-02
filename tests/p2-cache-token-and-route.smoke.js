@@ -75,7 +75,7 @@ const P4_ASSETS = [
 // ordem que o alterou POR ULTIMO, e o token anterior
 // (20260802-native-yarn-distribution-ui-reachability-r1) foi superseded sem
 // nunca ter sido publicado sobre estes bytes finais.
-const REACHABILITY_TOKEN = '20260802-oc-distinct-count-and-pedido-origin-r1';
+const REACHABILITY_TOKEN = '20260802-live-purchase-order-reader-r1';
 const REACHABILITY_ASSETS = [
   'js/screens/op-nova.js',
 ];
