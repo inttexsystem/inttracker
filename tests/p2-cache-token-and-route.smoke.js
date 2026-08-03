@@ -79,9 +79,18 @@ const REACHABILITY_TOKEN = '20260802-live-purchase-order-reader-r1';
 const REACHABILITY_ASSETS = [
   'js/screens/op-nova.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN];
+// RECEIPT-REVERSAL-MANDATORY-DATE-R1: o modal de estorno passou a coletar e
+// enviar a data que o escritor exige, entao ordem-compra-receipt-events.js
+// carrega o token desta ordem — mesmo mecanismo das anteriores. Ele deixa de
+// reter o token de db/119, que era o ultimo a te-lo alterado.
+const REVERSAL_DATE_TOKEN = '20260803-receipt-reversal-mandatory-date-r1';
+const REVERSAL_DATE_ASSETS = [
+  'js/screens/ordem-compra-receipt-events.js',
+];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN];
 
 function tokenEsperado(asset) {
+  if (REVERSAL_DATE_ASSETS.includes(asset)) return REVERSAL_DATE_TOKEN;
   if (REACHABILITY_ASSETS.includes(asset)) return REACHABILITY_TOKEN;
   if (P4_ASSETS.includes(asset)) return P4_TOKEN;
   return STABILIZATION_ASSETS.includes(asset) ? STABILIZATION_TOKEN : P2_TOKEN;

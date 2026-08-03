@@ -327,3 +327,96 @@ test('integration: screenOrdemCompra renders the Recebimentos section and reload
   assert.equal(rpcCalls(env.supa, 'registrar_recebimento_ordem_compra').length, 1, 'native writer invoked');
   assert.equal(histCalls, 2, 'authoritative server reload re-fetched the history after success');
 });
+
+// ---------------------------------------------------------------------
+// RECEIPT-REVERSAL-MANDATORY-DATE-R1
+//
+// O escritor recusa o comando ANTES de qualquer escrita quando a data falta.
+// Contrato medido na producao (_c3c_estornar_recebimento_impl, linhas 15-17):
+//
+//   IF p_idempotency_key IS NULL OR length(btrim(p_idempotency_key)) NOT BETWEEN 1 AND 200
+//      OR p_estornado_em IS NULL OR p_motivo IS NULL OR length(btrim(p_motivo)) = 0 THEN
+//     RETURN ... 'codigo', 'comando_invalido', 'erro', 'Idempotencia, data e motivo sao obrigatorios';
+//
+// O modal de estorno nao coletava a data e o handler nao a enviava, entao
+// TODO estorno era recusado. O teste de payload existente afirmava p_linhas e
+// p_motivo e NAO afirmava p_ocorrido_em — foi essa omissao que deixou passar.
+// Estes casos amarram os TRES campos obrigatorios do escritor.
+// ---------------------------------------------------------------------
+
+// Os tres campos que o escritor exige. Um NULL em qualquer um deles e uma
+// recusa deterministica, nao um erro de digitacao do operador.
+function assertComandoEstornoCompleto(call) {
+  assert.ok(call, 'reversal RPC was never issued');
+  assert.ok(call.params.p_idempotency_key, 'p_idempotency_key obrigatorio');
+  assert.ok(call.params.p_ocorrido_em, 'p_ocorrido_em obrigatorio — sua ausencia devolve comando_invalido');
+  assert.notEqual(call.params.p_ocorrido_em, null);
+  assert.ok(String(call.params.p_motivo || '').trim(), 'p_motivo obrigatorio');
+}
+
+test('reversal: o comando carrega os TRES campos obrigatorios do escritor (data inclusive)', async () => {
+  const env = setup({ estornar_recebimento_ordem_compra: () => ({ data: { ok: true }, error: null }) }, projection({ comandos: [RECV_CMD] }));
+  env.handlers.estornarLancamento(RECV_CMD, LANC);
+  const modal = overlayByTitle(env.sandbox, /Estornar recebimento/);
+  const dataEl = inputByAttr(modal, 'data-reversal-date', 800);
+  assert.ok(dataEl, 'o modal de estorno tem de coletar a data');
+  assert.equal(dataEl.getAttribute('type'), 'date', 'a data usa o primitivo de data, como no recebimento');
+  assert.ok(dataEl.value, 'a data vem preenchida com o dia corrente, como no modal de recebimento');
+  dataEl.value = '2026-08-03';
+  inputByAttr(modal, 'data-reversal-kg', 800).value = '8';
+  findAll(modal, (n) => n.tagName === 'TEXTAREA')[0].value = 'excesso lancado por engano';
+  btnByText(modal, /^Estornar$/)._listeners.click();
+  await btnByText(overlayByTitle(env.sandbox, /Confirmar estorno/), /^Estornar$/)._listeners.click();
+  const call = rpcCalls(env.supa, 'estornar_recebimento_ordem_compra')[0];
+  assertComandoEstornoCompleto(call);
+  assert.equal(call.params.p_ocorrido_em, '2026-08-03', 'a data enviada e a que o operador escolheu');
+});
+
+test('reversal: data em branco bloqueia o envio com mensagem propria, sem gastar RPC', async () => {
+  const env = setup({ estornar_recebimento_ordem_compra: () => ({ data: { ok: true }, error: null }) }, projection({ comandos: [RECV_CMD] }));
+  env.handlers.estornarLancamento(RECV_CMD, LANC);
+  const modal = overlayByTitle(env.sandbox, /Estornar recebimento/);
+  inputByAttr(modal, 'data-reversal-date', 800).value = '';
+  inputByAttr(modal, 'data-reversal-kg', 800).value = '8';
+  findAll(modal, (n) => n.tagName === 'TEXTAREA')[0].value = 'motivo qualquer';
+  btnByText(modal, /^Estornar$/)._listeners.click();
+  assert.equal(rpcCalls(env.supa, 'estornar_recebimento_ordem_compra').length, 0,
+    'sem data o comando nem chega ao servidor');
+  assert.ok(!overlayByTitle(env.sandbox, /Confirmar estorno/), 'nem abre a confirmacao');
+  assert.match(String(lastToast(env.sandbox)._text || lastToast(env.sandbox).textContent || ''), /data do estorno/i);
+});
+
+test('reversal: recusa do servidor fala de ESTORNO, nao de recebimento', async () => {
+  const env = setup({ estornar_recebimento_ordem_compra: () => ({ data: { ok: false, codigo: 'comando_invalido' }, error: null }) }, projection({ comandos: [RECV_CMD] }));
+  env.handlers.estornarLancamento(RECV_CMD, LANC);
+  const modal = overlayByTitle(env.sandbox, /Estornar recebimento/);
+  inputByAttr(modal, 'data-reversal-kg', 800).value = '8';
+  findAll(modal, (n) => n.tagName === 'TEXTAREA')[0].value = 'motivo qualquer';
+  btnByText(modal, /^Estornar$/)._listeners.click();
+  await btnByText(overlayByTitle(env.sandbox, /Confirmar estorno/), /^Estornar$/)._listeners.click();
+  const msg = String(lastToast(env.sandbox)._text || lastToast(env.sandbox).textContent || '');
+  assert.match(msg, /estorno/i, 'a recusa tem de nomear a operacao que o operador fez');
+  assert.doesNotMatch(msg, /Dados do recebimento inv/i,
+    'a mensagem generica de recebimento foi o que impediu o operador de entender a falha');
+});
+
+test('reversal: trocar SO a data cunha um token novo (a data entra na intencao)', async () => {
+  const env = setup({ estornar_recebimento_ordem_compra: () => ({ data: { ok: false, codigo: 'comando_invalido' }, error: null }) }, projection({ comandos: [RECV_CMD] }));
+  async function submeter(data) {
+    env.handlers.estornarLancamento(RECV_CMD, LANC);
+    const modal = overlayByTitle(env.sandbox, /Estornar recebimento/);
+    inputByAttr(modal, 'data-reversal-date', 800).value = data;
+    inputByAttr(modal, 'data-reversal-kg', 800).value = '8';
+    findAll(modal, (n) => n.tagName === 'TEXTAREA')[0].value = 'mesmo motivo';
+    btnByText(modal, /^Estornar$/)._listeners.click();
+    await btnByText(overlayByTitle(env.sandbox, /Confirmar estorno/), /^Estornar$/)._listeners.click();
+  }
+  await submeter('2026-08-03');
+  await submeter('2026-08-04');
+  const calls = rpcCalls(env.supa, 'estornar_recebimento_ordem_compra');
+  assert.equal(calls.length, 2);
+  assert.notEqual(calls[0].params.p_idempotency_key, calls[1].params.p_idempotency_key,
+    'data diferente e comando diferente');
+  assert.equal(calls[0].params.p_ocorrido_em, '2026-08-03');
+  assert.equal(calls[1].params.p_ocorrido_em, '2026-08-04');
+});

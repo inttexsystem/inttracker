@@ -64,13 +64,34 @@
     erro_interno: 'Erro interno ao processar a solicitação.',
   };
 
-  function rejectionMessage(res) {
+  // Recusas do ESTORNO falam de estorno. O mapa geral descreve recebimento —
+  // `comando_invalido` virava "Dados do recebimento inválidos." num modal de
+  // estorno, sem dizer o que faltava, e o operador concluía que a quantidade
+  // ou o motivo que ele digitou estavam errados quando o campo ausente era a
+  // data que a tela nunca pediu.
+  var REVERSAL_CODE_MESSAGES = {
+    comando_invalido: 'Estorno inválido: informe data, motivo e quantidade.',
+    linha_invalida: 'Lançamento inválido para estorno.',
+    linhas_invalidas: 'Nenhum lançamento válido para estorno.',
+    lancamento_invalido: 'Este lançamento não pode ser estornado.',
+    excede_estornavel: 'Quantidade acima do saldo reversível deste lançamento.',
+    recebimento_canonico_inativo: 'Estorno canônico inativo neste ambiente.',
+    sem_permissao: 'Sem permissão para estornar recebimento.',
+    concorrencia_ocupada: 'Outra operação está alterando este Pedido. Tente novamente.',
+  };
+
+  function rejectionMessage(res, contexto) {
+    var mapa = contexto === 'estorno' ? REVERSAL_CODE_MESSAGES : null;
+    function traduzir(codigo) {
+      if (!codigo) return null;
+      return (mapa && mapa[codigo]) || CODE_MESSAGES[codigo] || null;
+    }
     if (res.outcome === 'hard_failure') {
-      var code = res.codigo && CODE_MESSAGES[res.codigo];
-      return code || (res.error && res.error.message) || 'Erro ao processar a solicitação.';
+      return traduzir(res.codigo) || (res.error && res.error.message) || 'Erro ao processar a solicitação.';
     }
     var data = res.result || {};
-    return CODE_MESSAGES[data.codigo] || data.erro || 'Não foi possível concluir a ação.';
+    return traduzir(data.codigo) || data.erro
+      || (contexto === 'estorno' ? 'Não foi possível concluir o estorno.' : 'Não foi possível concluir a ação.');
   }
 
   ns.createReceiptEvents = function (ctx) {
@@ -351,6 +372,16 @@
 
       var kgInput = window.textInput({ value: '', placeholder: '0,000' });
       kgInput.setAttribute('data-reversal-kg', String(lanc.id));
+      // DATA DO ESTORNO — entrada OBRIGATÓRIA do escritor, não opcional da
+      // tela. `_c3c_estornar_recebimento_impl` recusa com `comando_invalido`
+      // quando p_estornado_em chega NULL:
+      //   IF p_idempotency_key IS NULL ... OR p_estornado_em IS NULL
+      //      OR p_motivo IS NULL ... THEN 'comando_invalido'
+      // O modal não coletava este campo e o handler não o enviava, então TODO
+      // estorno era recusado antes de qualquer escrita. Mesmo primitivo e
+      // mesmo default do modal de recebimento, que sempre enviou a data.
+      var dataInput = window.textInput({ type: 'date', value: todayIso() });
+      dataInput.setAttribute('data-reversal-date', String(lanc.id));
       // B1: a row-sized textarea declares no minimum — the rows attribute is
       // its geometry — so it takes the canonical `rows` role. The reversal
       // reason itself, its placeholder and the submit handling that reads it
@@ -368,6 +399,7 @@
       body.appendChild(el('div', { class: 'text-sm text-gray-600 mb-3' },
         'Lançamento #' + lanc.id + ' — ' + fioLabel(lanc) + ' · ' + opLabel(lanc.op_id)
         + ' · reversível ' + fmtKg(lanc.kg_reversivel) + '.'));
+      body.appendChild(window.formField({ label: 'Data do estorno', input: dataInput }));
       body.appendChild(window.formField({ label: 'Quantidade a estornar (kg)', input: kgInput }));
       body.appendChild(window.formField({ label: 'Motivo', input: motivoInput }));
 
@@ -380,9 +412,14 @@
         onSave: function () {
           var kg = ns.parseKgInput(kgInput.value);
           var motivo = String(motivoInput.value || '').trim();
+          var ocorridoEm = String(dataInput.value || '').trim();
           if (!(kg > 0)) { window.toast('Informe uma quantidade válida.', 'error'); return false; }
           if (kg > Number(lanc.kg_reversivel)) { window.toast('Quantidade acima do saldo reversível.', 'error'); return false; }
           if (!motivo) { window.toast('Informe o motivo do estorno.', 'error'); return false; }
+          // A data é exigida pelo servidor; recusar aqui evita gastar uma
+          // tentativa e um `comando_invalido` que o operador não conseguiria
+          // interpretar.
+          if (!ocorridoEm) { window.toast('Informe a data do estorno.', 'error'); return false; }
 
           // Guard 6 (§8.1): confirmDialog before execution — reversal never
           // fires on a single click. Executed inside onConfirm; the reversal
@@ -395,10 +432,13 @@
             onConfirm: async function () {
               var params = {
                 ordemId: ordemId,
+                ocorridoEm: ocorridoEm,
                 motivo: motivo,
                 linhas: ns.buildReversalLinhas(lanc.id, kg),
               };
-              var intent = { ordemId: ordemId, lancamentoId: lanc.id, kg: kg, motivo: motivo };
+              // A data entra na INTENÇÃO: mudar a data é um comando diferente
+              // e tem de cunhar um token novo, como kg e motivo já faziam.
+              var intent = { ordemId: ordemId, lancamentoId: lanc.id, kg: kg, motivo: motivo, ocorridoEm: ocorridoEm };
               var attempt = reversalTracker.resolveAttempt(intent);
               var res = await ns.estornarRecebimento(params, attempt);
               if (res.outcome === 'success') {
@@ -413,7 +453,7 @@
                 return; // retain token; reversal modal stays open
               }
               reversalTracker.complete();
-              window.toast(rejectionMessage(res), 'error');
+              window.toast(rejectionMessage(res, 'estorno'), 'error');
             },
           });
           return false;
