@@ -166,28 +166,24 @@ test('NULL-op / Pedido-origin allocation renders honestly; real OP retained; no 
   assert.match(t, /Pedido \(compartilhada\)/, 'NULL-op rendered as shared, not fabricated');
 });
 
-// BACKLOG-7 PHASE 3: this guard used to reach the headers of the two tables the
-// phase FUSED away — "Saldos por item" (Kg pedido / Kg restante) and
-// "Alocações" (Kg alocado). Per UI_VISUAL_CONTRACT.md §9 a smoke test that
-// encodes a retired visual is updated to the canonical form while its
-// FUNCTIONAL assertion is preserved. The functional assertion here is the §2.5
-// golden rule — a numeric column's header carries the same alignment as its
-// values — and it is now proved on the table that survives, plus the numeric
-// contract of the label/value pairs that replaced the two retired tables.
-test('golden rule: numeric headers align right, label header left', () => {
+// BACKLOG-7 PHASE 3 fused away "Saldos por item" and "Alocações"; PHASE 4
+// retired the last one, the six-column ledger history. Per UI_VISUAL_CONTRACT.md
+// §9 a smoke test that encodes a retired visual is updated to the canonical form
+// while its FUNCTIONAL assertion is preserved.
+//
+// §2.5's golden rule governs a TABLE, and this surface no longer builds one at
+// all — so the guard now proves the retirement itself plus the contract that
+// actually carries the numbers here: every quantity keeps tabular numerals, so
+// digits still line up between rows.
+test('no ledger table survives; every quantity keeps tabular numerals', () => {
   const s = makeSandbox();
   const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
-  assert.match(thByText(view, 'Kg').className, /text-right/);
-  assert.match(thByText(view, 'Kg excesso').className, /text-right/);
-  assert.match(thByText(view, 'Reversível').className, /text-right/);
-  assert.match(thByText(view, 'Fio').className, /text-left/);
-  assert.match(thByText(view, 'Origem').className, /text-left/);
-  // Every value cell under a right-aligned numeric header keeps its own
-  // right alignment and tabular numerals — the golden rule is a PAIR.
-  const numCells = findAll(view, (n) => n.tagName === 'TD'
+  assert.equal(findAll(view, (n) => n.tagName === 'TABLE').length, 0,
+    'the receipt surface builds no table any more');
+  assert.equal(ths(view).length, 0, 'and therefore no table header');
+  const tnum = findAll(view, (n) => typeof n.getAttribute === 'function'
     && /tabular-nums/.test(n.getAttribute('style') || ''));
-  assert.ok(numCells.length >= 3, 'the surviving table still carries numeric value cells');
-  for (const c of numCells) assert.match(c.className, /text-right/);
+  assert.ok(tnum.length >= 5, 'quantities and timestamps keep tabular numerals');
 });
 
 /* ============================================================
@@ -335,11 +331,23 @@ test('row-level reversal button: all §8.1 guards, enabled when server allows', 
     { abrirRegistroRecebimento() {}, estornarLancamento(c, l) { reversed = l.id; } });
   const btn = findButtons(view).find((b) => b.getAttribute('title') === 'Estornar recebimento');
   assert.ok(btn, 'reversal button present on a reversible receipt lançamento');
-  assert.equal(btn.getAttribute('aria-label'), 'Estornar recebimento', 'aria-label matches title');
-  assert.match(btn.getAttribute('style') || btn.style.cssText, /width:30px/, '30×30 size');
-  assert.match(btn.getAttribute('style') || btn.style.cssText, /border-radius:4px/, 'control radius');
-  const sr = (btn.children || []).find((c) => /Estornar recebimento/.test(c.textContent || ''));
-  assert.ok(sr, 'visually-hidden accessible label present');
+  // BACKLOG-7 PHASE 4: the control is no longer icon-only. §2.9's icon-only
+  // exemption is written for a TABLE-ROW action, and after this phase the
+  // surface builds no table — so the exemption is not claimed, and §2.1's
+  // general "destructive: icon + text, always" is honoured instead. Same
+  // geometry as its sibling "Editar" control, whose text form the architect
+  // ratified at d331154 for exactly this reason.
+  assert.match(btn.textContent || '', /Estornar/, 'the destructive control carries a visible label');
+  assert.equal((btn.children || []).length, 2, 'icon + text, not icon alone');
+  assert.match(btn.getAttribute('style'), /height:30px/, 'row-action ladder height');
+  assert.match(btn.getAttribute('style'), /border-radius:var\(--rv-radius\)/, 'canonical control radius');
+  assert.match(btn.getAttribute('style'), /color:var\(--rv-signal-negative\)/, '§2.1 Destructive skin');
+  // The accessible name is now BUSINESS, not the primary key read aloud.
+  const nome = btn.getAttribute('aria-label');
+  assert.match(nome, /Poliéster · Azul/, 'accessible name states the material');
+  assert.match(nome, /20,000 kg/, 'accessible name states the quantity');
+  assert.match(nome, /20\/07\/2026/, 'accessible name states the receipt date');
+  assert.doesNotMatch(nome, /lançamento 800/, 'the primary key is no longer read aloud');
   assert.equal(btn.disabled, false, 'enabled — server acoes.estornar && kg_reversivel>0');
   btn._listeners.click();
   assert.equal(reversed, 800, 'reversal wired to the lançamento');
@@ -384,12 +392,18 @@ test('linha reversivel mantem a acao enquanto a linha exaurida perde a acao', ()
     }));
   const acoes = findButtons(view).filter((b) => b.getAttribute('title') === 'Estornar recebimento');
   assert.equal(acoes.length, 1, 'exatamente UMA acao: so a linha que ainda tem saldo reversivel');
-  const texto = text(view);
-  assert.match(texto, /Estornar recebimento do lançamento 53/, 'a linha 53 mantem a acao');
-  assert.doesNotMatch(texto, /Estornar recebimento do lançamento 54/, 'a linha 54 nao oferece mais estorno');
-  // A linha exaurida continua VISIVEL e legivel como nao reversivel.
-  assert.ok(findAll(view, (n) => n.getAttribute && n.getAttribute('data-lancamento-id') === '54').length > 0,
-    'a linha 54 continua na historia');
+  // A acao viva pertence a linha 53, e o seu nome acessivel agora e de NEGOCIO
+  // (material + quantidade + data) em vez da chave primaria.
+  assert.match(acoes[0].getAttribute('aria-label'), /880,650 kg/, 'a acao viva e a da linha com saldo');
+  const linha53 = findAll(view, (n) => n.getAttribute && n.getAttribute('data-lancamento-id') === '53')[0];
+  assert.ok(linha53.children.some((c) => findButtons(c).length > 0), 'a acao esta DENTRO da linha 53');
+  // CRITERIO 7: a linha exaurida continua VISIVEL e legivel como historia,
+  // dizendo em portugues que ja nao contribui para o saldo atual.
+  const linha54 = findAll(view, (n) => n.getAttribute && n.getAttribute('data-lancamento-id') === '54')[0];
+  assert.ok(linha54, 'a linha 54 continua na historia');
+  assert.equal(findButtons(linha54).length, 0, 'a linha 54 nao oferece mais estorno');
+  assert.match(linha54.textContent || text(linha54), /Totalmente estornado/,
+    'a linha 54 declara-se totalmente estornada');
 });
 
 /*
@@ -439,9 +453,12 @@ test('visual tokens: flat canonical card, neutral chip, dominant action, token n
   assert.match(reg.getAttribute('style'), /color:var\(--rv-text-on-brand\)/, 'registrar uses --rv-text-on-brand');
   assert.match(reg.getAttribute('style'), /height:var\(--rv-h-primary\)/, 'registrar declares a ladder height');
   assert.match(reg.getAttribute('style'), /border-radius:var\(--rv-radius\)/, 'registrar uses the canonical radius');
-  // Numeric cells: primary text token + tabular numerals.
-  const numCell = findAll(view, (n) => n.tagName === 'TD' && /var\(--rv-text-primary\)/.test(n.getAttribute('style') || '') && /tabular-nums/.test(n.getAttribute('style') || ''))[0];
-  assert.ok(numCell, 'numeric value cell uses --rv-text-primary + tabular-nums');
+  // Numeric values: primary text token + tabular numerals. After phase 4 these
+  // are the material metric pairs, not table cells — the property is the same.
+  const numCell = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && /var\(--rv-text-primary\)/.test(n.getAttribute('style') || '')
+    && /tabular-nums/.test(n.getAttribute('style') || ''))[0];
+  assert.ok(numCell, 'numeric value uses --rv-text-primary + tabular-nums');
   // The retired namespace must not reappear anywhere in the rendered tree.
   const allStyles = findAll(view, (n) => typeof n.getAttribute === 'function')
     .map((n) => n.getAttribute('style') || '').join(' ');
@@ -616,13 +633,69 @@ test('o motivo do estorno e dito como motivo, nao como par tecnico de origem', (
   const t = text(view);
   assert.match(t, /Motivo: +lancamento em duplicidade/, 'o motivo aparece rotulado como motivo');
   assert.doesNotMatch(t, /estorno_admin/, 'o enum interno nao vaza para a superficie');
-  assert.match(t, /Por: +Administrador/, 'o ator e dito em portugues, nao como enum');
+  // BACKLOG-7 PHASE 4: o ator continua em portugues, agora dentro da frase
+  // narrativa da entrada ("por Administrador") em vez do par tecnico "Por: ".
+  assert.match(t, /por +Administrador/, 'o ator e dito em portugues, nao como enum');
+  assert.match(t, /Saíram +8,000 kg/, 'a direcao do evento e dita em negocio');
+  // Esta projecao contem SO o estorno, entao o recebimento de origem nao esta
+  // no modelo: a resolucao falha ABERTA, dizendo a relacao sem inventar a data.
+  assert.match(t, /Estorna um recebimento anterior desta ordem/, 'degrada sem inventar data');
+});
+
+// CRITERIO 6: quando o recebimento de origem ESTA no modelo — o caso real — o
+// estorno nomeia-o pela sua DATA, que e como o operador identifica um
+// recebimento. O elo e `estorno_de_id`, gravado por db/70 e projetado por
+// db/100; a tela nao o adivinha.
+test('phase 4: um estorno nomeia o recebimento que desfaz, pela data', () => {
+  const s = makeSandbox();
+  const base = projection();
+  // O servidor recalcula kg_reversivel do recebimento como
+  // kg + SUM(estornos) — e os estornos sao negativos (db/70 grava `-v_line.kg`).
+  // Estornados os 20 kg, a linha de origem fica com 0 reversivel; a fixture tem
+  // de dizer o mesmo que db/100 diria, senao provaria um estado impossivel.
+  const recebimento = Object.assign({}, base.comandos[0], {
+    lancamentos: [Object.assign({}, base.comandos[0].lancamentos[0], { kg_reversivel: 0 })],
+  });
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection({
+    comandos: [
+      recebimento,
+      {
+        id: 501, comando_tipo: 'estorno', ator_tipo: 'admin', ocorrido_em: '2026-07-21T10:00:00+00:00',
+        documento_ref: null, origem_tipo: 'estorno_admin', origem_ref: 'lancamento em duplicidade',
+        lancamentos: [{
+          id: 801, linha_indice: 0, item_id: 7, alocacao_id: 42, op_id: 900,
+          material: 'poliester', cor_id: 3, cor_poliester: 'Azul',
+          kg: -20, kg_excesso: 0, estorno_de_id: 800, kg_reversivel: 0, movimento_estoque: null,
+        }],
+      },
+    ],
+  }));
+  const t = text(view);
+  assert.match(t, /Estorna o recebimento de +20\/07\/2026 13:45/,
+    'o estorno nomeia, por data, o recebimento que afeta');
+  // As duas entradas coexistem, em ordem cronologica ascendente: a narrativa
+  // "entrou X -> saiu X" le no sentido do tempo.
+  const entradas = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-evento-tipo') != null);
+  assert.deepEqual(entradas.map((e) => e.getAttribute('data-evento-tipo')), ['recebimento', 'estorno'],
+    'ordem cronologica ascendente, exatamente como db/100 devolve');
+  assert.match(t, /Entraram +20,000 kg/, 'a entrada de recebimento soma');
+  assert.match(t, /Saíram +20,000 kg/, 'a entrada de estorno subtrai');
+  // CRITERIO 7: o recebimento totalmente estornado continua na historia e
+  // declara que ja nao contribui para o saldo atual.
+  assert.match(t, /Totalmente estornado — não contribui para o saldo atual/,
+    'o recebimento exaurido continua legivel como historia');
 });
 
 test('um recebimento comum conserva Origem, que ali significa procedencia', () => {
   const s = makeSandbox();
   const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
   const t = text(view);
-  assert.match(t, /Origem: +nota_fiscal/, 'num recebimento a origem continua sendo origem');
+  // BACKLOG-7 PHASE 4: a procedencia continua legivel e VERBATIM (origem_tipo e
+  // texto livre do operador, db/70 aceita 1..80 caracteres), mas desce para a
+  // linha de auditoria no pe da entrada — criterio 8: proveniencia e detalhe
+  // secundario, nao a narrativa primaria.
+  assert.match(t, /Origem +nota_fiscal/, 'num recebimento a origem continua sendo origem');
+  assert.match(t, /Documento +NF-123/, 'o documento continua auditavel');
   assert.doesNotMatch(t, /Motivo:/, 'um recebimento nao tem motivo de estorno');
 });

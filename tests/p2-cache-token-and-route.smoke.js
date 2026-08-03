@@ -186,12 +186,25 @@ const BACKLOG7_PHASE3_TOKEN = '20260803-backlog7-phase3-material-cockpit-r1';
 const BACKLOG7_PHASE3_ASSETS = [
   'js/screens/ordem-compra.js',
   'js/screens/ordem-compra-render.js',
+];
+
+// BACKLOG-7 PHASE 4: o historico de recebimento deixou de ser uma tabela de
+// razao de seis colunas — duas delas estruturalmente mortas em toda linha de
+// estorno — e passou a ser uma LINHA DO TEMPO de negocio: uma entrada por
+// evento, em ordem cronologica, com direcao (+/-), material, quantidade, ator e
+// o elo `estorno_de_id` que faz um estorno nomear, pela data, o recebimento que
+// desfaz. `ordem-compra-receipt-render.js` migra da lista da fase 3 pela mesma
+// razao de sempre: alterado por ultimo por esta ordem. Os outros dois assets da
+// fase 3 NAO foram alterados por ela e permanecem na lista anterior.
+const BACKLOG7_PHASE4_TOKEN = '20260803-backlog7-phase4-business-timeline-r1';
+const BACKLOG7_PHASE4_ASSETS = [
   'js/screens/ordem-compra-receipt-render.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN, BACKLOG7_PHASE3_TOKEN, PEDIDO_LIFECYCLE_GATE_TOKEN];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN, BACKLOG7_PHASE3_TOKEN, BACKLOG7_PHASE4_TOKEN, PEDIDO_LIFECYCLE_GATE_TOKEN];
 
 function tokenEsperado(asset) {
   if (PEDIDO_LIFECYCLE_GATE_ASSETS.includes(asset)) return PEDIDO_LIFECYCLE_GATE_TOKEN;
+  if (BACKLOG7_PHASE4_ASSETS.includes(asset)) return BACKLOG7_PHASE4_TOKEN;
   if (BACKLOG7_PHASE3_ASSETS.includes(asset)) return BACKLOG7_PHASE3_TOKEN;
   if (STACK_GAP_ASSETS.includes(asset)) return STACK_GAP_TOKEN;
   if (EDITAR_TEXT_ASSETS.includes(asset)) return EDITAR_TEXT_TOKEN;

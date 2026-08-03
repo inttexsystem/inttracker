@@ -52,9 +52,17 @@ const INDEX = read('index.html');
  * "Alocações" (S04) were two of the three competing primary representations of
  * one material; the phase fused all three into a single MATERIAIS block whose
  * unit is the material, and moved the destinations inside the material they
- * belong to. Neither is a table any more, and neither was replaced by one: the
- * block is a stack of per-material blocks with label/value pairs, so the
- * simulated-grid population below is unchanged too.
+ * belong to.
+ *
+ * BACKLOG-7 PHASE 4 retired the LAST one. S05 was the six-column receipt
+ * ledger — Fio, Origem, Kg, Kg excesso, Reversível, Ações — of which the final
+ * two columns were structurally DEAD on every reversal row. It is now a
+ * business timeline of narrative entries. `ordem-compra-receipt-render.js`
+ * therefore builds NO table at all and leaves this inventory entirely.
+ *
+ * None of the three was replaced by a table or by a simulated grid: the
+ * materials block and the timeline are stacks of blocks with label/value pairs,
+ * so the simulated-grid population below is unchanged too.
  *
  * The inventory FOLLOWS the product — it does not authorise the change and it
  * is not a waiver: the surviving surfaces keep every clause of the contract,
@@ -62,7 +70,6 @@ const INDEX = read('index.html');
  */
 const DIRECT_SEMANTIC = {
   'js/screens/ordem-compra-render.js': 2,          // S01 list, S02 fallback materiais
-  'js/screens/ordem-compra-receipt-render.js': 1,  // S05 histórico
 };
 
 /** Shared-helper instances: file → number of dataTable() CALL sites. */
@@ -72,12 +79,12 @@ const SHARED_HELPER = {
   'js/screens/pedido-parciais-admin.js': 1,  // H05 parciais
 };
 
-const DIRECT_SEMANTIC_TOTAL = 3;
+const DIRECT_SEMANTIC_TOTAL = 2;
 const SHARED_HELPER_TOTAL = 5;
 const SIMULATED_GRID_TOTAL = 31;
-const TOTAL_RUNTIME_SURFACES = 39;
+const TOTAL_RUNTIME_SURFACES = 38;
 
-test('1.1 the accepted category arithmetic is exactly 3 + 5 + 31 = 39', () => {
+test('1.1 the accepted category arithmetic is exactly 2 + 5 + 31 = 38', () => {
   assert.equal(DIRECT_SEMANTIC_TOTAL + SHARED_HELPER_TOTAL + SIMULATED_GRID_TOTAL, TOTAL_RUNTIME_SURFACES);
   assert.equal(
     Object.values(DIRECT_SEMANTIC).reduce((a, b) => a + b, 0),
@@ -149,8 +156,8 @@ const SEMANTIC_GEOMETRY = [
   { id: 'S01', file: 'js/screens/ordem-compra-render.js', columns: 5, widths: ['26%', '30%', '20%', '12%', '12%'] },
   { id: 'S02', file: 'js/screens/ordem-compra-render.js', columns: 4, widths: ['40%', '22%', '22%', '16%'] },
   // S03 "Saldos por item" and S04 "Alocações" were RETIRED by BACKLOG-7 phase 3
-  // — fused into the MATERIAIS block, which is not a table. S05 keeps its id.
-  { id: 'S05', file: 'js/screens/ordem-compra-receipt-render.js', columns: 6, widths: ['24%', '20%', '14%', '14%', '14%', '14%'] },
+  // (fused into the MATERIAIS block); S05, the six-column receipt ledger, was
+  // RETIRED by phase 4 (refounded as the business timeline). None is a table.
 ];
 
 test('2.1 every accepted semantic table declares table-layout:fixed', () => {
@@ -171,7 +178,6 @@ test('2.2 each semantic table has ONE <colgroup> whose column count matches its 
   // that never varies — so the widths are spelled out per column.
   const perFile = {
     'js/screens/ordem-compra-render.js': [SEMANTIC_GEOMETRY[0], SEMANTIC_GEOMETRY[1]],
-    'js/screens/ordem-compra-receipt-render.js': [SEMANTIC_GEOMETRY[2]],
   };
   for (const [file, expectedTables] of Object.entries(perFile)) {
     const text = read(file);
@@ -194,15 +200,18 @@ test('2.2 each semantic table has ONE <colgroup> whose column count matches its 
   }
 });
 
-test('2.3 S05 carries the SIX-column history contract, Ações included', () => {
+// BACKLOG-7 PHASE 4 retired S05 itself, so the six-column contract it guarded
+// no longer has a subject. What replaces it is the structural fact that matters
+// now: the receipt surface builds NO table, and therefore declares no colgroup,
+// no thead and no width owner to keep in parity.
+test('2.3 the receipt surface builds no table at all (S05 retired)', () => {
   const receipt = read('js/screens/ordem-compra-receipt-render.js');
-  const block = receipt.slice(receipt.indexOf('function historico('));
-  const head = block.match(/theadRow\(\[([\s\S]*?)\]\)\);/);
-  assert.ok(head, 'the histórico header row could not be located');
-  const labels = ['Fio', 'Origem', 'Kg', 'Kg excesso', 'Reversível'];
-  for (const l of labels) assert.ok(head[1].includes(`th('${l}'`), `histórico lost the ${l} column`);
-  assert.match(head[1], /showActions \? 'Ações' : ''/, 'the sixth (Ações) header cell is gone');
-  assert.equal(SEMANTIC_GEOMETRY[2].columns, 6);
+  assert.equal((receipt.match(/\bel\(\s*['"`]table['"`]/g) || []).length, 0,
+    'a table came back to the receipt surface');
+  for (const dead of ['colgroup', 'theadRow(', 'function th(', 'function tdNum(']) {
+    assert.ok(!receipt.includes(dead), `retired table machinery survives: ${dead}`);
+  }
+  assert.equal(SEMANTIC_GEOMETRY.filter((s) => s.file.includes('receipt')).length, 0);
 });
 
 test('2.4 the semantic tables keep their pre-existing right-aligned tabular numerals', () => {
@@ -224,9 +233,12 @@ test('2.4 the semantic tables keep their pre-existing right-aligned tabular nume
     'tdNumMuted() must declare right alignment and tabular numerals');
   assert.equal((render.match(/\b(tdNum|tdNumMuted)\(/g) || []).length - 2, 3,
     'the three numeric cells still resolve through a numeric constructor');
+  // The receipt surface no longer has table cells to align (phase 4). Its
+  // numbers now live in label/value pairs and timeline deltas, and the property
+  // that survives is tabular numerals so digits line up between rows.
   const receipt = read('js/screens/ordem-compra-receipt-render.js');
-  assert.match(receipt, /function tdNum\(value\)[\s\S]*?text-right[\s\S]*?tabular-nums/);
-  assert.match(receipt, /function th\(label, right\)[\s\S]*?right \? 'text-right' : 'text-left'/);
+  assert.ok((receipt.match(/tabular-nums/g) || []).length >= 4,
+    'the receipt surface still declares tabular numerals on its quantities');
 });
 
 /* ============================================================
@@ -1109,8 +1121,8 @@ const MATRIX = [
   // ---- direct semantic: width parity by <colgroup>, percentages only -------
   { id: 'S01', file: 'js/screens/ordem-compra-render.js', kind: 'table', template: '26%,30%,20%,12%,12%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
   { id: 'S02', file: 'js/screens/ordem-compra-render.js', kind: 'table', template: '40%,22%,22%,16%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
-  // S03 / S04 retired by BACKLOG-7 phase 3 (fused into the MATERIAIS block).
-  { id: 'S05', file: 'js/screens/ordem-compra-receipt-render.js', kind: 'table', template: '24%,20%,14%,14%,14%,14%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
+  // S03 / S04 retired by BACKLOG-7 phase 3 (fused into the MATERIAIS block);
+  // S05 retired by phase 4 (refounded as the business timeline).
 
   // ---- shared helper: the owner enforces every clause centrally ------------
   { id: 'H01', file: 'js/screens/fornecedor.js', kind: 'datatable', fixedPx: false, numeric: true, numeralOwner: 'helper' },

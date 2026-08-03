@@ -43,26 +43,55 @@
 // order's own status, and the left carries per-material facts: an aggregate
 // is not the datum its parts are.
 //
-// WHAT THIS PHASE DOES NOT DO. It does not change receipt accounting. Every
+// ---------------------------------------------------------------------
+// VISUAL — BACKLOG-7 PHASE 4. THE HISTORY IS A BUSINESS NARRATIVE.
+//
+// The receipt history was a LEDGER TABLE: one block per command, and inside it
+// six columns — Fio, Origem, Kg, Kg excesso, Reversível, Ações. To learn that
+// 880,650 kg arrived and later left, the operator read two separate tables,
+// compared unsigned numbers, noticed that a column called "Reversível" had
+// fallen to zero, and inferred the relation between them. Two of those six
+// columns were structurally DEAD on every reversal row: a reversal is never
+// reversible and never offers an action.
+//
+// The same history is now a chronological narrative of ENTRIES, each stating
+// what happened, to which material, how much, in which direction, when and by
+// whom. A reversal names the receipt it undoes BY ITS DATE, resolved through
+// the server's own `estorno_de_id` link — so it reads as a business event tied
+// to the quantity it removes, not as a loose technical row. Order is ASCENDING,
+// exactly as db/100 returns it; the screen re-sorts nothing.
+//
+// THE TIMELINE DOES NOT OWN CURRENT STATE. The phase-3 materials cockpit
+// remains the single owner of what the balance IS; the timeline explains only
+// HOW it got there. No entry states an order-level running total — an entry
+// speaks only of its own effect and of how much of itself has been reversed.
+//
+// WHAT THESE PHASES DO NOT DO. They do not change receipt accounting. Every
 // number rendered here is projected by the server
 // (obter_historico_recebimento_ordem_compra, db/100): kg_pedido, kg_recebido,
-// kg_restante = GREATEST(kg_pedido - kg_recebido, 0) and kg_excesso are read,
-// never derived. Action availability still comes only from `acoes`. The
-// command history below is unchanged and its refoundation into a business
-// timeline is phase 4; the registration modal is phase 5; the demotion of
-// provenance and administrative events is phase 6.
+// kg_restante = GREATEST(kg_pedido - kg_recebido, 0), kg_excesso and
+// kg_reversivel are read, never derived, and the +/- direction of a lançamento
+// is the sign the db/70 writer stored. Action availability still comes only
+// from `acoes`. The registration modal is phase 5; the demotion of provenance
+// and administrative events is phase 6.
+//
+// KNOWN GAP, DELIBERATELY NOT FABRICATED. Phase 4 asks for a third event
+// family — administrative correction. db/119 records every correction in
+// public.ordem_compra_recebimento_metadados_correcoes with a full before/after
+// image, but that table has RLS enabled and ALL privileges revoked from PUBLIC,
+// anon, authenticated AND service_role, and NO read model projects it. The
+// correction history is therefore unreachable by any client without a new
+// migration, which no order authorizes. The family is reported, not invented.
 //
 // VISUAL — BACKLOG-7 PHASE 1 (retained). Every visual value on this surface
 // resolves through a CANONICAL css/tokens.css owner: flat hairline card at
 // --rv-radius (§2.4); 20px section icon chips on --rv-chip-bg /
 // --rv-chip-glyph with SECTION_LABEL headings and A DISTINCT ICON PER SECTION
-// (§2.4); the golden-rule table (§2.5) that survives in the history block;
-// right-aligned tabular numerics with decimal comma + unit (§7); one dominant
+// (§2.4); tabular numerics with decimal comma + unit (§7); one dominant
 // "Registrar recebimento" action on the §2.1 Primary variant at a declared
 // ladder height, now width:100% because §2.1's first exception is exactly
-// "in the rail every control is width:100%"; command-type badges built by the
-// js/badges.js canonical owner (§2.6); and the ratified compact icon-only
-// row-level reversal button (§2.9) via js/ui.js's actionButton().
+// "in the rail every control is width:100%"; and command-type badges built by
+// the js/badges.js canonical owner (§2.6).
 //
 // Tailwind still owns LAYOUT and SPACING only (flex, grid, padding), for which
 // no canonical --rv token exists.
@@ -214,44 +243,6 @@
   // imprimia o valor cru — "Ator: admin" — que e vocabulario interno numa
   // superficie operacional.
   var ATOR_LABEL = { admin: 'Administrador', fornecedor: 'Fornecedor' };
-
-  // §2.5 owns the table header role: --rv-fs-thead / 600 / uppercase /
-  // --rv-text-tertiary. The Tailwind `text-xs` this used to carry painted 12px,
-  // which is COMPACT_CONTENT, not TABLE_HEADER — D10 classifies a site by its
-  // role, never by the number nearest the one already written.
-  function th(label, right) {
-    return el('th', {
-      class: 'px-4 py-2 ' + (right ? 'text-right' : 'text-left'),
-      style: 'font-size:var(--rv-fs-thead);font-weight:600;text-transform:uppercase;'
-        + 'letter-spacing:var(--rv-tracking-thead);color:var(--rv-text-tertiary);',
-    }, label);
-  }
-  // `text-sm` painted 14px, a value that is NOT in the §5 enum at all. A table
-  // cell is BODY_CONTROL_CELL and takes --rv-fs-body (13px).
-  function tdNum(value) {
-    return el('td', {
-      class: 'px-4 py-2 text-right',
-      style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-variant-numeric:tabular-nums;',
-    }, fmtKg(value));
-  }
-  function tdText(value, muted) {
-    return el('td', {
-      class: 'px-4 py-2',
-      style: 'font-size:var(--rv-fs-body);color:'
-        + (muted ? 'var(--rv-text-secondary)' : 'var(--rv-text-primary)') + ';',
-    }, value);
-  }
-  function theadRow(cells) {
-    return el('thead', { style: 'background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);' },
-      el('tr', {}, cells));
-  }
-  // Token-based row separator (§4 line-100) — replaces the Tailwind
-  // divide-gray-* utility so re-theming flows through the tokens.
-  function bodyRow(attrs, cells) {
-    var style = 'border-top:1px solid var(--rv-border-soft);' + (attrs.style || '');
-    var merged = Object.assign({}, attrs, { style: style });
-    return el('tr', merged, cells);
-  }
 
   // BACKLOG-7 PHASE 2 — o nome real da cor, nunca a chave.
   //
@@ -512,7 +503,7 @@
       'aria-hidden': 'true',
     }, svgIcon(ICON_ALERT)),
     el('span', {}, 'Registro de recebimento indisponível: a virada para o recebimento canônico ainda '
-      + 'não foi ativada. O histórico abaixo é somente leitura.'));
+      + 'não foi ativada. A linha do tempo permanece somente leitura.'));
   }
 
   // §2.6 names js/badges.js as the SINGLE runtime owner of the state → family
@@ -535,40 +526,58 @@
       : window.rvStatusPill('Recebimento', 'recebido');
   }
 
-  // One reversal control per reversible receipt lançamento. Compact icon-only
-  // row action (§8.1) via actionButton(): 30×30, --rv-radius, title +
-  // aria-label + sr-only label (all inside actionButton). Reversibility is
+  // One reversal control per reversible receipt lançamento. Reversibility is
   // derived strictly from the server model (acoes.estornar AND
   // kg_reversivel > 0). The confirmDialog gate before execution is wired in
   // the events layer.
   //
   // AUSENTE, NÃO DESABILITADO. Antes o controle era sempre construído e só
   // ficava `disabled`, então um lançamento JÁ TOTALMENTE ESTORNADO continuava
-  // anunciando "Estornar recebimento do lançamento 54" ao lado da própria
-  // linha que dizia "Reversível 0,000 kg" — a mesma tela afirmando duas
-  // coisas contrárias, e para leitor de tela a ação simplesmente existia.
-  // Sem saldo reversível não há ação: devolver null é o que faz a célula
-  // concordar com a coluna Reversível e com o bloco de estorno abaixo.
-  // O estado "totalmente estornado" continua legível — ele é dito pelo valor
-  // 0,000 em Reversível e pelo bloco de Estorno, não por um botão morto.
+  // anunciando a sua própria ação ao lado da linha que dizia que não havia
+  // nada a estornar — a mesma tela afirmando duas coisas contrárias, e para
+  // leitor de tela a ação simplesmente existia. Sem saldo reversível não há
+  // ação. O estado "totalmente estornado" continua legível: ele é dito pela
+  // própria narrativa da linha do tempo, não por um botão morto.
+  //
+  // ÍCONE + TEXTO — BACKLOG-7 PHASE 4.
+  //
+  // A isenção "ícone sozinho" do §2.9 é escrita para a ação de LINHA DE TABELA,
+  // e depois desta fase não existe mais tabela nenhuma nesta superfície: a
+  // linha do tempo é uma narrativa, e a linha de um material dentro de uma
+  // entrada já carrega texto escrito. É exatamente a distinção que o arquiteto
+  // ratificou em d331154 para o controle de metadados vizinho — naquela
+  // posição a regra da casa é texto. Não reivindicamos uma isenção que deixou
+  // de se aplicar; §2.1 pede "entity-level destructive: icon + text, always", e
+  // ícone + texto é válido sob as duas leituras.
+  //
+  // A GEOMETRIA é a do seu irmão "Editar": 30px de altura, largura automática,
+  // para que os dois controles de linha da mesma entrada leiam como par. A pele
+  // é a Destructive do §2.1 — --rv-surface sobre --rv-signal-negative-border com
+  // texto --rv-signal-negative — porque estornar remove quantidade recebida.
+  //
+  // O NOME ACESSÍVEL passa a ser de NEGÓCIO, não de banco: antes dizia
+  // "Estornar recebimento do lançamento 54", que é a chave primária lida em voz
+  // alta. Agora diz o material, a quantidade e a data — a mesma informação que o
+  // operador vê, que é o que o critério 8 desta fase pede.
   function reversalButton(comando, lanc, acoes, handlers) {
     var reversible = comando.comando_tipo === 'recebimento'
       && acoes && acoes.estornar === true
       && Number(lanc.kg_reversivel) > 0;
     if (!reversible) return null;
-    return window.actionButton({
+    var descricao = 'Estornar ' + fmtKg(lanc.kg_reversivel) + ' de ' + fioLabel(lanc)
+      + ' recebidos em ' + fmtDateTime(comando.ocorrido_em);
+    var btn = el('button', {
+      type: 'button',
       title: 'Estornar recebimento',
-      icon: svgIcon(ICON_UNDO),
-      danger: true,
-      srLabel: 'Estornar recebimento do lançamento ' + lanc.id,
+      'aria-label': descricao,
+      style: 'height:30px;padding:0 10px;display:inline-flex;align-items:center;'
+        + 'justify-content:center;gap:7px;flex:none;white-space:nowrap;'
+        + 'border:1px solid var(--rv-signal-negative-border);border-radius:var(--rv-radius);'
+        + 'background:var(--rv-surface);color:var(--rv-signal-negative);'
+        + 'font-size:var(--rv-fs-body);font-weight:600;cursor:pointer;',
       onclick: function () { handlers.estornarLancamento(comando, lanc); },
-    });
-  }
-
-  function metaSpan(label, value, title) {
-    var attrs = { style: 'color:var(--rv-text-secondary);' };
-    if (title) attrs.title = title;
-    return el('span', attrs, label + (value == null ? '—' : value));
+    }, svgIcon(ICON_UNDO), el('span', {}, 'Estornar'));
+    return btn;
   }
 
   // db/119: administrative correction of the four metadata fields of a
@@ -629,95 +638,264 @@
     return btn;
   }
 
-  // Command history: one block per command (recebimento/estorno) with its
-  // header metadata and a nested lançamentos table carrying honest per-line
-  // OP/excess attribution and the row-level reversal control.
+  // ---- LINHA DO TEMPO DE NEGÓCIO (BACKLOG-7 PHASE 4) -------------------
   //
-  // UNCHANGED BY PHASE 3. Its refoundation into a business-event timeline —
-  // including the deferred removal of the structurally dead Reversível/Ações
-  // columns on reversal rows — is phase 4 and is not started here.
-  function historico(comandos, acoes, handlers, atorTipo) {
+  // O QUE ISTO SUBSTITUI. Até aqui a história do recebimento era uma TABELA DE
+  // RAZÃO: um bloco por comando, e dentro dele seis colunas — Fio, Origem, Kg,
+  // Kg excesso, Reversível e Ações. Para descobrir que 880,650 kg entraram e
+  // depois saíram, o operador tinha de ler duas tabelas separadas, comparar
+  // números sem sinal, notar que uma coluna chamada "Reversível" tinha caído a
+  // zero e inferir a relação entre as duas. Duas das seis colunas eram
+  // estruturalmente MORTAS numa linha de estorno: um estorno nunca é reversível
+  // e nunca oferece ação, então "Reversível 0,000" e uma célula Ações vazia
+  // eram ruído em todas as linhas de estorno que existem.
+  //
+  // Agora a mesma história é NARRATIVA: uma entrada por evento, em ordem
+  // cronológica, dizendo o que aconteceu, a que material, quanto, em que
+  // direção, quando e por quem.
+  //
+  // ORDEM. Ascendente — a ordem em que o servidor já devolve os comandos
+  // (`ORDER BY h.criado_em, h.id` em db/100). A tela não reordena nada: ler no
+  // sentido do tempo é o que faz "recebeu X → estornou Y" contar uma história,
+  // e é a própria forma do exemplo conceitual da ordem desta fase.
+  //
+  // O QUE ISTO NÃO FAZ. Não há saldo corrente aqui. O cockpit de materiais da
+  // fase 3 continua o dono único do ESTADO ATUAL; a linha do tempo explica
+  // COMO se chegou lá. Por isso uma entrada só fala do seu próprio efeito
+  // (quanto entrou, quanto disso já foi estornado) e nunca de um total da ordem.
+
+  // Índice de lançamento -> { comando, lancamento }, para que um estorno possa
+  // nomear em NEGÓCIO o recebimento que ele desfaz. O elo é `estorno_de_id`,
+  // que o escritor db/70 grava e o read model db/100 projeta; sem ele um
+  // estorno seria mesmo uma linha técnica solta.
+  function indexarLancamentos(comandos) {
+    var idx = {};
+    comandos.forEach(function (c) {
+      (c.lancamentos || []).forEach(function (l) {
+        if (l && l.id != null) idx[String(l.id)] = { comando: c, lancamento: l };
+      });
+    });
+    return idx;
+  }
+
+  // Um estorno grava kg_recebido NEGATIVO (`-v_line.kg` no escritor db/70), e um
+  // recebimento grava positivo. O sinal é, portanto, do SERVIDOR: a tela lê a
+  // direção, não a decide.
+  function ehEntrada(lanc) { return Number(lanc.kg) >= 0; }
+
+  // §5 permite `--rv-radius-pill` em geometria circular verdadeira, e nomeia o
+  // ponto de linha do tempo entre os três casos. A cor é bare signal do §1 sobre
+  // um indicador: entrada some, estorno subtrai. Nunca é a única portadora —
+  // o rótulo do badge e o sinal do número dizem o mesmo em texto (§8).
+  function timelineDot(entrada) {
+    return el('span', {
+      style: entrada
+        ? 'width:9px;height:9px;border-radius:var(--rv-radius-pill);flex:none;margin-top:5px;background:var(--rv-signal-positive);'
+        : 'width:9px;height:9px;border-radius:var(--rv-radius-pill);flex:none;margin-top:5px;background:var(--rv-signal-negative);',
+    });
+  }
+
+  // A quantidade com o seu SINAL explícito. `fmtKg` é o dono compartilhado do
+  // número; o sinal é acrescentado aqui porque é a direção do evento, não a
+  // formatação da grandeza.
+  function delta(lanc) {
+    var v = Number(lanc.kg) || 0;
+    var texto = (v >= 0 ? '+ ' : '− ') + fmtKg(Math.abs(v));
+    return el('span', {
+      style: v >= 0
+        ? 'font-size:var(--rv-fs-value);font-weight:600;color:var(--rv-signal-positive);font-variant-numeric:tabular-nums;white-space:nowrap;'
+        : 'font-size:var(--rv-fs-value);font-weight:600;color:var(--rv-signal-negative);font-variant-numeric:tabular-nums;white-space:nowrap;',
+    }, texto);
+  }
+
+  function notaSecundaria(texto) {
+    return el('div', {
+      style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);',
+    }, texto);
+  }
+
+  // Quanto de UM recebimento já foi desfeito. `kg_reversivel` é o saldo que o
+  // servidor calcula (kg do recebimento + soma dos estornos, que são negativos),
+  // então isto é leitura, nunca recontabilização.
+  function estadoDaLinhaRecebida(lanc) {
+    var recebido = Number(lanc.kg) || 0;
+    var reversivel = Number(lanc.kg_reversivel) || 0;
+    if (recebido <= 0) return null;
+    if (reversivel <= 0) return 'Totalmente estornado — não contribui para o saldo atual.';
+    if (reversivel < recebido) {
+      return 'Parcialmente estornado — restam ' + fmtKg(reversivel) + ' em vigor.';
+    }
+    return null;
+  }
+
+  // A linha de UM material dentro de uma entrada. Responde, de uma vez: que
+  // material, quanto, em que direção — e, quando for um estorno, a que
+  // recebimento ele se refere.
+  function linhaMaterial(comando, lanc, indice, acoes, handlers) {
+    var entrada = ehEntrada(lanc);
+    var esquerda = el('div', { class: 'min-w-0' },
+      el('div', {
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-weight:600;',
+      }, fioLabel(lanc)));
+
+    if (entrada) {
+      if (Number(lanc.kg_excesso) > 0) {
+        esquerda.appendChild(el('div', {
+          style: 'font-size:var(--rv-fs-sm);color:var(--rv-signal-caution);',
+        }, 'Inclui ' + fmtKg(lanc.kg_excesso) + ' de excedente.'));
+      }
+      var estado = estadoDaLinhaRecebida(lanc);
+      if (estado) esquerda.appendChild(notaSecundaria(estado));
+    } else {
+      // CRITÉRIO 6: o estorno tem de LER como relacionado ao recebimento que
+      // afeta. `estorno_de_id` resolve o lançamento de origem e, através dele, a
+      // DATA do recebimento — que é como o operador identifica um recebimento,
+      // não pelo id.
+      var origem = indice[String(lanc.estorno_de_id)];
+      esquerda.appendChild(notaSecundaria(origem
+        ? ('Estorna o recebimento de ' + fmtDateTime(origem.comando.ocorrido_em) + '.')
+        : 'Estorna um recebimento anterior desta ordem.'));
+      if (Number(lanc.kg_excesso) < 0) {
+        esquerda.appendChild(notaSecundaria('Devolve ' + fmtKg(Math.abs(Number(lanc.kg_excesso)))
+          + ' que tinham entrado como excedente.'));
+      }
+    }
+
+    // O destino produtivo continua legível, mas como detalhe: é proveniência,
+    // e o critério 8 pede que proveniência não domine a narrativa.
+    if (lanc.op_id != null || lanc.alocacao_id != null) {
+      esquerda.appendChild(notaSecundaria('Destino: ' + opLabel(lanc.op_id)));
+    }
+
+    var direita = el('div', { class: 'flex items-center gap-3' },
+      delta(lanc));
+    var acao = reversalButton(comando, lanc, acoes, handlers);
+    if (acao) direita.appendChild(acao);
+
+    // A linha QUEBRA em vez de espremer. Medido a 390px: com o bloco de
+    // identidade em `flex-none`, a quantidade e o controlo de estorno ficavam
+    // com largura fixa e sobrava ~55px para o texto da esquerda, o que punha
+    // "Destino: OP-T001-1-26" em cinco linhas. Com `flex-wrap` e uma base de
+    // 190px, abaixo dessa largura a quantidade desce para a sua propria linha e
+    // os dois blocos ficam legiveis. Nenhum container de rolagem e necessario e
+    // css/responsive.css continua intocado.
+    return el('div', {
+      'data-lancamento-id': String(lanc.id),
+      class: 'flex items-start justify-between gap-3 flex-wrap',
+      style: 'padding:7px 0;',
+    },
+    el('div', { class: 'min-w-0', style: 'flex:1 1 190px;' }, esquerda),
+    el('div', { class: 'flex-none' }, direita));
+  }
+
+  // A frase de topo da entrada: o que aconteceu, em quanto, e em quantos
+  // materiais — para que a entrada se entenda antes de se ler linha a linha.
+  function resumoEntrada(comando) {
+    var lancs = comando.lancamentos || [];
+    var total = 0;
+    var materiais = {};
+    lancs.forEach(function (l) {
+      total += Math.abs(Number(l.kg) || 0);
+      if (l.item_id != null) materiais[String(l.item_id)] = true;
+    });
+    var n = Object.keys(materiais).length;
+    var sufixo = n === 1 ? ' em 1 material' : (' em ' + n + ' materiais');
+    return (comando.comando_tipo === 'estorno' ? 'Saíram ' : 'Entraram ')
+      + fmtKg(total) + sufixo;
+  }
+
+  function entradaTimeline(comando, indice, acoes, handlers, atorTipo, ultimo) {
+    var estorno = comando.comando_tipo === 'estorno';
+
+    var cabecalho = el('div', { class: 'flex items-center justify-between gap-3 flex-wrap' },
+      el('div', { class: 'flex items-center gap-2 min-w-0' },
+        tipoBadge(comando.comando_tipo),
+        el('span', {
+          style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;',
+        }, fmtDateTime(comando.ocorrido_em))),
+      // db/119: a correção administrativa continua a pertencer à entrada cujos
+      // metadados ela edita.
+      editMetadataButton(comando, atorTipo, handlers) || el('span', {}));
+
+    var conteudo = el('div', { class: 'min-w-0', style: 'flex:1 1 auto;' }, cabecalho);
+
+    conteudo.appendChild(el('div', {
+      style: 'margin-top:2px;font-size:var(--rv-fs-value);font-weight:600;color:var(--rv-text-primary);',
+    }, resumoEntrada(comando)));
+
+    conteudo.appendChild(el('div', {
+      style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);',
+    }, 'por ' + (ATOR_LABEL[comando.ator_tipo] || comando.ator_tipo || '—')));
+
+    // BACKLOG-7 PHASE 2 (preservado) — o MOTIVO do estorno deixa de vir
+    // disfarçado. `_c3c_estornar_recebimento_impl` (db/70) grava o motivo
+    // obrigatório no cabeçalho como origem_tipo='estorno_admin' +
+    // origem_ref=motivo. A tela imprimia "Origem: estorno_admin / lancamento em
+    // duplicidade": a resposta para "por que isto foi estornado" já estava lá,
+    // escrita como um par técnico.
+    if (estorno && comando.origem_tipo === 'estorno_admin' && comando.origem_ref) {
+      conteudo.appendChild(el('div', {
+        style: 'margin-top:6px;font-size:var(--rv-fs-body);color:var(--rv-text-primary);',
+      }, 'Motivo: ' + comando.origem_ref));
+    }
+
+    var linhas = el('div', { style: 'margin-top:8px;' });
+    (comando.lancamentos || []).forEach(function (l) {
+      linhas.appendChild(linhaMaterial(comando, l, indice, acoes, handlers));
+    });
+    conteudo.appendChild(linhas);
+
+    // CRITÉRIO 8: documento e origem são AUDITORIA, não narrativa. Descem para
+    // uma linha secundária no pé da entrada, em tipo menor e cor terciária.
+    // `origem_tipo` é texto livre escrito pelo operador (db/70 aceita 1..80
+    // caracteres, e a tela de registro oferece "Sem nota" por omissão), portanto
+    // é mostrado VERBATIM — traduzi-lo por um mapa local inventaria vocabulário
+    // que esta tela não possui e corromperia o que o operador escreveu.
+    if (!estorno) {
+      var auditoria = [];
+      if (comando.documento_ref) auditoria.push('Documento ' + comando.documento_ref);
+      if (comando.origem_tipo) auditoria.push('Origem ' + comando.origem_tipo);
+      if (comando.origem_ref) auditoria.push('Ref. ' + comando.origem_ref);
+      if (auditoria.length) {
+        conteudo.appendChild(el('div', {
+          style: 'margin-top:8px;padding-top:7px;border-top:1px solid var(--rv-border-soft);'
+            + 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);',
+        }, auditoria.join(' · ')));
+      }
+    }
+
+    // O trilho: ponto + fio vertical até a entrada seguinte. O fio é o que faz
+    // as entradas lerem como UMA sequência em vez de cartões soltos.
+    var trilho = el('div', {
+      class: 'flex flex-col items-center flex-none',
+      style: 'width:9px;align-self:stretch;',
+    }, timelineDot(!estorno));
+    if (!ultimo) {
+      trilho.appendChild(el('div', {
+        style: 'width:1px;flex:1 1 auto;margin-top:4px;background:var(--rv-border);',
+      }));
+    }
+
+    return el('div', {
+      'data-comando-id': String(comando.id),
+      'data-evento-tipo': comando.comando_tipo,
+      class: 'flex gap-3 px-5',
+      style: ultimo ? 'padding-top:14px;padding-bottom:16px;' : 'padding-top:14px;',
+    }, trilho, conteudo);
+  }
+
+  function timeline(comandos, acoes, handlers, atorTipo) {
     if (!comandos.length) {
       return el('div', {
         id: 'oc-recebimentos-historico', class: 'px-5 py-8 text-center',
         style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
       }, 'Nenhum recebimento registrado ainda.');
     }
+    var indice = indexarLancamentos(comandos);
     var wrap = el('div', { id: 'oc-recebimentos-historico' });
     comandos.forEach(function (c, i) {
-      var block = el('div', {
-        class: 'px-5 py-4', 'data-comando-id': String(c.id),
-        style: i > 0 ? 'border-top:1px solid var(--rv-border-soft);' : '',
-      });
-      // BACKLOG-7 PHASE 2 — o MOTIVO do estorno deixa de vir disfarcado.
-      //
-      // `_c3c_estornar_recebimento_impl` (db/70) grava o motivo obrigatorio do
-      // estorno no cabecalho como origem_tipo='estorno_admin' + origem_ref=motivo,
-      // e o read model projeta os dois. A tela imprimia
-      // "Origem: estorno_admin / lancamento em duplicidade": a resposta para "por
-      // que isto foi estornado" ja estava na tela, escrita como um par tecnico.
-      // Nenhuma mudanca de servidor e necessaria para dize-la em portugues.
-      var ehEstornoAdmin = c.comando_tipo === 'estorno' && c.origem_tipo === 'estorno_admin';
-      var origemNode = ehEstornoAdmin
-        ? metaSpan('Motivo: ', c.origem_ref || '—', c.origem_ref || undefined)
-        : metaSpan('Origem: ', (c.origem_tipo || '—') + (c.origem_ref ? (' / ' + c.origem_ref) : ''), c.origem_ref || undefined);
-      var meta = el('div', {
-        class: 'flex flex-wrap items-center gap-x-4 gap-y-1',
-        style: 'font-size:var(--rv-fs-body);',
-      },
-        tipoBadge(c.comando_tipo),
-        el('span', { style: 'color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;' }, fmtDateTime(c.ocorrido_em)),
-        metaSpan('Por: ', ATOR_LABEL[c.ator_tipo] || c.ator_tipo || '—'),
-        metaSpan('Doc.: ', c.documento_ref || '—', c.documento_ref || undefined),
-        origemNode);
-      // db/119: the metadata line owns its own correction control, on the same
-      // row and to the right, so the Edit action sits with the values it edits.
-      var editBtn = editMetadataButton(c, atorTipo, handlers);
-      block.appendChild(el('div', { class: 'flex items-start justify-between gap-3 mb-2' },
-        meta, editBtn || el('span', {})));
-
-      var showActions = c.comando_tipo === 'recebimento';
-      // Pass-8 §2.5: this history table renders SIX columns — Fio, Origem, Kg,
-      // Kg excesso, Reversível and the Ações cell that carries the row-level
-      // reversal control. The <colgroup> declares all six.
-      var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
-      t.appendChild(el('colgroup', {},
-        el('col', { style: 'width:24%;' }),
-        el('col', { style: 'width:20%;' }),
-        el('col', { style: 'width:14%;' }),
-        el('col', { style: 'width:14%;' }),
-        el('col', { style: 'width:14%;' }),
-        el('col', { style: 'width:14%;' })));
-      // The sixth header used to be an inline copy of th() that had drifted from
-      // it (12px vs the header role, secondary vs tertiary). It is the same role
-      // as its five siblings and now goes through the same owner.
-      t.appendChild(theadRow([th('Fio'), th('Origem'), th('Kg', true), th('Kg excesso', true),
-        th('Reversível', true), th(showActions ? 'Ações' : '', true)]));
-      var body = el('tbody', {});
-      (c.lancamentos || []).forEach(function (l) {
-        var actTd = el('td', { class: 'px-4 py-2 text-right' });
-        // reversalButton devolve null quando não há saldo reversível; a
-        // célula fica vazia em vez de hospedar uma ação morta.
-        var acaoEstorno = showActions ? reversalButton(c, l, acoes, handlers) : null;
-        if (acaoEstorno) actTd.appendChild(acaoEstorno);
-        body.appendChild(bodyRow({ 'data-lancamento-id': String(l.id) }, [
-          tdText(fioLabel(l)),
-          tdText(opLabel(l.op_id), l.op_id == null),
-          el('td', {
-            class: 'px-4 py-2 text-right',
-            style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-variant-numeric:tabular-nums;',
-          }, fmtKg(l.kg)),
-          tdNum(l.kg_excesso),
-          el('td', {
-            class: 'px-4 py-2 text-right',
-            style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;',
-          }, fmtKg(l.kg_reversivel)),
-          actTd,
-        ]));
-      });
-      t.appendChild(body);
-      block.appendChild(el('div', { class: 'overflow-x-auto' }, t));
-      wrap.appendChild(block);
+      wrap.appendChild(entradaTimeline(c, indice, acoes, handlers, atorTipo,
+        i === comandos.length - 1));
     });
     return wrap;
   }
@@ -787,8 +965,8 @@
     },
       materiaisSection(itens),
       sectionCard('oc-recebimentos-historico-card', [
-        sectionHeader('Histórico', ICON_CLOCK, null),
-        historico(hist.comandos || [], acoes, handlers, hist.ator_tipo),
+        sectionHeader('Linha do tempo', ICON_CLOCK, null),
+        timeline(hist.comandos || [], acoes, handlers, hist.ator_tipo),
       ]));
 
     // ---- RIGHT: the rail (§3A) -------------------------------------------
