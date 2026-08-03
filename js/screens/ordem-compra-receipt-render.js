@@ -57,7 +57,6 @@
   }
   var ICON_INBOX = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>';
   var ICON_UNDO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
-  var ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
   // §2.11/D12: a standalone notice carries an icon from its own semantic family.
   var ICON_ALERT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
 
@@ -342,19 +341,55 @@
   // command carries no correctable metadata and gets no control, matching the
   // server, which refuses it with estado_invalido.
   //
-  // Compact icon-only row action (§8.1) via actionButton(): 30×30,
-  // --rv-radius, title + aria-label + sr-only label. NOT danger:
-  // correcting a document reference is an ordinary administrative edit and
-  // must not borrow the destructive affordance of the reversal control.
+  // ROTULO DE TEXTO, NAO ICONE — decisao do arquiteto sobre a tela publicada.
+  //
+  // Este controle NAO fica numa linha de tabela: fica na linha de METADADOS que
+  // encabeca o bloco do comando, ao lado de Data / Por / Doc. / Origem. A isencao
+  // de "icone sozinho" do §2.9 e escrita para a acao de LINHA DE TABELA; nesta
+  // posicao a regra da casa e texto. O lapis de 14px ficava mudo ao lado de
+  // quatro rotulos escritos, e o operador tinha de passar o mouse para saber o
+  // que ele fazia.
+  //
+  // A ALTURA NAO CRESCE: 30px, exatamente a mesma geometria de acao de linha que
+  // o controle de estorno vizinho declara (§2.9), entao o bloco do comando fica
+  // com a altura que ja tinha. So a largura passa a ser automatica, com padding
+  // horizontal, para caber a palavra. Mesmo skin do §2.9 — --rv-surface sobre
+  // --rv-border-soft com texto --rv-text-secondary — para que os dois controles
+  // da mesma familia continuem lendo como irmaos.
+  //
+  // NAO e danger: corrigir a referencia de um documento e uma edicao
+  // administrativa ordinaria e nao pode tomar emprestada a affordance
+  // destrutiva do controle de estorno.
+  //
+  // O rotulo visivel diz "Editar"; o NOME ACESSIVEL continua completo, porque
+  // "Editar" sozinho nao diz o que esta a ser editado nem de quando.
   function editMetadataButton(comando, atorTipo, handlers) {
     var editable = comando.comando_tipo === 'recebimento' && atorTipo === 'admin';
     if (!editable) return null;
-    return window.actionButton({
+    var descricao = 'Editar dados do recebimento de ' + fmtDateTime(comando.ocorrido_em);
+    var btn = el('button', {
+      type: 'button',
       title: 'Editar dados do recebimento',
-      icon: svgIcon(ICON_EDIT),
-      srLabel: 'Editar dados do recebimento de ' + fmtDateTime(comando.ocorrido_em),
+      'aria-label': descricao,
+      style: 'height:30px;padding:0 10px;display:inline-flex;align-items:center;'
+        + 'justify-content:center;flex:none;white-space:nowrap;'
+        + 'border:1px solid var(--rv-border-soft);border-radius:var(--rv-radius);'
+        + 'background:var(--rv-surface);color:var(--rv-text-secondary);'
+        + 'font-size:var(--rv-fs-body);font-weight:600;cursor:pointer;'
+        + 'transition:border-color .18s ease, color .18s ease;',
       onclick: function () { handlers.editarMetadadosRecebimento(comando); },
+    }, 'Editar');
+    // Um estilo em linha nao exprime pseudo-classe; o par imperativo e o mesmo
+    // precedente ja aceito em js/ui.js::actionButton() e pageHeader().
+    btn.addEventListener('mouseenter', function () {
+      btn.style.borderColor = 'var(--rv-border-strong)';
+      btn.style.color = 'var(--rv-text-primary)';
     });
+    btn.addEventListener('mouseleave', function () {
+      btn.style.borderColor = 'var(--rv-border-soft)';
+      btn.style.color = 'var(--rv-text-secondary)';
+    });
+    return btn;
   }
 
   // Command history: one block per command (recebimento/estorno) with its

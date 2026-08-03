@@ -144,12 +144,21 @@ const OC_HEADER_ASSETS = [
 // dois assets alterados migram da lista da fase 1 pela mesma razao de sempre.
 const BACKLOG7_PHASE2_TOKEN = '20260803-backlog7-phase2-state-legibility-r1';
 const BACKLOG7_PHASE2_ASSETS = [
-  'js/screens/ordem-compra-receipt-render.js',
   'js/screens/ordem-compra-receipt-events.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN];
+
+// BACKLOG-7-EDITAR-TEXT-ACTION: decisao do arquiteto sobre a tela publicada —
+// nesta posicao (linha de metadados do comando, nao linha de tabela) o controle
+// leva TEXTO, nao icone. ordem-compra-receipt-render.js migra da lista da fase 2
+// pela mesma razao de sempre: alterado por ultimo por esta ordem.
+const EDITAR_TEXT_TOKEN = '20260803-backlog7-editar-text-action-r1';
+const EDITAR_TEXT_ASSETS = [
+  'js/screens/ordem-compra-receipt-render.js',
+];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN];
 
 function tokenEsperado(asset) {
+  if (EDITAR_TEXT_ASSETS.includes(asset)) return EDITAR_TEXT_TOKEN;
   if (OC_HEADER_ASSETS.includes(asset)) return OC_HEADER_TOKEN;
   if (BACKLOG7_PHASE2_ASSETS.includes(asset)) return BACKLOG7_PHASE2_TOKEN;
   if (BACKLOG7_PHASE1_ASSETS.includes(asset)) return BACKLOG7_PHASE1_TOKEN;
