@@ -129,6 +129,41 @@
       return ids;
     }
 
+    // TRÊS destinos, não dois. O servidor grava a diferença em cada linha e o
+    // resultado do comando a projeta (alocacao_id, op_id, kg_excesso):
+    //   OP direta   — op_id != null: necessidade de ORIGEM OP (hoje algodão).
+    //   Pool Pedido — alocacao_id != null E op_id == null: necessidade de
+    //                 ORIGEM PEDIDO (hoje poliéster). op_id é NULL por
+    //                 constraint (db/67 necessidade_origem_shape), NÃO por
+    //                 falta de destino: db/101 §9.9.A escopa esse material por
+    //                 pedido_id e ele é o teto COMPARTILHADO de todas as OPs
+    //                 do Pedido.
+    //   Excedente   — alocacao_id == null: recebido além do pedido, sem
+    //                 alocação e sem OP. Esse sim não tem destino produtivo.
+    //
+    // Antes as duas últimas eram fundidas num único "nenhuma OP afetada — o
+    // material entrou como excedente ou no pool do Pedido". Para um
+    // recebimento de poliéster inteiramente alocado ao pool a tela afirmava o
+    // OPOSTO do que acontecera: o material tinha acabado de elevar o teto das
+    // OPs do Pedido.
+    function classificarDestinos(result) {
+      var linhas = (result && result.lancamentos) || [];
+      var opIds = [];
+      var temPool = false;
+      var temExcedente = false;
+      linhas.forEach(function (l) {
+        if (!l) return;
+        if (l.op_id != null) {
+          if (opIds.indexOf(l.op_id) === -1) opIds.push(l.op_id);
+        } else if (l.alocacao_id != null) {
+          temPool = true;
+        } else {
+          temExcedente = true;
+        }
+      });
+      return { opIds: opIds, temPool: temPool, temExcedente: temExcedente };
+    }
+
     // Rota de continuação, conforme a ruling R12:
     //   1 OP    -> a própria OP, no seu bloco de ajuste/produção;
     //   N OPs   -> o painel consolidado de produção do Pedido;
@@ -146,10 +181,37 @@
     // AÇÃO de continuação (§R.16). O ajuste acontece na superfície da OP ou no
     // painel do Pedido, sempre pelo dono compartilhado.
     function abrirContinuacaoProducao(result) {
-      var opIds = opsAfetadasDoResultado(result);
+      var destinos = classificarDestinos(result);
+      var opIds = destinos.opIds;
+      var pedidoId = state.ordem && state.ordem.pedido_id;
+
+      // POOL DO PEDIDO — material produtivo COMPARTILHADO. Não há uma OP
+      // única a apontar porque ele eleva o teto de TODAS as OPs do Pedido que
+      // consomem esse eixo; a continuação certa é o painel consolidado.
+      if (!opIds.length && destinos.temPool) {
+        var rotaPool = pedidoId ? '#/pedidos/' + pedidoId + '/producao' : null;
+        var textoPool = 'O material entrou no pool compartilhado do Pedido. Ele não pertence a uma OP específica: '
+          + 'eleva o teto de produção de todas as OPs do Pedido que consomem esse fio.'
+          + (destinos.temExcedente ? ' Parte do recebimento foi classificada como excedente, que não tem destino produtivo.' : '');
+        if (!rotaPool) {
+          window.toast('Recebimento registrado no pool do Pedido. Não foi possível resolver a rota de continuação.', 'success');
+          return null;
+        }
+        return window.modal({
+          title: 'Recebimento registrado',
+          body: window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' }, textoPool),
+          saveLabel: 'Revisar produção do Pedido',
+          onSave: function () {
+            window.navigate(rotaPool);
+            return true;
+          },
+        });
+      }
+
       if (!opIds.length) {
-        // Estado de conclusão HONESTO: sem OP afetada não se inventa destino.
-        window.toast('Recebimento registrado. Nenhuma OP foi afetada — o material entrou como excedente ou no pool do Pedido.', 'success');
+        // Só excedente: aí sim não há destino produtivo, e a tela diz isso
+        // sem embutir o pool na mesma frase.
+        window.toast('Recebimento registrado como excedente. Nenhuma OP foi afetada e nenhum teto de produção mudou.', 'success');
         return null;
       }
       var rota = rotaContinuacao(opIds);
@@ -488,6 +550,7 @@
       // R12 exposto para prova direta do roteamento, sem renderizar o modal
       // de registro inteiro.
       opsAfetadasDoResultado: opsAfetadasDoResultado,
+      classificarDestinos: classificarDestinos,
       rotaContinuacao: rotaContinuacao,
       abrirContinuacaoProducao: abrirContinuacaoProducao,
     };

@@ -83,7 +83,7 @@ const REACHABILITY_ASSETS = [
 // enviar a data que o escritor exige, entao ordem-compra-receipt-events.js
 // carrega o token desta ordem — mesmo mecanismo das anteriores. Ele deixa de
 // reter o token de db/119, que era o ultimo a te-lo alterado.
-const REVERSAL_DATE_TOKEN = '20260803-receipt-origin-required-r1';
+const REVERSAL_DATE_TOKEN = '20260803-receipt-pool-destination-r1';
 const REVERSAL_DATE_ASSETS = [
   'js/screens/ordem-compra-receipt-events.js',
 ];

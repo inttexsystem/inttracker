@@ -487,3 +487,84 @@ test('registro: recusa comando_invalido nomeia os campos que faltam', async () =
   assert.match(msg, /origem/i, 'a recusa tem de dizer QUAL campo falta');
   assert.doesNotMatch(msg, /^Dados do recebimento inv/i, 'a mensagem muda nao ajudava ninguem');
 });
+
+// ---------------------------------------------------------------------
+// RECEIPT-POOL-DESTINATION-VISIBILITY-R1
+//
+// O recebimento de poliester PRETO da OC-001-4-26 entrou 100% na alocacao 102
+// (kg_excesso 0,000) e a tela anunciou "Nenhuma OP foi afetada — o material
+// entrou como excedente ou no pool do Pedido". Esse material NAO e excedente:
+// e o pool COMPARTILHADO do Pedido, que db/101 escopa por pedido_id e que
+// eleva o teto de todas as OPs do Pedido. A frase com "ou" fundia dois
+// estados opostos e escolhia a leitura errada.
+//
+// op_id NULL numa linha COM alocacao significa origem-Pedido (constraint
+// db/67 necessidade_origem_shape), nao ausencia de destino.
+// ---------------------------------------------------------------------
+
+const LINHA_OP = { id: 1, item_id: 7, alocacao_id: 42, op_id: 900, kg: 10, kg_excesso: 0 };
+const LINHA_POOL = { id: 2, item_id: 7, alocacao_id: 102, op_id: null, kg: 880.65, kg_excesso: 0 };
+const LINHA_EXCEDENTE = { id: 3, item_id: 7, alocacao_id: null, op_id: null, kg: 5, kg_excesso: 5 };
+
+test('destinos: pool do Pedido nao e excedente e nao e OP', () => {
+  const env = setup({}, projection());
+  const c = env.handlers.classificarDestinos({ lancamentos: [LINHA_POOL] });
+  // O array volta do realm do vm; comparar por conteudo, nao por prototipo.
+  assert.equal(c.opIds.length, 0, 'pool nao aponta OP nenhuma');
+  assert.equal(c.temPool, true, 'linha com alocacao e op_id NULL e pool do Pedido');
+  assert.equal(c.temExcedente, false, 'pool nunca e classificado como excedente');
+
+  const e = env.handlers.classificarDestinos({ lancamentos: [LINHA_EXCEDENTE] });
+  assert.equal(e.temPool, false);
+  assert.equal(e.temExcedente, true, 'linha sem alocacao e excedente');
+
+  const o = env.handlers.classificarDestinos({ lancamentos: [LINHA_OP] });
+  assert.equal(o.opIds.length, 1);
+  assert.equal(o.opIds[0], 900);
+  assert.equal(o.temPool, false);
+  assert.equal(o.temExcedente, false);
+});
+
+test('recebimento no POOL oferece continuacao para o painel do Pedido, sem dizer excedente', async () => {
+  const env = setup({ registrar_recebimento_ordem_compra: () => ({ data: { ok: true, lancamentos: [LINHA_POOL] }, error: null }) },
+    projection());
+  env.state.ordem.pedido_id = 'ped-1';
+  env.handlers.abrirRegistroRecebimento();
+  const modal = overlayByTitle(env.sandbox, /Registrar recebimento/);
+  inputByAttr(modal, 'data-alocacao-id', 42).value = '5';
+  await btnByText(modal, /^Registrar$/)._listeners.click();
+  const cont = overlayByTitle(env.sandbox, /Recebimento registrado/);
+  assert.ok(cont, 'o pool tem continuacao, nao um toast de beco sem saida');
+  const txt = text(cont);
+  assert.match(txt, /pool compartilhado do Pedido/i, 'a tela nomeia o destino real');
+  assert.match(txt, /todas as OPs do Pedido/i, 'e diz que eleva o teto delas');
+  assert.doesNotMatch(txt, /excedente/i, 'pool puro nunca pode ser chamado de excedente');
+  assert.ok(btnByText(cont, /Revisar produção do Pedido/), 'acao de continuacao presente');
+});
+
+test('recebimento SO de excedente diz exatamente isso, sem citar pool', async () => {
+  const env = setup({ registrar_recebimento_ordem_compra: () => ({ data: { ok: true, lancamentos: [LINHA_EXCEDENTE] }, error: null }) },
+    projection());
+  env.handlers.abrirRegistroRecebimento();
+  const modal = overlayByTitle(env.sandbox, /Registrar recebimento/);
+  inputByAttr(modal, 'data-alocacao-id', 42).value = '5';
+  await btnByText(modal, /^Registrar$/)._listeners.click();
+  const msg = String(lastToast(env.sandbox)._text || lastToast(env.sandbox).textContent || '');
+  assert.match(msg, /excedente/i);
+  assert.doesNotMatch(msg, /pool/i, 'excedente puro nao pode citar pool na mesma frase');
+});
+
+test('pool + excedente no mesmo recebimento: continuacao do pool, excedente declarado a parte', async () => {
+  const env = setup({ registrar_recebimento_ordem_compra: () => ({ data: { ok: true, lancamentos: [LINHA_POOL, LINHA_EXCEDENTE] }, error: null }) },
+    projection());
+  env.state.ordem.pedido_id = 'ped-1';
+  env.handlers.abrirRegistroRecebimento();
+  const modal = overlayByTitle(env.sandbox, /Registrar recebimento/);
+  inputByAttr(modal, 'data-alocacao-id', 42).value = '5';
+  await btnByText(modal, /^Registrar$/)._listeners.click();
+  const cont = overlayByTitle(env.sandbox, /Recebimento registrado/);
+  assert.ok(cont, 'havendo pool, a continuacao existe');
+  const txt = text(cont);
+  assert.match(txt, /pool compartilhado do Pedido/i);
+  assert.match(txt, /excedente/i, 'a parte excedente e declarada, nao escondida');
+});
