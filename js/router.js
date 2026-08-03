@@ -189,6 +189,27 @@
     };
   }
 
+  // TECELAGEM V1 — superfície operacional do fornecedor de tecelagem.
+  // Rotas NOVAS sob '#/tecelagem/*': nenhuma rota '#/fornecedor/*' existente é
+  // redefinida e o destino pós-login continua o que sempre foi, por isso o
+  // comportamento atual do fornecedor não muda. `ops.id` é BIGSERIAL e
+  // `op_itens.id` também, daí o id numérico. A mais específica vem primeiro.
+  const mTecRolos = rawHash.match(/^#\/tecelagem\/ops\/(\d+)\/produtos\/(\d+)\/rolos$/);
+  if (mTecRolos) {
+    return {
+      render: () => window.screenTecelagemRolos(Number(mTecRolos[1]), Number(mTecRolos[2])),
+      roles: ['fornecedor'],
+    };
+  }
+
+  const mTecOp = rawHash.match(/^#\/tecelagem\/ops\/(\d+)$/);
+  if (mTecOp) {
+    return {
+      render: () => window.screenTecelagemOp(Number(mTecOp[1])),
+      roles: ['fornecedor'],
+    };
+  }
+
   // Match dinâmico para detalhe de Ordem de Compra (REFUND-B1, id numérico —
   // ordem_compra.id é BIGSERIAL). A lista `#/ordens-compra` é rota exata
   // (resolvida pelo match exato acima).

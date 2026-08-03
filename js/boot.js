@@ -85,6 +85,10 @@
     '#/fornecedor/entregas': { render: window.screenFornecedorEntregas, roles: ['fornecedor'] },
     '#/fornecedor/latex':    { render: window.screenFornecedorLatex,    roles: ['fornecedor'] },
 
+    // TECELAGEM V1 — entrada da superfície de tecelagem. As telas de OP e de
+    // rolos são rotas dinâmicas (ids numéricos) resolvidas em js/router.js.
+    '#/tecelagem/ops':       { render: window.screenTecelagemOps,       roles: ['fornecedor'] },
+
     '#/cliente/dashboard':    { render: window.screenClienteDashboard,    roles: ['cliente'] },
     '#/cliente/pedidos':      { render: window.screenClientePedidosLista, roles: ['cliente'] },
     '#/cliente/pedidos/novo': { render: window.screenClientePedidoNovo,   roles: ['cliente'] },

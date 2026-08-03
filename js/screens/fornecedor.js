@@ -280,7 +280,13 @@
     }
 
     await reload();
-    return window.shellLayout([{ href: '#/fornecedor/entregas', label: 'Minhas entregas' }], container);
+    // TECELAGEM V1: o fornecedor de tecelagem alcança a nova superfície
+    // operacional a partir daqui. O destino pós-login continua sendo esta
+    // tela, exatamente como antes — só o menu ganhou uma entrada.
+    return window.shellLayout([
+      { href: '#/tecelagem/ops', label: 'Minhas OPs' },
+      { href: '#/fornecedor/entregas', label: 'Minhas entregas' },
+    ], container);
   }
 
   // -------------------------------------------------------------------
