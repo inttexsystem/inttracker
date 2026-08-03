@@ -187,17 +187,51 @@ test('row-level reversal button: all §8.1 guards, enabled when server allows', 
   assert.equal(reversed, 800, 'reversal wired to the lançamento');
 });
 
-test('reversal button disabled when kg_reversivel === 0 or acoes.estornar === false', () => {
+// REVERSED-RECEIPT-LINE-ACTION-VISIBILITY-R1: a acao AUSENTE, nao desabilitada.
+//
+// Antes este guard exigia o oposto — que o controle existisse e ficasse
+// `disabled`. Na tela real isso fez um lancamento JA TOTALMENTE ESTORNADO
+// (linha 54 de OC-001-4-26, kg_reversivel 0,000) continuar anunciando
+// "Estornar recebimento do lancamento 54" ao lado da propria coluna que dizia
+// Reversivel 0,000 kg. Sem saldo reversivel nao ha acao.
+test('reversal action is ABSENT when kg_reversivel === 0 or acoes.estornar === false', () => {
   const s = makeSandbox();
   const exhausted = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
     projection({ comandos: [Object.assign(projection().comandos[0], { lancamentos: [Object.assign({}, projection().comandos[0].lancamentos[0], { kg_reversivel: 0 })] })] }));
   const b1 = findButtons(exhausted).find((b) => b.getAttribute('title') === 'Estornar recebimento');
-  assert.equal(b1.disabled, true, 'disabled when kg_reversivel === 0');
-  assert.ok(!b1._listeners || !b1._listeners.click, 'no click handler when disabled');
+  assert.equal(b1, undefined, 'nenhuma acao de estorno num lancamento sem saldo reversivel');
+  // E o rotulo acessivel tambem some: para leitor de tela a acao deixa de existir.
+  assert.doesNotMatch(text(exhausted), /Estornar recebimento do lançamento/,
+    'o rotulo sr-only nao pode sobreviver a ausencia da acao');
 
   const noAdmin = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection({ acoes: { receber: true, estornar: false } }));
   const b2 = findButtons(noAdmin).find((b) => b.getAttribute('title') === 'Estornar recebimento');
-  assert.equal(b2.disabled, true, 'disabled when acoes.estornar === false');
+  assert.equal(b2, undefined, 'sem permissao de estorno nenhuma linha oferece a acao');
+});
+
+// O caso REAL de OC-001-4-26 depois do estorno operacional: duas linhas do
+// MESMO comando, uma ainda reversivel e outra ja exaurida.
+test('linha reversivel mantem a acao enquanto a linha exaurida perde a acao', () => {
+  const s = makeSandbox();
+  const base = projection().comandos[0];
+  const lancBase = base.lancamentos[0];
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({
+      comandos: [Object.assign({}, base, {
+        lancamentos: [
+          Object.assign({}, lancBase, { id: 53, kg: 880.65, kg_excesso: 0, kg_reversivel: 880.65 }),
+          Object.assign({}, lancBase, { id: 54, kg: 880.65, kg_excesso: 880.65, kg_reversivel: 0 }),
+        ],
+      })],
+    }));
+  const acoes = findButtons(view).filter((b) => b.getAttribute('title') === 'Estornar recebimento');
+  assert.equal(acoes.length, 1, 'exatamente UMA acao: so a linha que ainda tem saldo reversivel');
+  const texto = text(view);
+  assert.match(texto, /Estornar recebimento do lançamento 53/, 'a linha 53 mantem a acao');
+  assert.doesNotMatch(texto, /Estornar recebimento do lançamento 54/, 'a linha 54 nao oferece mais estorno');
+  // A linha exaurida continua VISIVEL e legivel como nao reversivel.
+  assert.ok(findAll(view, (n) => n.getAttribute && n.getAttribute('data-lancamento-id') === '54').length > 0,
+    'a linha 54 continua na historia');
 });
 
 test('visual tokens: flat card at --rv-radius-card, neutral chip tokens, accent action, token numerics (VISUAL-GATE-R1)', () => {

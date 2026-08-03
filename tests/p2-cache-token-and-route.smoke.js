@@ -87,9 +87,19 @@ const REVERSAL_DATE_TOKEN = '20260803-receipt-reversal-mandatory-date-r1';
 const REVERSAL_DATE_ASSETS = [
   'js/screens/ordem-compra-receipt-events.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN];
+
+// REVERSED-RECEIPT-LINE-ACTION-VISIBILITY-R1: a acao de estorno passou a ser
+// AUSENTE (nao desabilitada) num lancamento sem saldo reversivel, entao
+// ordem-compra-receipt-render.js carrega o token desta ordem e deixa de reter
+// o de db/119.
+const REVERSED_ACTION_TOKEN = '20260803-reversed-line-action-visibility-r1';
+const REVERSED_ACTION_ASSETS = [
+  'js/screens/ordem-compra-receipt-render.js',
+];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN];
 
 function tokenEsperado(asset) {
+  if (REVERSED_ACTION_ASSETS.includes(asset)) return REVERSED_ACTION_TOKEN;
   if (REVERSAL_DATE_ASSETS.includes(asset)) return REVERSAL_DATE_TOKEN;
   if (REACHABILITY_ASSETS.includes(asset)) return REACHABILITY_TOKEN;
   if (P4_ASSETS.includes(asset)) return P4_TOKEN;

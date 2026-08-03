@@ -209,20 +209,31 @@
 
   // One reversal control per reversible receipt lançamento. Compact icon-only
   // row action (§8.1) via actionButton(): 30×30, --rv-radius-control, title +
-  // aria-label + sr-only label (all inside actionButton), disabled derived
-  // strictly from the server model (acoes.estornar AND kg_reversivel > 0).
-  // The confirmDialog gate before execution is wired in the events layer.
+  // aria-label + sr-only label (all inside actionButton). Reversibility is
+  // derived strictly from the server model (acoes.estornar AND
+  // kg_reversivel > 0). The confirmDialog gate before execution is wired in
+  // the events layer.
+  //
+  // AUSENTE, NÃO DESABILITADO. Antes o controle era sempre construído e só
+  // ficava `disabled`, então um lançamento JÁ TOTALMENTE ESTORNADO continuava
+  // anunciando "Estornar recebimento do lançamento 54" ao lado da própria
+  // linha que dizia "Reversível 0,000 kg" — a mesma tela afirmando duas
+  // coisas contrárias, e para leitor de tela a ação simplesmente existia.
+  // Sem saldo reversível não há ação: devolver null é o que faz a célula
+  // concordar com a coluna Reversível e com o bloco de estorno abaixo.
+  // O estado "totalmente estornado" continua legível — ele é dito pelo valor
+  // 0,000 em Reversível e pelo bloco de Estorno, não por um botão morto.
   function reversalButton(comando, lanc, acoes, handlers) {
     var reversible = comando.comando_tipo === 'recebimento'
       && acoes && acoes.estornar === true
       && Number(lanc.kg_reversivel) > 0;
+    if (!reversible) return null;
     return window.actionButton({
       title: 'Estornar recebimento',
       icon: svgIcon(ICON_UNDO),
       danger: true,
-      disabled: !reversible,
       srLabel: 'Estornar recebimento do lançamento ' + lanc.id,
-      onclick: reversible ? function () { handlers.estornarLancamento(comando, lanc); } : undefined,
+      onclick: function () { handlers.estornarLancamento(comando, lanc); },
     });
   }
 
@@ -297,7 +308,10 @@
       var body = el('tbody', {});
       (c.lancamentos || []).forEach(function (l) {
         var actTd = el('td', { class: 'px-4 py-2 text-right' });
-        if (showActions) actTd.appendChild(reversalButton(c, l, acoes, handlers));
+        // reversalButton devolve null quando não há saldo reversível; a
+        // célula fica vazia em vez de hospedar uma ação morta.
+        var acaoEstorno = showActions ? reversalButton(c, l, acoes, handlers) : null;
+        if (acaoEstorno) actTd.appendChild(acaoEstorno);
         body.appendChild(bodyRow({ 'data-lancamento-id': String(l.id) }, [
           tdText(fioLabel(l)),
           tdText(opLabel(l.op_id), l.op_id == null),
