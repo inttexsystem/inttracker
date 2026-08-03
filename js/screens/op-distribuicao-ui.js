@@ -135,15 +135,25 @@
     return Number(calc.poliester[eixo.cor_poliester] || 0);
   }
 
-  function rotuloEixo(eixo) {
-    if (eixo.material === 'algodao') return 'Algodão — ' + (eixo.cor_nome || ('cor ' + eixo.cor_id));
+  // oc_disponibilidade_op (db/101) devolve cor_id cru (BIGINT) para o eixo
+  // de algodão — não é seu papel resolver nome, e nunca resolveu. `coresById`
+  // é o mapa {id: {id, nome}} da tabela canônica `cores`, carregado pelo
+  // chamador (o mesmo dado já usado em toda a tela para cor_1/cor_2 do
+  // modelo). Sem o mapa, ou sem entrada para aquele id, cai no rótulo
+  // opaco anterior — presentational-only: nunca bloqueia nem recalcula nada.
+  function rotuloEixo(eixo, coresById) {
+    if (eixo.material === 'algodao') {
+      var cor = coresById && (coresById[eixo.cor_id] || coresById[String(eixo.cor_id)]);
+      var nome = (cor && cor.nome) || eixo.cor_nome;
+      return 'Algodão — ' + (nome || ('cor ' + eixo.cor_id));
+    }
     return 'Poliéster — ' + eixo.cor_poliester;
   }
 
   // Avalia uma distribuição contra o teto nativo. Sem disponibilidade
   // carregada não se INVENTA excesso: `algumExcede` fica false e quem valida
   // é o servidor no salvamento (que é o dono do teto de qualquer forma).
-  function avaliarDistribuicao(metrosMap, opItens, modelosById, parametrosByLargura, disponibilidade) {
+  function avaliarDistribuicao(metrosMap, opItens, modelosById, parametrosByLargura, disponibilidade, coresById) {
     var eixos = disponibilidade || [];
     var calc = consumoPorEixo(metrosMap, opItens, modelosById, parametrosByLargura);
     var linhas = eixos.map(function (d) {
@@ -151,7 +161,7 @@
       var teto = Number(d.kg_disponivel);
       return {
         eixo: d,
-        rotulo: rotuloEixo(d),
+        rotulo: rotuloEixo(d, coresById),
         kg_consumido: round3(consumido),
         kg_disponivel: round3(teto),
         sobra: round3(teto - consumido),
@@ -192,7 +202,7 @@
   // vivo). §9.9.D: começar produção exige uma OP JÁ ABERTA — abrir uma OP
   // simulada continua sendo ação explícita do operador, e esta tela não a
   // abre em silêncio.
-  function iniciarProducaoState(opItens, op, disponibilidade, modelosById, parametrosByLargura) {
+  function iniciarProducaoState(opItens, op, disponibilidade, modelosById, parametrosByLargura, coresById) {
     var status = (op && op.status) || null;
     var aberta = status === 'aberta';
     var saved = distribuicaoSalva(opItens);
@@ -209,7 +219,7 @@
       };
     }
     var info = saved
-      ? avaliarDistribuicao(saved, opItens, modelosById, parametrosByLargura, disponibilidade)
+      ? avaliarDistribuicao(saved, opItens, modelosById, parametrosByLargura, disponibilidade, coresById)
       : { algumExcede: false };
     var habilitado = aberta && saved != null && !info.algumExcede;
     var motivo = '';
@@ -258,11 +268,11 @@
 
   // Botão primário "Iniciar produção" — ÚNICO ponto de início de
   // produção em qualquer tela. ctx: { op, opItens, disponibilidade,
-  // ajusteRevisao, modelosById, parametrosByLargura, styleEnabled,
+  // ajusteRevisao, modelosById, parametrosByLargura, coresById, styleEnabled,
   // styleDisabled, onIniciado }.
   function buildIniciarProducaoButton(ctx) {
     var el = window.el;
-    var st = iniciarProducaoState(ctx.opItens, ctx.op, ctx.disponibilidade, ctx.modelosById, ctx.parametrosByLargura);
+    var st = iniciarProducaoState(ctx.opItens, ctx.op, ctx.disponibilidade, ctx.modelosById, ctx.parametrosByLargura, ctx.coresById);
     // A revisão real também é entrada obrigatória do início de produção.
     if (!contextoNativoCompleto(ctx)) {
       st = { habilitado: false, motivo: motivoContextoIncompleto(ctx), contextoIncompleto: true };
@@ -315,8 +325,8 @@
   // [Voltar à proposta] [Limpar ajuste] · [Manter pedido] [Salvar distribuição].
   // AMBOS os botões do rodapé só persistem (save-only); nenhum inicia
   // produção. ctx: { op, opItens, disponibilidade, ajusteRevisao,
-  // modelosById, parametrosByLargura, variant('full'|'compact'), onSaved,
-  // onRecarregar }.
+  // modelosById, parametrosByLargura, coresById, variant('full'|'compact'),
+  // onSaved, onRecarregar }.
   function buildDistribuicaoBlock(ctx) {
     // FAIL-CLOSED (P2-C): sem disponibilidade nativa e sem a revisão real,
     // nenhum slider é construído e nenhum salvamento é oferecido.
@@ -521,8 +531,8 @@
 
     function recompute() {
       var atual = distribuicaoAtual();
-      var infoAtual = avaliarDistribuicao(atual, opItens, modelosById, parametrosByLargura, disponibilidade);
-      var infoPedido = avaliarDistribuicao(pedidoMap, opItens, modelosById, parametrosByLargura, disponibilidade);
+      var infoAtual = avaliarDistribuicao(atual, opItens, modelosById, parametrosByLargura, disponibilidade, ctx.coresById);
+      var infoPedido = avaliarDistribuicao(pedidoMap, opItens, modelosById, parametrosByLargura, disponibilidade, ctx.coresById);
 
       var linhas = [el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.06em;margin-bottom:10px;' }, 'CONSUMO DE FIO')];
       if (!infoAtual.temDisponibilidade) {

@@ -114,12 +114,23 @@
         });
       });
       state.modelosById = {};
+      // Identidade humana da cor de cada eixo de CONSUMO DE FIO no bloco de
+      // distribuição compartilhado: sem este mapa, oc_disponibilidade_op
+      // devolve só cor_id cru e o rótulo cai no id opaco ("cor 1", "cor 6").
+      // Derivado do mesmo embed cor_1/cor_2 já lido acima — sem consulta extra,
+      // porque o cor_id de um eixo de algodão é sempre a cor de um modelo desta
+      // OP (db/101).
+      state.coresById = {};
       if (modeloIds.length) {
         var modRes = await window.supa.from('modelos')
           .select('id, nome, largura, cor_1:cor_1_id(id, nome), cor_2:cor_2_id(id, nome)')
           .in('id', modeloIds);
         if (!modRes.error) {
-          (modRes.data || []).forEach(function (m) { state.modelosById[m.id] = m; });
+          (modRes.data || []).forEach(function (m) {
+            state.modelosById[m.id] = m;
+            if (m.cor_1 && m.cor_1.id != null) state.coresById[m.cor_1.id] = m.cor_1;
+            if (m.cor_2 && m.cor_2.id != null) state.coresById[m.cor_2.id] = m.cor_2;
+          });
         } else {
           console.error('pedido-producao-panel: modelos', modRes.error);
         }
@@ -234,6 +245,7 @@
         ajusteRevisao: op.ajuste_revisao,
         modelosById: state.modelosById,
         parametrosByLargura: state.parametrosByLargura,
+        coresById: state.coresById,
         variant: 'compact',
         onRecarregar: async function () { await reload(); return true; },
         onSaved: async function () { await reload(); },
@@ -248,6 +260,7 @@
         ajusteRevisao: op.ajuste_revisao,
         modelosById: state.modelosById,
         parametrosByLargura: state.parametrosByLargura,
+        coresById: state.coresById,
         styleEnabled: 'display:inline-flex;align-items:center;justify-content:center;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);padding:0 16px;min-height:var(--rv-h-compact);font-weight:700;font-size:var(--rv-fs-sm);font-family:inherit;cursor:pointer;',
         styleDisabled: 'display:inline-flex;align-items:center;justify-content:center;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);padding:0 16px;min-height:var(--rv-h-compact);font-weight:700;font-size:var(--rv-fs-sm);font-family:inherit;opacity:.45;cursor:default;',
         onIniciado: async function (proximaAcao) {

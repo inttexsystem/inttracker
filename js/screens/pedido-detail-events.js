@@ -1042,7 +1042,7 @@
         disponibilidade: disp,
         ajusteRevisao: op.ajuste_revisao,
         modelosById: buildModelosForEntregaForm(),
-        parametrosByLargura: parametrosByLargura,
+        parametrosByLargura: parametrosByLargura, coresById: state.coresById || {},
       };
     }
 
@@ -1078,7 +1078,7 @@
       return api.buildDistribuicaoBlock({
         op: c.op, opItens: c.opItens,
         disponibilidade: c.disponibilidade, ajusteRevisao: c.ajusteRevisao,
-        modelosById: c.modelosById, parametrosByLargura: c.parametrosByLargura,
+        modelosById: c.modelosById, parametrosByLargura: c.parametrosByLargura, coresById: c.coresById,
         variant: 'compact',
         onRecarregar: async function () { await reload(); render(); return true; },
         onSaved: afterTecSuccess(op, options),
@@ -1097,7 +1097,7 @@
       return api.buildIniciarProducaoButton({
         op: c.op, opItens: c.opItens,
         disponibilidade: c.disponibilidade, ajusteRevisao: c.ajusteRevisao,
-        modelosById: c.modelosById, parametrosByLargura: c.parametrosByLargura,
+        modelosById: c.modelosById, parametrosByLargura: c.parametrosByLargura, coresById: c.coresById,
         styleEnabled: styleEnabled, styleDisabled: styleDisabled,
         onIniciado: afterTecSuccess(op, options),
       });

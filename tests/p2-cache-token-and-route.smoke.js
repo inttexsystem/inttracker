@@ -57,14 +57,14 @@ const STABILIZATION_ASSETS = [
 // POR ULTIMO.
 //
 // `pedido-detail-events.js` migrou da lista da estabilizacao para a do P4
-// porque o P4 foi a ultima fase a altera-lo.
+// porque o P4 foi a ultima fase a altera-lo, e migrou de novo dali para a
+// lista YARN_COLOR_LABEL abaixo, pela mesma razao.
 const P4_TOKEN = '20260801-native-receipt-p4-authority-switch-r1';
 const P4_ASSETS = [
   'js/pedido-priority.js',
   'js/screens/cliente-pedido-form.js',
   'js/screens/pedido-form.js',
   'js/screens/op-persistir.js',
-  'js/screens/pedido-detail-events.js',
   'js/screens/pedido-tracking-admin.js',
 ];
 // OP-CANONICAL-PURCHASE-ORDER-DISTINCT-COUNT-FIX-R1: a restauracao do alcance
@@ -74,11 +74,10 @@ const P4_ASSETS = [
 // o P4. O sujeito do guard nao muda: todo asset alterado carrega o token da
 // ordem que o alterou POR ULTIMO, e o token anterior
 // (20260802-native-yarn-distribution-ui-reachability-r1) foi superseded sem
-// nunca ter sido publicado sobre estes bytes finais.
+// nunca ter sido publicado sobre estes bytes finais. op-nova.js migrou de
+// novo dali para a lista YARN_COLOR_LABEL abaixo, pela mesma razao.
 const REACHABILITY_TOKEN = '20260802-live-purchase-order-reader-r1';
-const REACHABILITY_ASSETS = [
-  'js/screens/op-nova.js',
-];
+const REACHABILITY_ASSETS = [];
 // RECEIPT-REVERSAL-MANDATORY-DATE-R1: o modal de estorno passou a coletar e
 // enviar a data que o escritor exige, entao ordem-compra-receipt-events.js
 // carrega o token desta ordem — mesmo mecanismo das anteriores. Ele deixa de
@@ -96,9 +95,26 @@ const REVERSED_ACTION_TOKEN = '20260803-reversed-line-action-visibility-r1';
 const REVERSED_ACTION_ASSETS = [
   'js/screens/ordem-compra-receipt-render.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN];
+
+// YARN-CONSUMPTION-HUMAN-READABLE-COLOR-R1: o eixo de algodao de CONSUMO DE
+// FIO exibia o cor_id cru de oc_disponibilidade_op ("Algodao - cor 1") porque
+// nenhum chamador do dono compartilhado (op-distribuicao-ui.js) resolvia o
+// nome canonico da tabela `cores`. Os quatro assets alterados — o dono
+// compartilhado e os tres chamadores que agora carregam `coresById` —
+// carregam o token desta ordem. `op-nova.js` migrou da lista REACHABILITY e
+// `pedido-detail-events.js` migrou da lista P4, cada um pela mesma razao:
+// alterado por ultimo por esta ordem.
+const YARN_COLOR_LABEL_TOKEN = '20260803-yarn-consumption-human-readable-color-r1';
+const YARN_COLOR_LABEL_ASSETS = [
+  'js/screens/op-distribuicao-ui.js',
+  'js/screens/op-nova.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/pedido-producao-panel.js',
+];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN];
 
 function tokenEsperado(asset) {
+  if (YARN_COLOR_LABEL_ASSETS.includes(asset)) return YARN_COLOR_LABEL_TOKEN;
   if (REVERSED_ACTION_ASSETS.includes(asset)) return REVERSED_ACTION_TOKEN;
   if (REVERSAL_DATE_ASSETS.includes(asset)) return REVERSAL_DATE_TOKEN;
   if (REACHABILITY_ASSETS.includes(asset)) return REACHABILITY_TOKEN;
@@ -147,10 +163,10 @@ test('3. nenhum modulo e montado duas vezes', () => {
   assert.deepEqual(Array.from(new Set(dup)), [], 'script montado mais de uma vez');
 });
 
-test('4. o novo modulo esta montado exatamente uma vez, com o token da fase', () => {
+test('4. o novo modulo esta montado exatamente uma vez, com o token da fase que o alterou por ultimo', () => {
   const n = (INDEX.match(/src="js\/screens\/pedido-producao-panel\.js\?v=/g) || []).length;
   assert.equal(n, 1);
-  assert.equal(tokenDe('js/screens/pedido-producao-panel.js'), P2_TOKEN);
+  assert.equal(tokenDe('js/screens/pedido-producao-panel.js'), YARN_COLOR_LABEL_TOKEN);
 });
 
 test('5. ordem de dependencia: dono compartilhado antes do painel, painel antes do boot', () => {

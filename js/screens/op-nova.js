@@ -343,17 +343,23 @@
   async function screenNovaOP(opId, pedidoId) {
   const container = el('div', {});
   // 1) Carrega dados de apoio
-  const [modelosRes, paramsRes, fornsRes, clientesRes] = await Promise.all([
+  const [modelosRes, paramsRes, fornsRes, clientesRes, coresRes] = await Promise.all([
     supa.from('modelos').select('id, nome, largura, cor_1:cor_1_id(id,nome), cor_2:cor_2_id(id,nome)').order('nome'),
     supa.from('parametros_largura').select('*'),
     supa.from('fornecedores').select('id, nome, tipo').order('nome'),
     supa.from('clientes').select('id, nome').order('nome'),
+    supa.from('cores').select('id, nome'),
   ]);
   if (modelosRes.error || paramsRes.error || fornsRes.error || clientesRes.error) {
     toast('Erro ao carregar dados da OP', 'error');
     console.error(modelosRes.error || paramsRes.error || fornsRes.error || clientesRes.error);
     return shellLayout(ADMIN_MENU, container);
   }
+  // Identidade humana da cor de cada eixo de consumo de fio (CONSUMO DE FIO
+  // no bloco de distribuição compartilhado). oc_disponibilidade_op só devolve
+  // cor_id cru; sem este mapa o rótulo cai no id opaco ("cor 1", "cor 6").
+  const coresById = Object.fromEntries((coresRes.data || []).map(c => [c.id, c]));
+  if (coresRes.error) console.error('op-nova: cores', coresRes.error);
   const clientesOptions = (clientesRes.data || []).map(c => ({ value: c.id, label: c.nome }));
   const clientesById = Object.fromEntries((clientesRes.data || []).map(c => [String(c.id), c.nome]));
   const modelos = modelosRes.data || [];
@@ -1917,6 +1923,7 @@
       ajusteRevisao: op ? op.ajuste_revisao : 0,
       modelosById: modelosById,
       parametrosByLargura: parametrosByLargura,
+      coresById: coresById,
       variant: 'full',
       onRecarregar: recarregarAjusteOP,
       onSaved: function (savedMap) {
@@ -1995,7 +2002,7 @@
     // com distribuição salva + fio recebido cobrindo; senão desabilitado
     // com title explicativo (inclui "aguardando recebimento dos fios").
     var api = window.RAVATEX_SCREENS.opDistribuicao;
-    var st = api.iniciarProducaoState(opItensRaw, op, disponibilidade, modelosById, parametrosByLargura);
+    var st = api.iniciarProducaoState(opItensRaw, op, disponibilidade, modelosById, parametrosByLargura, coresById);
     // §2.1 (D9): o estado desabilitado nao troca cores — ele e opacidade.
     // Declarado explicitamente, nunca derivado do estilo habilitado por
     // substituicao de string.
@@ -2007,6 +2014,7 @@
       ajusteRevisao: op ? op.ajuste_revisao : 0,
       modelosById: modelosById,
       parametrosByLargura: parametrosByLargura,
+      coresById: coresById,
       styleEnabled: RV_BTN_PRIMARY,
       styleDisabled: styleDisabled,
       // A continuação é do SERVIDOR: iniciar_producao_op devolve

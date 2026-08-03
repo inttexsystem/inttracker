@@ -298,7 +298,11 @@ test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () 
   // nativos ao alcance da tela, passou a contar ORDENS distintas e alcancou as
   // duas rotas de proveniencia canonica, entao op-nova.js carrega o token
   // dessa ordem.
-  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260802-live-purchase-order-reader-r1"\s*><\/script>/g;
+  // YARN-CONSUMPTION-HUMAN-READABLE-COLOR-R1 passou a carregar `coresById`
+  // para o dono compartilhado de distribuicao resolver o nome da cor de
+  // algodao (em vez do cor_id cru), entao op-nova.js carrega o token dessa
+  // ordem por ultimo.
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260803-yarn-consumption-human-readable-color-r1"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,
