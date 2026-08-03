@@ -75,13 +75,25 @@
 // from `acoes`. The registration modal is phase 5; the demotion of provenance
 // and administrative events is phase 6.
 //
-// KNOWN GAP, DELIBERATELY NOT FABRICATED. Phase 4 asks for a third event
-// family — administrative correction. db/119 records every correction in
-// public.ordem_compra_recebimento_metadados_correcoes with a full before/after
-// image, but that table has RLS enabled and ALL privileges revoked from PUBLIC,
-// anon, authenticated AND service_role, and NO read model projects it. The
-// correction history is therefore unreachable by any client without a new
-// migration, which no order authorizes. The family is reported, not invented.
+// THE THIRD FAMILY — ADMINISTRATIVE CORRECTION (db/122).
+//
+// db/119 always recorded every administrative metadata correction, with the
+// full before/after image of the four correctable fields. But its table has RLS
+// enabled and ALL privileges revoked from PUBLIC, anon, authenticated AND
+// service_role, and the read model — db/100, written BEFORE db/119 — never knew
+// about it. A correction could therefore exist in the system, and the business
+// date of a real receipt could have been changed, with no trace anywhere in the
+// product. That was an auditability gap, not a design choice.
+//
+// db/122 closes it WITHOUT weakening anything: the table keeps its RLS and its
+// revocations, and the projection is added to the SECURITY DEFINER read model
+// that already decides who may read this order. The correction's actor travels
+// as a TYPE resolved through public.usuarios, never as the auth.users UUID the
+// table stores.
+//
+// The surface degrades OPEN: while db/122 is not applied, the read model simply
+// returns no `correcoes` and no `criado_em`, and the timeline renders exactly
+// the receipt/reversal narrative it rendered before, in the server's own order.
 //
 // VISUAL — BACKLOG-7 PHASE 1 (retained). Every visual value on this surface
 // resolves through a CANONICAL css/tokens.css owner: flat hairline card at
@@ -884,18 +896,175 @@
     }, trilho, conteudo);
   }
 
-  function timeline(comandos, acoes, handlers, atorTipo) {
-    if (!comandos.length) {
+  // ---- CORREÇÃO ADMINISTRATIVA (BACKLOG-7 PHASE 4 COMPLETION, db/122) ----
+  //
+  // A TERCEIRA família. db/119 sempre gravou cada correção administrativa de
+  // metadados de recebimento, com a imagem completa antes/depois — mas a sua
+  // tabela está revogada de todos os papéis e nenhum read model a projectava,
+  // por isso uma correção podia existir no sistema e ser INVISÍVEL no produto.
+  // db/122 fecha isso projectando-a através da própria função SECURITY DEFINER
+  // que já decide quem pode ler aquela ordem, sem conceder privilégio nenhum
+  // sobre a tabela.
+  //
+  // Os quatro campos corrigíveis são ditos pelo seu NOME DE NEGÓCIO, nunca pelo
+  // nome da coluna: o operador corrige "a data do recebimento", não
+  // `ocorrido_em`.
+  var CORRECAO_CAMPOS = [
+    { antes: 'ocorrido_em_antes', depois: 'ocorrido_em_depois', rotulo: 'Data do recebimento', data: true },
+    { antes: 'documento_ref_antes', depois: 'documento_ref_depois', rotulo: 'Documento', data: false },
+    { antes: 'origem_tipo_antes', depois: 'origem_tipo_depois', rotulo: 'Tipo de origem', data: false },
+    { antes: 'origem_ref_antes', depois: 'origem_ref_depois', rotulo: 'Referência da origem', data: false },
+  ];
+
+  function valorCorrecao(v, ehData) {
+    if (v == null || v === '') return '—';
+    return ehData ? fmtDateTime(v) : String(v);
+  }
+
+  // SÓ o que realmente mudou. O escritor db/119 grava a imagem dos QUATRO
+  // campos em toda correção, mesmo os que ficaram iguais; listar os quatro
+  // faria o operador procurar a alteração no meio de três não-alterações.
+  function camposAlterados(correcao) {
+    var mudou = [];
+    CORRECAO_CAMPOS.forEach(function (campo) {
+      var antes = valorCorrecao(correcao[campo.antes], campo.data);
+      var depois = valorCorrecao(correcao[campo.depois], campo.data);
+      if (antes !== depois) mudou.push({ rotulo: campo.rotulo, antes: antes, depois: depois });
+    });
+    return mudou;
+  }
+
+  // Um ponto NEUTRO: uma correção administrativa não soma nem subtrai
+  // quantidade recebida — não move a contabilidade de todo. Pintá-la de
+  // positivo ou negativo diria uma direção que ela não tem. A família é
+  // carregada pelo rótulo, como §2.6 exige de um estado não-ruled.
+  function timelineDotNeutro() {
+    return el('span', {
+      style: 'width:9px;height:9px;border-radius:var(--rv-radius-pill);flex:none;margin-top:5px;background:var(--rv-text-tertiary);',
+    });
+  }
+
+  function entradaCorrecao(correcao, comandoCorrigido, ultimo) {
+    var conteudo = el('div', { class: 'min-w-0', style: 'flex:1 1 auto;' },
+      el('div', { class: 'flex items-center gap-2 flex-wrap' },
+        window.rvStatusPill('Correção administrativa', 'correcao_administrativa'),
+        el('span', {
+          style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;',
+        }, fmtDateTime(correcao.corrigido_em))));
+
+    // O CONTEXTO: qual recebimento foi corrigido. Identificado pela sua data
+    // ATUAL — a que a própria correção deixou —, que é como o operador o
+    // reconhece, e nunca pelo recebimento_id.
+    conteudo.appendChild(el('div', {
+      style: 'margin-top:2px;font-size:var(--rv-fs-value);font-weight:600;color:var(--rv-text-primary);',
+    }, comandoCorrigido
+      ? ('Dados do recebimento de ' + fmtDateTime(comandoCorrigido.ocorrido_em) + ' foram corrigidos')
+      : 'Dados de um recebimento desta ordem foram corrigidos'));
+
+    conteudo.appendChild(el('div', {
+      style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);',
+    }, 'por ' + (ATOR_LABEL[correcao.ator_tipo] || correcao.ator_tipo || '—')));
+
+    // Os materiais daquele recebimento, para que o contexto material fique
+    // explícito sem repetir as quantidades, que são do cockpit da fase 3.
+    if (comandoCorrigido && (comandoCorrigido.lancamentos || []).length) {
+      var materiais = [];
+      comandoCorrigido.lancamentos.forEach(function (l) {
+        var nome = fioLabel(l);
+        if (materiais.indexOf(nome) < 0) materiais.push(nome);
+      });
+      conteudo.appendChild(notaSecundaria('Materiais do recebimento: ' + materiais.join(' · ')));
+    }
+
+    var mudou = camposAlterados(correcao);
+    var lista = el('div', { style: 'margin-top:8px;' });
+    if (!mudou.length) {
+      // Honesto: o servidor registou a correção, mas nenhum dos quatro campos
+      // ficou diferente. Inventar uma alteração seria pior do que dizê-lo.
+      lista.appendChild(notaSecundaria('Nenhum dos dados do recebimento ficou diferente.'));
+    } else {
+      mudou.forEach(function (m) {
+        lista.appendChild(el('div', {
+          class: 'flex items-baseline justify-between gap-3 flex-wrap',
+          style: 'padding:4px 0;',
+        },
+          el('span', {
+            style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-weight:600;',
+          }, m.rotulo),
+          el('span', {
+            class: 'min-w-0',
+            style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;',
+          }, m.antes + '  →  ' + m.depois)));
+      });
+    }
+    conteudo.appendChild(lista);
+
+    var trilho = el('div', {
+      class: 'flex flex-col items-center flex-none',
+      style: 'width:9px;align-self:stretch;',
+    }, timelineDotNeutro());
+    if (!ultimo) {
+      trilho.appendChild(el('div', {
+        style: 'width:1px;flex:1 1 auto;margin-top:4px;background:var(--rv-border);',
+      }));
+    }
+
+    return el('div', {
+      'data-correcao-id': String(correcao.id),
+      'data-evento-tipo': 'correcao_administrativa',
+      class: 'flex gap-3 px-5',
+      style: ultimo ? 'padding-top:14px;padding-bottom:16px;' : 'padding-top:14px;',
+    }, trilho, conteudo);
+  }
+
+  // A intercalação dos dois fluxos. O relógio é o de REGISTO — `criado_em` de um
+  // comando (db/122) e `corrigido_em` de uma correção — porque `ocorrido_em` é a
+  // data de NEGÓCIO e é justamente o que uma correção pode mover: ordenar por
+  // ela faria a narrativa saltar para trás depois de uma correção de data.
+  //
+  // SEM CORREÇÕES, NADA É REORDENADO. Enquanto db/122 não estiver aplicado, o
+  // read model não devolve `correcoes` nem `criado_em`, e este ramo devolve os
+  // comandos exactamente na ordem em que o servidor os deu — o comportamento da
+  // fase 4 fica byte a byte o que era. A superfície degrada ABERTA, nunca dura.
+  function ordenarEventos(comandos, correcoes) {
+    var eventos = comandos.map(function (c) {
+      return { tipo: 'comando', comando: c };
+    });
+    if (!correcoes.length) return eventos;
+    eventos.forEach(function (e, i) {
+      e.relogio = e.comando.criado_em || e.comando.ocorrido_em || '';
+      e.ordem = i;
+    });
+    correcoes.forEach(function (k, i) {
+      eventos.push({
+        tipo: 'correcao', correcao: k,
+        relogio: k.corrigido_em || '', ordem: comandos.length + i,
+      });
+    });
+    eventos.sort(function (a, b) {
+      if (a.relogio === b.relogio) return a.ordem - b.ordem;
+      return a.relogio < b.relogio ? -1 : 1;
+    });
+    return eventos;
+  }
+
+  function timeline(comandos, correcoes, acoes, handlers, atorTipo) {
+    if (!comandos.length && !correcoes.length) {
       return el('div', {
         id: 'oc-recebimentos-historico', class: 'px-5 py-8 text-center',
         style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
       }, 'Nenhum recebimento registrado ainda.');
     }
     var indice = indexarLancamentos(comandos);
+    var porRecebimento = {};
+    comandos.forEach(function (c) { porRecebimento[String(c.id)] = c; });
+    var eventos = ordenarEventos(comandos, correcoes);
     var wrap = el('div', { id: 'oc-recebimentos-historico' });
-    comandos.forEach(function (c, i) {
-      wrap.appendChild(entradaTimeline(c, indice, acoes, handlers, atorTipo,
-        i === comandos.length - 1));
+    eventos.forEach(function (e, i) {
+      var ultimo = i === eventos.length - 1;
+      wrap.appendChild(e.tipo === 'correcao'
+        ? entradaCorrecao(e.correcao, porRecebimento[String(e.correcao.recebimento_id)], ultimo)
+        : entradaTimeline(e.comando, indice, acoes, handlers, atorTipo, ultimo));
     });
     return wrap;
   }
@@ -966,7 +1135,7 @@
       materiaisSection(itens),
       sectionCard('oc-recebimentos-historico-card', [
         sectionHeader('Linha do tempo', ICON_CLOCK, null),
-        timeline(hist.comandos || [], acoes, handlers, hist.ator_tipo),
+        timeline(hist.comandos || [], hist.correcoes || [], acoes, handlers, hist.ator_tipo),
       ]));
 
     // ---- RIGHT: the rail (§3A) -------------------------------------------

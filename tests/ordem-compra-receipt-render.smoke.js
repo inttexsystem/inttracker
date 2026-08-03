@@ -699,3 +699,124 @@ test('um recebimento comum conserva Origem, que ali significa procedencia', () =
   assert.match(t, /Documento +NF-123/, 'o documento continua auditavel');
   assert.doesNotMatch(t, /Motivo:/, 'um recebimento nao tem motivo de estorno');
 });
+
+/* ============================================================
+   BACKLOG-7 PHASE 4 COMPLETION — THE THIRD EVENT FAMILY
+   (administrative correction, reachable through db/122)
+   ============================================================ */
+
+// A correcao real de OC-001-4-26: a data de negocio do recebimento foi
+// corrigida de 02/08/2026 para 04/06/2026. db/119 sempre gravou isto; ate
+// db/122 nada no produto o mostrava.
+function correcaoFixture(overrides) {
+  return Object.assign({
+    id: 1, recebimento_id: 500, corrigido_em: '2026-08-02T14:20:00+00:00',
+    ator_tipo: 'admin',
+    ocorrido_em_antes: '2026-08-02T10:00:00+00:00',
+    ocorrido_em_depois: '2026-07-20T13:45:00+00:00',
+    documento_ref_antes: null, documento_ref_depois: 'NF-123',
+    origem_tipo_antes: 'Sem nota', origem_tipo_depois: 'nota_fiscal',
+    origem_ref_antes: null, origem_ref_depois: 'R9',
+  }, overrides || {});
+}
+
+test('phase 4c: a correcao administrativa e a TERCEIRA familia, distinguivel', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({ correcoes: [correcaoFixture()] }));
+  const familias = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-evento-tipo') != null).map((n) => n.getAttribute('data-evento-tipo'));
+  assert.deepEqual(familias, ['recebimento', 'correcao_administrativa'],
+    'as tres familias coexistem e a correcao e uma delas');
+  const entrada = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-correcao-id') === '1')[0];
+  assert.ok(entrada, 'a correcao tem a sua propria entrada');
+  const t = text(entrada);
+  assert.match(t, /Correção administrativa/, 'a familia diz o seu nome');
+  assert.match(t, /por +Administrador/, 'o ator e humano, nunca o UUID');
+});
+
+test('phase 4c: a correcao diz QUE recebimento afetou e O QUE mudou, em negocio', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({ correcoes: [correcaoFixture()] }));
+  const entrada = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-correcao-id') === '1')[0];
+  const t = text(entrada);
+  // Contexto: o recebimento afetado, pela sua data ATUAL, e os seus materiais.
+  assert.match(t, /Dados do recebimento de +20\/07\/2026 13:45 +foram corrigidos/);
+  assert.match(t, /Materiais do recebimento: +Poliéster · Azul/);
+  // Antes/depois pelos NOMES DE NEGOCIO dos campos, nunca pelas colunas.
+  assert.match(t, /Data do recebimento/);
+  assert.match(t, /Documento/);
+  assert.match(t, /Tipo de origem/);
+  assert.match(t, /Referência da origem/);
+  for (const coluna of ['ocorrido_em', 'documento_ref', 'origem_tipo', 'origem_ref', 'recebimento_id']) {
+    assert.ok(!t.includes(coluna), `o nome de coluna ${coluna} nao pode vazar para a narrativa`);
+  }
+  // As datas sao formatadas, nunca ISO cru.
+  assert.match(t, /02\/08\/2026 10:00 +→ +20\/07\/2026 13:45/);
+  assert.doesNotMatch(t, /T\d\d:\d\d:\d\d/, 'nenhum timestamp ISO cru na superficie');
+});
+
+test('phase 4c: so os campos REALMENTE alterados aparecem', () => {
+  const s = makeSandbox();
+  // db/119 grava a imagem dos QUATRO campos mesmo quando so um muda.
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({ correcoes: [correcaoFixture({
+      documento_ref_antes: 'NF-123', documento_ref_depois: 'NF-123',
+      origem_tipo_antes: 'nota_fiscal', origem_tipo_depois: 'nota_fiscal',
+      origem_ref_antes: 'R9', origem_ref_depois: 'R9',
+    })] }));
+  const t = text(findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-correcao-id') === '1')[0]);
+  assert.match(t, /Data do recebimento/, 'o campo que mudou aparece');
+  assert.doesNotMatch(t, /Documento/, 'um campo inalterado nao entra na lista');
+  assert.doesNotMatch(t, /Tipo de origem/, 'um campo inalterado nao entra na lista');
+  assert.doesNotMatch(t, /Referência da origem/, 'um campo inalterado nao entra na lista');
+});
+
+test('phase 4c: uma correcao sem efeito diz isso, em vez de inventar uma alteracao', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({ correcoes: [correcaoFixture({
+      ocorrido_em_antes: '2026-08-02T10:00:00+00:00', ocorrido_em_depois: '2026-08-02T10:00:00+00:00',
+      documento_ref_antes: 'NF-123', documento_ref_depois: 'NF-123',
+      origem_tipo_antes: 'nota_fiscal', origem_tipo_depois: 'nota_fiscal',
+      origem_ref_antes: 'R9', origem_ref_depois: 'R9',
+    })] }));
+  assert.match(text(view), /Nenhum dos dados do recebimento ficou diferente/);
+});
+
+test('phase 4c: os dois fluxos intercalam pelo relogio de REGISTO, nao pela data de negocio', () => {
+  const s = makeSandbox();
+  const base = projection().comandos[0];
+  // O recebimento foi REGISTADO a 02/08 e a sua data de negocio foi depois
+  // corrigida para 20/07. Ordenar por `ocorrido_em` poria a correcao ANTES do
+  // recebimento que ela corrige; `criado_em` (db/122) e o relogio imutavel.
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({
+      comandos: [Object.assign({}, base, {
+        criado_em: '2026-08-02T10:00:00+00:00', ocorrido_em: '2026-07-20T13:45:00+00:00',
+      })],
+      correcoes: [correcaoFixture()],
+    }));
+  const familias = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-evento-tipo') != null).map((n) => n.getAttribute('data-evento-tipo'));
+  assert.deepEqual(familias, ['recebimento', 'correcao_administrativa'],
+    'a correcao vem DEPOIS do recebimento que corrigiu');
+});
+
+test('phase 4c: sem db/122 aplicado a linha do tempo e byte a byte a de antes', () => {
+  // FAIL-OPEN: enquanto a migracao nao estiver aplicada o read model nao
+  // devolve `correcoes` nem `criado_em`. Nenhum evento novo, nenhuma reordenacao.
+  const s1 = makeSandbox();
+  const semCorrecoes = render(s1, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
+  const s2 = makeSandbox();
+  const listaVazia = render(s2, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({ correcoes: [] }));
+  assert.equal(text(semCorrecoes), text(listaVazia),
+    'ausente e vazio produzem exatamente a mesma superficie');
+  assert.equal(findAll(semCorrecoes, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-correcao-id') != null).length, 0, 'nenhuma entrada de correcao e inventada');
+});

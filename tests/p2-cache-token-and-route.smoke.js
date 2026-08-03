@@ -197,13 +197,25 @@ const BACKLOG7_PHASE3_ASSETS = [
 // razao de sempre: alterado por ultimo por esta ordem. Os outros dois assets da
 // fase 3 NAO foram alterados por ela e permanecem na lista anterior.
 const BACKLOG7_PHASE4_TOKEN = '20260803-backlog7-phase4-business-timeline-r1';
-const BACKLOG7_PHASE4_ASSETS = [
+const BACKLOG7_PHASE4_ASSETS = [];
+
+// BACKLOG-7 PHASE 4 COMPLETION: a TERCEIRA familia de eventos — a correcao
+// administrativa — deixou de ser inalcancavel. db/119 sempre a gravou, mas a
+// sua tabela esta revogada de todos os papeis e nenhum read model a projetava;
+// db/122 passa a projeta-la pela funcao SECURITY DEFINER que ja decide quem
+// pode ler aquela ordem, sem conceder privilegio nenhum sobre a tabela. A tela
+// intercala as correcoes na linha do tempo pelo relogio de registo.
+// `ordem-compra-receipt-render.js` migra da lista da fase 4 pela mesma razao de
+// sempre: alterado por ultimo por esta ordem.
+const BACKLOG7_PHASE4C_TOKEN = '20260803-backlog7-phase4-correcao-administrativa-r1';
+const BACKLOG7_PHASE4C_ASSETS = [
   'js/screens/ordem-compra-receipt-render.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN, BACKLOG7_PHASE3_TOKEN, BACKLOG7_PHASE4_TOKEN, PEDIDO_LIFECYCLE_GATE_TOKEN];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN, BACKLOG7_PHASE3_TOKEN, BACKLOG7_PHASE4_TOKEN, BACKLOG7_PHASE4C_TOKEN, PEDIDO_LIFECYCLE_GATE_TOKEN];
 
 function tokenEsperado(asset) {
   if (PEDIDO_LIFECYCLE_GATE_ASSETS.includes(asset)) return PEDIDO_LIFECYCLE_GATE_TOKEN;
+  if (BACKLOG7_PHASE4C_ASSETS.includes(asset)) return BACKLOG7_PHASE4C_TOKEN;
   if (BACKLOG7_PHASE4_ASSETS.includes(asset)) return BACKLOG7_PHASE4_TOKEN;
   if (BACKLOG7_PHASE3_ASSETS.includes(asset)) return BACKLOG7_PHASE3_TOKEN;
   if (STACK_GAP_ASSETS.includes(asset)) return STACK_GAP_TOKEN;
