@@ -124,7 +124,6 @@ const YARN_COLOR_LABEL_ASSETS = [
 const BACKLOG7_PHASE1_TOKEN = '20260803-backlog7-phase1-canonical-tokens-r1';
 const BACKLOG7_PHASE1_ASSETS = [
   'js/screens/ordem-compra-events.js',
-  'js/screens/ordem-compra-distribuicao.js',
 ];
 
 // BACKLOG-7-OC-HEADER-ALIGNMENT: revisao direta do Kleber sobre a tela
@@ -132,9 +131,7 @@ const BACKLOG7_PHASE1_ASSETS = [
 // alinhada a direita no TOPO do bloco de titulo (§2.1). ordem-compra-render.js
 // migra da lista da fase 1 pela mesma razao: alterado por ultimo por esta ordem.
 const OC_HEADER_TOKEN = '20260803-backlog7-oc-header-alignment-r1';
-const OC_HEADER_ASSETS = [
-  'js/screens/ordem-compra-render.js',
-];
+const OC_HEADER_ASSETS = [];
 
 // BACKLOG-7-PHASE-2: as correcoes de VERDADE da superficie de recebimento — o
 // nome real da cor no lugar de "Cor 3", o status_recebimento da ordem que os
@@ -152,12 +149,25 @@ const BACKLOG7_PHASE2_ASSETS = [
 // leva TEXTO, nao icone. ordem-compra-receipt-render.js migra da lista da fase 2
 // pela mesma razao de sempre: alterado por ultimo por esta ordem.
 const EDITAR_TEXT_TOKEN = '20260803-backlog7-editar-text-action-r1';
-const EDITAR_TEXT_ASSETS = [
+const EDITAR_TEXT_ASSETS = [];
+
+// BACKLOG-7-STACK-GAP-AND-EVENTS-ORDER: revisao direta do Kleber. A pilha
+// passou a ser dona do seu espacamento (--rv-gap-stack), porque o ultimo
+// cartao do detalhe nao tinha margem e a secao Recebimentos encostava nele; e
+// o log administrativo desceu para o fim da pilha, renomeado para "Eventos
+// administrativos", acabando com dois blocos "Histórico" na mesma tela. Os
+// quatro assets alterados carregam o token desta ordem.
+const STACK_GAP_TOKEN = '20260803-backlog7-stack-gap-and-events-order-r1';
+const STACK_GAP_ASSETS = [
+  'js/screens/ordem-compra.js',
+  'js/screens/ordem-compra-render.js',
   'js/screens/ordem-compra-receipt-render.js',
+  'js/screens/ordem-compra-distribuicao.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN];
 
 function tokenEsperado(asset) {
+  if (STACK_GAP_ASSETS.includes(asset)) return STACK_GAP_TOKEN;
   if (EDITAR_TEXT_ASSETS.includes(asset)) return EDITAR_TEXT_TOKEN;
   if (OC_HEADER_ASSETS.includes(asset)) return OC_HEADER_TOKEN;
   if (BACKLOG7_PHASE2_ASSETS.includes(asset)) return BACKLOG7_PHASE2_TOKEN;

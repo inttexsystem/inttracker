@@ -21,15 +21,30 @@
     var state = ns.createInitialState();
     var handlers;
 
+    // O CONTENTOR e dono do espacamento entre as regioes de topo, com o mesmo
+    // valor canonico --rv-gap-stack que a pilha interna do detalhe usa. Antes
+    // a secao Recebimentos era anexada como irma logo depois de um cartao que
+    // nao tinha margem inferior nenhuma, e as duas superficies encostavam.
+    container.setAttribute('style', 'display:flex;flex-direction:column;gap:var(--rv-gap-stack);');
+
     function render() {
-      // Additive PHASE-C4 integration: the base detail is unchanged; the
-      // persistent Recebimentos section (native, post-draft orders only) is
-      // appended as a sibling. renderReceiptSection returns null when no
-      // section must exist, so nothing changes for legacy/draft orders.
+      // ORDEM DA PILHA (IA aceita do BACKLOG 7): primeiro o documento e o seu
+      // estado, depois o recebimento — que e a leitura operacional principal —
+      // e SO ENTAO o log administrativo, que e apoio.
+      //
+      // renderEventosAdmin saiu de dentro de renderDetail exatamente por isto:
+      // enquanto vivia la, o log aparecia ACIMA da secao de recebimento que ele
+      // descreve, e a tela tinha DOIS blocos chamados "Histórico" a poucos
+      // pixels um do outro. Agora e o ultimo, e chama-se "Eventos
+      // administrativos".
       var nodes = [ns.renderDetail(state, handlers)];
       if (typeof ns.renderReceiptSection === 'function') {
         var receiptSection = ns.renderReceiptSection(state, handlers);
         if (receiptSection) nodes.push(receiptSection);
+      }
+      if (typeof ns.renderEventosAdmin === 'function') {
+        var eventos = ns.renderEventosAdmin(state);
+        if (eventos) nodes.push(eventos);
       }
       container.replaceChildren.apply(container, nodes);
     }

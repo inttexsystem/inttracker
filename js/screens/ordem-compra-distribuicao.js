@@ -196,7 +196,7 @@
 
     var card = el('div', {
       id: 'oc-proveniencia',
-      class: 'overflow-hidden mb-4',
+      class: 'overflow-hidden',
       style: 'background:var(--rv-surface);border:1px solid var(--rv-border);'
         + 'border-radius:var(--rv-radius);',
     });

@@ -97,7 +97,7 @@
 
   function sectionCard(children) {
     return el('div', {
-      id: 'oc-recebimentos', class: 'overflow-hidden mb-4',
+      id: 'oc-recebimentos', class: 'overflow-hidden',
       style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);',
     }, children);
   }

@@ -169,7 +169,7 @@
     if (!skin) throw new Error('ordem-compra-render: familia de aviso desconhecida: ' + familia);
     return el('div', {
       id: id,
-      class: 'mb-4',
+
       style: 'display:flex;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;'
         + 'padding:10px 14px;border-radius:var(--rv-radius);font-size:var(--rv-fs-body);' + skin,
     },
@@ -330,7 +330,15 @@
 
   // ---- DETAIL ---------------------------------------------------------
   ns.renderDetail = function (state, handlers) {
-    var box = el('div', { id: 'ordem-compra-detail' });
+    // A PILHA e dona do seu proprio espacamento, com o valor canonico
+    // --rv-gap-stack (14px). Antes cada cartao carregava `mb-4` (16px, fora do
+    // enum §5) e o ULTIMO nao carregava nada — por isso a secao Recebimentos,
+    // anexada como irma logo a seguir, encostava no cartao anterior sem folga
+    // nenhuma. Um gap no contentor nao pode esquecer o ultimo filho.
+    var box = el('div', {
+      id: 'ordem-compra-detail',
+      style: 'display:flex;flex-direction:column;gap:var(--rv-gap-stack);',
+    });
 
     // O link "<- Ordens de compra" foi REMOVIDO. Era a forma legada de uma
     // navegacao de volta: uma seta desenhada com um caractere de texto dentro
@@ -364,7 +372,7 @@
     // ADMIN-DASHBOARD-REVIEW-DEFECT-STABILIZATION-R1, que corrigiu o mesmo
     // defeito no painel: acoes no topo do bloco de titulo, nao centradas nem
     // empurradas para baixo dele.
-    var head = card('p-5 mb-4');
+    var head = card('p-5');
 
     var titleBlock = el('div', { class: 'min-w-0' });
     titleBlock.appendChild(el('div', { class: 'flex items-center gap-3 flex-wrap' },
@@ -527,7 +535,7 @@
     }
 
     // Items
-    var itemsCard = card('overflow-hidden mb-4');
+    var itemsCard = card('overflow-hidden');
     itemsCard.appendChild(sectionBand('Itens'));
     var items = o.itens || [];
     if (!items.length) {
@@ -582,9 +590,34 @@
       if (provenance) box.appendChild(provenance);
     }
 
-    // Event history
+    return box;
+  };
+
+  // ---- EVENTOS ADMINISTRATIVOS ----------------------------------------
+  //
+  // DUAS correcoes de revisao numa so extracao.
+  //
+  // 1. POSICAO. Este bloco era construido DENTRO de renderDetail e ficava
+  //    ACIMA da secao Recebimentos, porque o orquestrador anexa a secao de
+  //    recebimento como IRMA do detalhe, depois dele. O resultado era a tela
+  //    a apresentar o log administrativo (emitida, recebimento_registrado,
+  //    recebimento_estornado) ANTES do estado operacional que ele descreve, e
+  //    DOIS blocos chamados "Histórico" a poucos pixels um do outro. Agora ele
+  //    e o ULTIMO bloco da pilha, como manda a IA aceita do BACKLOG 7:
+  //    proveniencia e log administrativo sao apoio, nao a leitura principal.
+  //
+  // 2. NOME. Passa a chamar-se "Eventos administrativos". "Histórico" era o
+  //    mesmo rotulo que a secao de recebimento ja usa para a sua propria
+  //    historia de comandos — duas coisas diferentes com o mesmo nome, na
+  //    mesma tela.
+  //
+  // O conteudo, a fonte (state.eventos) e a formatacao das linhas nao mudam.
+  ns.renderEventosAdmin = function (state) {
+    var o = state && state.ordem;
+    if (state.indisponivel || !o) return null;
+
     var evCard = card('overflow-hidden');
-    evCard.appendChild(sectionBand('Histórico'));
+    evCard.appendChild(sectionBand('Eventos administrativos'));
     var evs = state.eventos || [];
     if (!evs.length) {
       evCard.appendChild(el('div', {
@@ -607,8 +640,6 @@
       });
       evCard.appendChild(list);
     }
-    box.appendChild(evCard);
-
-    return box;
+    return evCard;
   };
 })(window);
