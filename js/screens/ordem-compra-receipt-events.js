@@ -33,9 +33,20 @@
   // (ver createReceiptEvents), porque precisa do `state` da tela para resolver
   // a identidade e o `state` e uma closure daquela funcao. ANTES a versao de
   // modulo devolvia `'OP ' + opId` — a chave primaria crua como nome.
-  function fioLabel(row) {
+  // BACKLOG-7 PHASE 2 — o mesmo defeito de cor da superficie de render, na
+  // superficie de acao. Ver a nota longa em ordem-compra-receipt-render.js: o
+  // read model de recebimento nao projeta cor_nome, mas obter_ordem_compra_admin
+  // projeta, e os dois chaveiam pelo mesmo ordem_compra_item.id. Aqui o impacto
+  // e maior que estetico: era o rotulo do campo em que o operador digita o peso.
+  //
+  // `itens` e o state.ordem.itens ja carregado; ausente, cai no rotulo anterior.
+  function fioLabelCom(itensPorId, row) {
+    var doPedido = (itensPorId && row && row.item_id != null)
+      ? itensPorId[String(row.item_id)] : null;
     var mat = row.material === 'algodao' ? 'Algodão' : 'Poliéster';
-    var cor = row.cor_poliester || (row.cor_id != null ? ('Cor ' + row.cor_id) : '—');
+    var cor = (doPedido && (doPedido.cor_nome || doPedido.cor_poliester))
+      || row.cor_poliester
+      || (row.cor_id != null ? ('Cor ' + row.cor_id) : '—');
     return mat + ' · ' + cor;
   }
   function todayIso() { return new Date().toISOString().slice(0, 10); }
@@ -104,6 +115,21 @@
     // ordem-compra-receipt-data.js e vive em `state.opIdentidades`.
     function opLabel(opId) {
       return window.RAVATEX_OP_DISPLAY.formatOpIdentityFromMap(opId, state.opIdentidades);
+    }
+
+    // Resolvido no momento da abertura do modal, nao no carregamento do modulo:
+    // `state.ordem` e recarregado a cada reload autoritativo.
+    function itensPorId() {
+      var itens = (state.ordem && state.ordem.itens) || null;
+      if (!itens || !itens.length) return null;
+      var mapa = {};
+      itens.forEach(function (it) {
+        if (it && it.item_id != null) mapa[String(it.item_id)] = it;
+      });
+      return mapa;
+    }
+    function fioLabel(row) {
+      return fioLabelCom(itensPorId(), row);
     }
 
     // Two independent attempt trackers (contract §12) — never shared, never

@@ -380,3 +380,96 @@ test('an ACTIVE canonical cutover restores the receipt action', () => {
   assert.equal(findById(node, 'oc-recebimento-inativo'), null,
     'and the inactive explanation disappears with it');
 });
+
+/* ============================================================
+   BACKLOG-7 PHASE 2 — the surface stops contradicting itself
+
+   These four prove BUSINESS-DATA correctness, not visual values:
+   which string reaches the operator, from which server field.
+   ============================================================ */
+
+test('a cor real do item vence a chave crua, e sem o detalhe carregado nada quebra', () => {
+  const s = makeSandbox();
+  // Algodao nao tem cor_poliester, entao o read model de recebimento so oferece
+  // cor_id — era exatamente o caso que imprimia "Algodão · Cor 3" logo abaixo de
+  // uma tabela Itens que ja dizia "Algodão · CRU" para o MESMO item.
+  const hist = projection({
+    itens: [{
+      item_id: 7, material: 'algodao', cor_id: 3, cor_poliester: null,
+      kg_pedido: 100, kg_recebido: 20, kg_restante: 80, kg_excesso: 0,
+      alocacoes: [{ alocacao_id: 42, op_id: 900, kg_alocado: 100, kg_recebido: 20, kg_restante: 80 }],
+    }],
+    comandos: [{
+      id: 500, comando_tipo: 'recebimento', ator_tipo: 'admin', ocorrido_em: '2026-07-20T13:45:00+00:00',
+      documento_ref: null, origem_tipo: 'nota_fiscal', origem_ref: null,
+      lancamentos: [{
+        id: 800, linha_indice: 0, item_id: 7, alocacao_id: 42, op_id: 900,
+        material: 'algodao', cor_id: 3, cor_poliester: null,
+        kg: 20, kg_excesso: 0, estorno_de_id: null, kg_reversivel: 20, movimento_estoque: null,
+      }],
+    }],
+  });
+
+  // COM o detalhe da ordem carregado (o caso real: obter_ordem_compra_admin
+  // projeta cor_nome via LEFT JOIN public.cores, db/100).
+  const comDetalhe = render(s, {
+    modelo: 'nativo', status_administrativo: 'emitida',
+    itens: [{ item_id: 7, material: 'algodao', cor_id: 3, cor_nome: 'CRU', cor_poliester: null }],
+  }, hist);
+  const t = text(comDetalhe);
+  assert.match(t, /Algodão · CRU/, 'a cor real do cadastro chega a secao de recebimento');
+  assert.doesNotMatch(t, /Cor 3/, 'a chave crua nao aparece em lugar nenhum');
+
+  // SEM o detalhe: degrada exatamente para o rotulo anterior, nunca lanca.
+  const s2 = makeSandbox();
+  const semDetalhe = render(s2, { modelo: 'nativo', status_administrativo: 'emitida' }, hist);
+  assert.match(text(semDetalhe), /Cor 3/, 'sem o mapa, o fallback anterior permanece');
+});
+
+test('o estado de recebimento da ORDEM e dito, com a familia ruled de cada chave', () => {
+  const casos = [
+    ['recebido', 'Recebido', 'positive'],
+    ['parcial', 'Parcial', 'caution'],
+    ['nao_recebido', 'Não recebido', 'neutral'],
+  ];
+  for (const [chave, rotulo, familia] of casos) {
+    const s = makeSandbox();
+    const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+      projection({ status_recebimento: chave }));
+    const pill = findById(view, 'oc-status-recebimento');
+    assert.ok(pill, `${chave}: a ordem declara o seu estado de recebimento`);
+    assert.equal(pill.getAttribute('data-status-recebimento'), chave);
+    assert.match(pill.textContent || '', new RegExp(rotulo));
+    // A familia vem do dono canonico js/badges.js, nunca de um mapa local.
+    assert.equal(s.rvStatusFamily(chave), familia, `${chave} resolve para ${familia}`);
+  }
+});
+
+test('o motivo do estorno e dito como motivo, nao como par tecnico de origem', () => {
+  const s = makeSandbox();
+  // db/70 grava o motivo obrigatorio do estorno como
+  // origem_tipo='estorno_admin' + origem_ref=<motivo>.
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection({
+    comandos: [{
+      id: 501, comando_tipo: 'estorno', ator_tipo: 'admin', ocorrido_em: '2026-07-21T10:00:00+00:00',
+      documento_ref: null, origem_tipo: 'estorno_admin', origem_ref: 'lancamento em duplicidade',
+      lancamentos: [{
+        id: 801, linha_indice: 0, item_id: 7, alocacao_id: 42, op_id: 900,
+        material: 'poliester', cor_id: 3, cor_poliester: 'Azul',
+        kg: -8, kg_excesso: 0, estorno_de_id: 800, kg_reversivel: 0, movimento_estoque: null,
+      }],
+    }],
+  }));
+  const t = text(view);
+  assert.match(t, /Motivo: +lancamento em duplicidade/, 'o motivo aparece rotulado como motivo');
+  assert.doesNotMatch(t, /estorno_admin/, 'o enum interno nao vaza para a superficie');
+  assert.match(t, /Por: +Administrador/, 'o ator e dito em portugues, nao como enum');
+});
+
+test('um recebimento comum conserva Origem, que ali significa procedencia', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
+  const t = text(view);
+  assert.match(t, /Origem: +nota_fiscal/, 'num recebimento a origem continua sendo origem');
+  assert.doesNotMatch(t, /Motivo:/, 'um recebimento nao tem motivo de estorno');
+});

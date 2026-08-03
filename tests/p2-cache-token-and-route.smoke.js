@@ -126,12 +126,23 @@ const BACKLOG7_PHASE1_ASSETS = [
   'js/screens/ordem-compra-render.js',
   'js/screens/ordem-compra-events.js',
   'js/screens/ordem-compra-distribuicao.js',
+];
+
+// BACKLOG-7-PHASE-2: as correcoes de VERDADE da superficie de recebimento — o
+// nome real da cor no lugar de "Cor 3", o status_recebimento da ordem que os
+// dois read models ja projetavam e ninguem renderizava, o motivo do estorno
+// dito como motivo em vez do par tecnico origem_tipo/origem_ref, o ator em
+// portugues e o bloqueador do cutover como cartao de aviso autonomo (D12). Os
+// dois assets alterados migram da lista da fase 1 pela mesma razao de sempre.
+const BACKLOG7_PHASE2_TOKEN = '20260803-backlog7-phase2-state-legibility-r1';
+const BACKLOG7_PHASE2_ASSETS = [
   'js/screens/ordem-compra-receipt-render.js',
   'js/screens/ordem-compra-receipt-events.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN];
 
 function tokenEsperado(asset) {
+  if (BACKLOG7_PHASE2_ASSETS.includes(asset)) return BACKLOG7_PHASE2_TOKEN;
   if (BACKLOG7_PHASE1_ASSETS.includes(asset)) return BACKLOG7_PHASE1_TOKEN;
   if (YARN_COLOR_LABEL_ASSETS.includes(asset)) return YARN_COLOR_LABEL_TOKEN;
   if (REVERSED_ACTION_ASSETS.includes(asset)) return REVERSED_ACTION_TOKEN;

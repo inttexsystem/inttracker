@@ -58,6 +58,8 @@
   var ICON_INBOX = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>';
   var ICON_UNDO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
   var ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+  // §2.11/D12: a standalone notice carries an icon from its own semantic family.
+  var ICON_ALERT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
 
   function fmtKg(v) {
     if (v == null) return '—';
@@ -104,7 +106,40 @@
   // Section header: icon chip (20px, --rv-radius) using the neutral
   // section chip tokens (§6) + 11px UPPERCASE --rv-text-tertiary label +
   // optional dominant action on the right (§8).
-  function sectionHeader(actionNode) {
+  // BACKLOG-7 PHASE 2 — o estado de recebimento DA ORDEM, finalmente dito.
+  //
+  // `status_recebimento` e derivado pelo servidor e projetado pelos DOIS read
+  // models (obter_ordem_compra_admin e obter_historico_recebimento_ordem_compra,
+  // db/100), e nao era renderizado em lugar nenhum: ordem-compra-render.js ate
+  // declarava um RECEB_LABEL que nenhum leitor consumia. A pergunta que faz o
+  // operador abrir a tela — "isto chegou?" — tinha resposta pronta no servidor e
+  // era jogada fora, obrigando-o a subtrair Kg restante de Kg pedido.
+  //
+  // As tres chaves resolvem por si no mapa ruled do §2.6: `recebido` -> positive,
+  // `parcial` -> caution, `nao_recebido` -> neutral. Nenhuma familia inventada.
+  var RECEBIMENTO_LABEL = {
+    nao_recebido: 'Não recebido',
+    parcial: 'Parcial',
+    recebido: 'Recebido',
+  };
+
+  function statusRecebimentoPill(status) {
+    var label = RECEBIMENTO_LABEL[status];
+    if (!label) return null;
+    var pill = window.rvStatusPill(label, status);
+    if (pill && typeof pill.setAttribute === 'function') {
+      pill.setAttribute('id', 'oc-status-recebimento');
+      pill.setAttribute('data-status-recebimento', status);
+    }
+    return pill;
+  }
+
+  // ator_tipo e um enum do banco ('admin' | 'fornecedor'). A linha de metadados
+  // imprimia o valor cru — "Ator: admin" — que e vocabulario interno numa
+  // superficie operacional.
+  var ATOR_LABEL = { admin: 'Administrador', fornecedor: 'Fornecedor' };
+
+  function sectionHeader(actionNode, statusNode) {
     var chip = el('span', {
       style: 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;'
         + 'border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex:none;',
@@ -114,8 +149,9 @@
         + 'text-transform:uppercase;color:var(--rv-text-tertiary);',
     }, 'Recebimentos');
     var left = el('div', { class: 'flex items-center gap-2' }, chip, label);
+    if (statusNode) left.appendChild(statusNode);
     return el('div', {
-      class: 'px-5 py-3 flex items-center justify-between',
+      class: 'px-5 py-3 flex items-center justify-between gap-3 flex-wrap',
       style: 'border-bottom:1px solid var(--rv-border);',
     }, left, actionNode || el('span', {}));
   }
@@ -158,9 +194,36 @@
     return el('tr', merged, cells);
   }
 
+  // BACKLOG-7 PHASE 2 — o nome real da cor, nunca a chave.
+  //
+  // `obter_historico_recebimento_ordem_compra` projeta apenas cor_id e
+  // cor_poliester, entao um item de ALGODAO (que nao tem cor_poliester) caia no
+  // ramo `'Cor ' + cor_id` e a secao Recebimentos imprimia "Algodão · Cor 3".
+  // A tabela Itens LOGO ACIMA, na mesma tela, ja imprimia "Algodão · CRU":
+  // `obter_ordem_compra_admin` faz LEFT JOIN public.cores e projeta `cor_nome`
+  // (db/100), e ordem-compra-render.js::fioLabel ja o prefere.
+  //
+  // A mesma tela dizia a mesma cor de duas maneiras. A correcao NAO precisa de
+  // migracao: os dois read models chaveiam pelo mesmo ordem_compra_item.id, e o
+  // detalhe da ordem ja esta carregado em state.ordem quando esta secao
+  // renderiza. Resolvemos por item_id e delegamos ao dono ja existente.
+  //
+  // Falha ABERTA, nunca dura: sem mapa, sem item correspondente ou sem
+  // cor_nome, cai exatamente no rotulo anterior. E apresentacao — o mesmo
+  // criterio de 9fa9437, que corrigiu este defeito na superficie irma.
+  var itensDaOrdem = null;
+
+  function itemDaOrdem(itemId) {
+    if (!itensDaOrdem || itemId == null) return null;
+    return itensDaOrdem[String(itemId)] || null;
+  }
+
   function fioLabel(row) {
+    var doPedido = itemDaOrdem(row.item_id);
     var mat = row.material === 'algodao' ? 'Algodão' : 'Poliéster';
-    var cor = row.cor_poliester || (row.cor_id != null ? ('Cor ' + row.cor_id) : '—');
+    var cor = (doPedido && (doPedido.cor_nome || doPedido.cor_poliester))
+      || row.cor_poliester
+      || (row.cor_id != null ? ('Cor ' + row.cor_id) : '—');
     return mat + ' · ' + cor;
   }
 
@@ -310,15 +373,27 @@
         class: 'px-5 py-4', 'data-comando-id': String(c.id),
         style: i > 0 ? 'border-top:1px solid var(--rv-border-soft);' : '',
       });
+      // BACKLOG-7 PHASE 2 — o MOTIVO do estorno deixa de vir disfarcado.
+      //
+      // `_c3c_estornar_recebimento_impl` (db/70) grava o motivo obrigatorio do
+      // estorno no cabecalho como origem_tipo='estorno_admin' + origem_ref=motivo,
+      // e o read model projeta os dois. A tela imprimia
+      // "Origem: estorno_admin / lancamento em duplicidade": a resposta para "por
+      // que isto foi estornado" ja estava na tela, escrita como um par tecnico.
+      // Nenhuma mudanca de servidor e necessaria para dize-la em portugues.
+      var ehEstornoAdmin = c.comando_tipo === 'estorno' && c.origem_tipo === 'estorno_admin';
+      var origemNode = ehEstornoAdmin
+        ? metaSpan('Motivo: ', c.origem_ref || '—', c.origem_ref || undefined)
+        : metaSpan('Origem: ', (c.origem_tipo || '—') + (c.origem_ref ? (' / ' + c.origem_ref) : ''), c.origem_ref || undefined);
       var meta = el('div', {
         class: 'flex flex-wrap items-center gap-x-4 gap-y-1',
         style: 'font-size:var(--rv-fs-body);',
       },
         tipoBadge(c.comando_tipo),
         el('span', { style: 'color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;' }, fmtDateTime(c.ocorrido_em)),
-        metaSpan('Ator: ', c.ator_tipo || '—'),
+        metaSpan('Por: ', ATOR_LABEL[c.ator_tipo] || c.ator_tipo || '—'),
         metaSpan('Doc.: ', c.documento_ref || '—', c.documento_ref || undefined),
-        metaSpan('Origem: ', (c.origem_tipo || '—') + (c.origem_ref ? (' / ' + c.origem_ref) : ''), c.origem_ref || undefined));
+        origemNode);
       // db/119: the metadata line owns its own correction control, on the same
       // row and to the right, so the Edit action sits with the values it edits.
       var editBtn = editMetadataButton(c, atorTipo, handlers);
@@ -387,8 +462,18 @@
   // renderReceiptSection(state, handlers) → DOM node, or null when no section
   // must exist (non-native order, or native draft — contract §7 matrix).
   ns.renderReceiptSection = function (state, handlers) {
-    // Ponto de entrada unico desta secao: sincroniza o mapa de identidade.
+    // Ponto de entrada unico desta secao: sincroniza os dois mapas de
+    // resolucao — identidade canonica de OP e o item da ordem, que carrega o
+    // nome real da cor (cor_nome) que o read model de recebimento nao projeta.
     opIdentidades = (state && state.opIdentidades) || null;
+    itensDaOrdem = null;
+    var itensDetalhe = (state && state.ordem && state.ordem.itens) || null;
+    if (itensDetalhe && itensDetalhe.length) {
+      itensDaOrdem = {};
+      itensDetalhe.forEach(function (it) {
+        if (it && it.item_id != null) itensDaOrdem[String(it.item_id)] = it;
+      });
+    }
     var o = state && state.ordem;
     if (!o || o.modelo !== 'nativo') return null;
     if (o.status_administrativo === 'rascunho') return null;
@@ -428,7 +513,7 @@
       }, 'Registrar recebimento');
     }
 
-    var children = [sectionHeader(registrarBtn)];
+    var children = [sectionHeader(registrarBtn, statusRecebimentoPill(hist.status_recebimento))];
 
     // PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1. O recebimento canônico
     // só existe depois do cutover (ordem_compra_cutover = canonical_active /
@@ -441,12 +526,26 @@
     // o repete; nunca reconstrói o estado do cutover em JavaScript, e não
     // existe nenhum caminho aqui que leia ordem_compra_cutover.
     if (hist.bloqueio_recebimento === 'recebimento_canonico_inativo') {
-      children.push(el('div', {
-        id: 'oc-recebimento-inativo',
-        class: 'px-5 py-3 text-sm',
-        style: 'color:var(--rv-text-secondary);border-bottom:1px solid var(--rv-border-soft);',
-      }, 'Registro de recebimento indisponível: a virada para o recebimento canônico ainda '
-        + 'não foi ativada. O histórico abaixo é somente leitura.'));
+      // BACKLOG-7 PHASE 2: isto e um AVISO AUTONOMO, e a regra §2.11/D12 e
+      // global: "every standalone warning ... occupies the full width of its
+      // containing content region and renders as a card surface ... background,
+      // border, icon and text from ONE MATCHING SEMANTIC FAMILY". Antes era uma
+      // linha cinza inline em --rv-text-secondary, indistinguivel de uma
+      // legenda — a mesma classe de defeito que D12 fechou no painel.
+      children.push(el('div', { class: 'px-5 pt-4' },
+        el('div', {
+          id: 'oc-recebimento-inativo',
+          style: 'display:flex;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;'
+            + 'padding:10px 14px;border-radius:var(--rv-radius);font-size:var(--rv-fs-body);'
+            + 'background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);'
+            + 'color:var(--rv-signal-caution);',
+        },
+        el('span', {
+          style: 'display:inline-flex;flex:none;color:var(--rv-signal-caution);',
+          'aria-hidden': 'true',
+        }, svgIcon(ICON_ALERT)),
+        el('span', {}, 'Registro de recebimento indisponível: a virada para o recebimento canônico ainda '
+          + 'não foi ativada. O histórico abaixo é somente leitura.'))));
     }
 
     var itens = hist.itens || [];
