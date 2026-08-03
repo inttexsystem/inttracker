@@ -171,15 +171,28 @@ const EDITAR_TEXT_ASSETS = [];
 // quatro assets alterados carregam o token desta ordem.
 const STACK_GAP_TOKEN = '20260803-backlog7-stack-gap-and-events-order-r1';
 const STACK_GAP_ASSETS = [
+  'js/screens/ordem-compra-distribuicao.js',
+];
+
+// BACKLOG-7 PHASE 3: a superficie de recebimento passou a ser um cockpit do
+// arquetipo A cuja unidade e o MATERIAL — as tres representacoes concorrentes
+// (Itens, Saldos por item, Alocações) fundiram-se num unico bloco Materiais, os
+// destinos desceram para dentro do material a que pertencem, e o estado da
+// ordem, o agregado e a unica acao de fluxo passaram para o rail. Os tres
+// assets alterados migram da lista STACK_GAP pela mesma razao de sempre:
+// alterados por ultimo por esta ordem. `ordem-compra-distribuicao.js` NAO foi
+// alterado por ela e por isso permanece na lista anterior.
+const BACKLOG7_PHASE3_TOKEN = '20260803-backlog7-phase3-material-cockpit-r1';
+const BACKLOG7_PHASE3_ASSETS = [
   'js/screens/ordem-compra.js',
   'js/screens/ordem-compra-render.js',
   'js/screens/ordem-compra-receipt-render.js',
-  'js/screens/ordem-compra-distribuicao.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN, PEDIDO_LIFECYCLE_GATE_TOKEN];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN, BACKLOG7_PHASE3_TOKEN, PEDIDO_LIFECYCLE_GATE_TOKEN];
 
 function tokenEsperado(asset) {
   if (PEDIDO_LIFECYCLE_GATE_ASSETS.includes(asset)) return PEDIDO_LIFECYCLE_GATE_TOKEN;
+  if (BACKLOG7_PHASE3_ASSETS.includes(asset)) return BACKLOG7_PHASE3_TOKEN;
   if (STACK_GAP_ASSETS.includes(asset)) return STACK_GAP_TOKEN;
   if (EDITAR_TEXT_ASSETS.includes(asset)) return EDITAR_TEXT_TOKEN;
   if (OC_HEADER_ASSETS.includes(asset)) return OC_HEADER_TOKEN;

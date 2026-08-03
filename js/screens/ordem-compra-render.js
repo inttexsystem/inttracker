@@ -534,10 +534,28 @@
         'Ordem emitida, aguardando aceite — o fluxo de aceite ainda não está disponível, portanto a ordem ainda não está concluída.'));
     }
 
-    // Items
-    var itemsCard = card('overflow-hidden');
-    itemsCard.appendChild(sectionBand('Itens'));
+    // ---- MATERIAIS — FALLBACK ONLY (BACKLOG-7 PHASE 3) ------------------
+    //
+    // Esta tabela era a PRIMEIRA das tres representacoes concorrentes do mesmo
+    // material: "Itens" aqui, "Saldos por item" e "Alocações" na superficie de
+    // recebimento logo abaixo. A fase 3 funde as tres num unico bloco
+    // MATERIAIS, dono por ordem-compra-receipt-render.js, que e onde as
+    // quantidades recebidas, restantes e excedentes de facto existem.
+    //
+    // Ela NAO e removida, porque a superficie de recebimento so existe para uma
+    // ordem NATIVA fora do rascunho (contrato §7). Para uma ordem LEGADA ou um
+    // RASCUNHO nativo nao ha recebimento nenhum, e apaga-la deixaria essas duas
+    // rotas sem material visivel — uma regressao. Nesses casos ela e a UNICA
+    // representacao do material, portanto nao concorre com nada, e passa a
+    // chamar-se "Materiais" como o bloco canonico.
+    //
+    // A condicao e a NEGACAO EXATA da condicao de montagem de
+    // renderReceiptSection, escrita a partir dos mesmos dois campos do read
+    // model, e nao uma segunda regra a manter em sincronia por memoria.
+    var temSuperficieRecebimento = o.modelo === 'nativo' && o.status_administrativo !== 'rascunho';
     var items = o.itens || [];
+    var itemsCard = card('overflow-hidden');
+    itemsCard.appendChild(sectionBand('Materiais'));
     if (!items.length) {
       itemsCard.appendChild(el('div', {
         class: 'p-6 text-center',
@@ -574,23 +592,36 @@
       t.appendChild(itemsHead); t.appendChild(tb);
       itemsCard.appendChild(t);
     }
-    box.appendChild(itemsCard);
-
-    // PROVENIÊNCIA (PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1).
-    // `state.distribuicao` já era carregado a cada abertura desta tela e o
-    // resultado era descartado, porque nada montava a seção que o consumia.
-    // Agora ele alimenta a seção de proveniência somente-leitura: de onde
-    // veio cada quilo deste documento (Pedido, necessidade, OP ou Pedido
-    // compartilhado, quantidade original por origem e a reconciliação com a
-    // quantidade pedida do item). Nenhum controle de mutação é montado — o
-    // planejamento continua pertencendo a Pedido › Planejamento de compras.
-    var distribApi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.ordemCompraDistribuicao;
-    if (distribApi && typeof distribApi.renderProvenance === 'function') {
-      var provenance = distribApi.renderProvenance(state.distribuicao, o);
-      if (provenance) box.appendChild(provenance);
-    }
+    if (!temSuperficieRecebimento) box.appendChild(itemsCard);
 
     return box;
+  };
+
+  // ---- PROVENIÊNCIA ----------------------------------------------------
+  //
+  // PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1. `state.distribuicao` já
+  // era carregado a cada abertura desta tela e o resultado era descartado,
+  // porque nada montava a seção que o consumia. Ele alimenta a seção de
+  // proveniência somente-leitura: de onde veio cada quilo deste documento
+  // (Pedido, necessidade, OP ou Pedido compartilhado, quantidade original por
+  // origem e a reconciliação com a quantidade pedida do item). Nenhum controle
+  // de mutação é montado — o planejamento continua pertencendo a
+  // Pedido › Planejamento de compras.
+  //
+  // BACKLOG-7 PHASE 3: EXTRAÍDA de renderDetail pela MESMA razão pela qual
+  // renderEventosAdmin já o foi em 648f09c. Enquanto era construída aqui dentro,
+  // ela caía entre o cabeçalho e a superfície de recebimento — ou seja, um
+  // bloco de APOIO somente-leitura separava o operador da leitura operacional
+  // principal. Agora o orquestrador a coloca depois do cockpit.
+  //
+  // O CONTEÚDO, a fonte e a representação NÃO mudam: a demoção de proveniência
+  // é fase 6 e não é iniciada aqui.
+  ns.renderProvenanceSection = function (state) {
+    var o = state && state.ordem;
+    if (state.indisponivel || !o) return null;
+    var distribApi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.ordemCompraDistribuicao;
+    if (!distribApi || typeof distribApi.renderProvenance !== 'function') return null;
+    return distribApi.renderProvenance(state.distribuicao, o) || null;
   };
 
   // ---- EVENTOS ADMINISTRATIVOS ----------------------------------------

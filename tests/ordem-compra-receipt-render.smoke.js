@@ -166,13 +166,166 @@ test('NULL-op / Pedido-origin allocation renders honestly; real OP retained; no 
   assert.match(t, /Pedido \(compartilhada\)/, 'NULL-op rendered as shared, not fabricated');
 });
 
+// BACKLOG-7 PHASE 3: this guard used to reach the headers of the two tables the
+// phase FUSED away — "Saldos por item" (Kg pedido / Kg restante) and
+// "Alocações" (Kg alocado). Per UI_VISUAL_CONTRACT.md §9 a smoke test that
+// encodes a retired visual is updated to the canonical form while its
+// FUNCTIONAL assertion is preserved. The functional assertion here is the §2.5
+// golden rule — a numeric column's header carries the same alignment as its
+// values — and it is now proved on the table that survives, plus the numeric
+// contract of the label/value pairs that replaced the two retired tables.
 test('golden rule: numeric headers align right, label header left', () => {
   const s = makeSandbox();
   const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
-  assert.match(thByText(view, 'Kg pedido').className, /text-right/);
-  assert.match(thByText(view, 'Kg restante').className, /text-right/);
-  assert.match(thByText(view, 'Kg alocado').className, /text-right/);
+  assert.match(thByText(view, 'Kg').className, /text-right/);
+  assert.match(thByText(view, 'Kg excesso').className, /text-right/);
+  assert.match(thByText(view, 'Reversível').className, /text-right/);
   assert.match(thByText(view, 'Fio').className, /text-left/);
+  assert.match(thByText(view, 'Origem').className, /text-left/);
+  // Every value cell under a right-aligned numeric header keeps its own
+  // right alignment and tabular numerals — the golden rule is a PAIR.
+  const numCells = findAll(view, (n) => n.tagName === 'TD'
+    && /tabular-nums/.test(n.getAttribute('style') || ''));
+  assert.ok(numCells.length >= 3, 'the surviving table still carries numeric value cells');
+  for (const c of numCells) assert.match(c.className, /text-right/);
+});
+
+/* ============================================================
+   BACKLOG-7 PHASE 3 — THE MATERIAL IS THE OPERATIONAL UNIT
+   ============================================================ */
+
+test('phase 3: the three competing representations collapse into ONE material block', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
+  const t = text(view);
+  // The two retired section bands are gone as top-level representations.
+  assert.doesNotMatch(t, /Saldos por item/, '"Saldos por item" is no longer a competing section');
+  assert.doesNotMatch(t, /Alocações/, '"Alocações" is no longer a competing top-level section');
+  // The fused block exists and is named for its unit.
+  assert.ok(findById(view, 'oc-materiais'), 'the Materiais block exists');
+  assert.match(t, /Materiais/, 'the block is named for the material');
+  // Exactly one block per material of the read model.
+  const blocks = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-item-id') != null);
+  assert.equal(blocks.length, 1, 'one block per material, no duplicate representation');
+  assert.equal(blocks[0].getAttribute('data-item-id'), '7');
+});
+
+test('phase 3: one material states identity, state and its four quantities together', () => {
+  const s = makeSandbox();
+  const view = render(s, {
+    modelo: 'nativo', status_administrativo: 'emitida',
+    itens: [{ item_id: 7, material: 'poliester', cor_id: 3, cor_nome: 'AZUL' }],
+  }, projection());
+  const bloco = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-item-id') === '7')[0];
+  const t = text(bloco);
+  // Identity — human-readable material + real colour name, never the raw key.
+  assert.match(t, /Poliéster · AZUL/, 'material identity is legible inside its own block');
+  assert.doesNotMatch(t, /Cor 3/, 'the raw cor_id never reaches the block');
+  // The four quantities, all four, in the SAME block — this is the whole point:
+  // the operator no longer assembles them from separate sections.
+  for (const label of ['Kg pedido', 'Kg recebido', 'Kg restante', 'Kg excedente']) {
+    assert.ok(t.includes(label), `${label} is stated inside the material block`);
+  }
+  assert.match(t, /100,000 kg/, 'ordered quantity');
+  assert.match(t, /20,000 kg/, 'received quantity');
+  assert.match(t, /80,000 kg/, 'remaining quantity');
+  assert.match(t, /2,000 kg/, 'real excess quantity');
+});
+
+test('phase 3: receipt state is legible AT MATERIAL LEVEL, through the ruled owner', () => {
+  // The three cases are derived from the server's own per-item numbers — the
+  // screen reads kg_recebido / kg_restante exactly as db/100 projected them and
+  // recomputes no accounting. The vocabulary is the SAME ruled vocabulary the
+  // order-level pill uses, so js/badges.js stays the single family owner and no
+  // fourth family is invented (the open D5 excess-pill decision is untouched).
+  const casos = [
+    [{ kg_pedido: 100, kg_recebido: 0, kg_restante: 100, kg_excesso: 0 }, 'nao_recebido', 'Não recebido', 'neutral'],
+    [{ kg_pedido: 100, kg_recebido: 20, kg_restante: 80, kg_excesso: 0 }, 'parcial', 'Parcial', 'caution'],
+    [{ kg_pedido: 100, kg_recebido: 100, kg_restante: 0, kg_excesso: 0 }, 'recebido', 'Recebido', 'positive'],
+  ];
+  for (const [quantidades, chave, rotulo, familia] of casos) {
+    const s = makeSandbox();
+    const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+      projection({ itens: [Object.assign({ item_id: 7, material: 'poliester', cor_poliester: 'Azul', alocacoes: [] }, quantidades)] }));
+    const pill = findAll(view, (n) => typeof n.getAttribute === 'function'
+      && n.getAttribute('data-estado-material') != null)[0];
+    assert.ok(pill, `${chave}: the material declares its own receipt state`);
+    assert.equal(pill.getAttribute('data-estado-material'), chave);
+    assert.match(pill.textContent || '', new RegExp(rotulo));
+    assert.equal(s.rvStatusFamily(chave), familia, `${chave} resolves to ${familia} through js/badges.js`);
+  }
+});
+
+test('phase 3: allocations are DEMOTED inside their material, losing no quantity', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
+  const bloco = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-item-id') === '7')[0];
+  // Both allocations live INSIDE the material block, not in a sibling table.
+  const dest = findAll(bloco, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-alocacao-id') != null);
+  assert.equal(dest.length, 2, 'both destinations are nested under their own material');
+  assert.deepEqual(dest.map((d) => d.getAttribute('data-alocacao-id')), ['42', '43']);
+  const t = text(bloco);
+  // Honest attribution survives the demotion: canonical OP identity, and the
+  // NULL-op allocation as a first-class shared Pedido — never a fabricated OP.
+  assert.match(t, /OP-T900-1-26/, 'canonical OP identity retained');
+  assert.match(t, /Pedido \(compartilhada\)/, 'NULL-op destination retained honestly');
+  assert.doesNotMatch(t, /OP 900/, 'the primary key never returns as a name');
+  // The three quantities the retired "Alocações" table showed are all still here.
+  assert.match(t, /Alocado 60,000 kg · Recebido 20,000 kg · Restante 40,000 kg/);
+  assert.match(t, /Alocado 40,000 kg · Recebido 0,000 kg · Restante 40,000 kg/);
+});
+
+test('phase 3: the cockpit rail carries order state, the aggregate and the one flow action', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({
+      status_recebimento: 'parcial',
+      itens: [
+        { item_id: 7, material: 'poliester', cor_poliester: 'Azul', kg_pedido: 100, kg_recebido: 20, kg_restante: 80, kg_excesso: 2, alocacoes: [] },
+        { item_id: 8, material: 'algodao', cor_id: 1, kg_pedido: 50, kg_recebido: 50, kg_restante: 0, kg_excesso: 0, alocacoes: [] },
+      ],
+    }));
+  // §3A: the grid and the sticky rail are declared and MARKED, so
+  // css/responsive.css collapses them at the breakpoint by attribute alone.
+  const cockpit = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-rv-cockpit') != null)[0];
+  assert.ok(cockpit, 'the Archetype-A cockpit grid is declared');
+  assert.match(cockpit.getAttribute('style'), /grid-template-columns:minmax\(0,1fr\) var\(--rv-rail-w\)/);
+  const rail = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-rv-rail') != null)[0];
+  assert.ok(rail, 'the rail is declared');
+  assert.match(rail.getAttribute('style'), /position:sticky/);
+  // The ORDER's own receipt state lives in the rail, not repeated on the left.
+  const pill = findById(rail, 'oc-status-recebimento');
+  assert.ok(pill, 'the order-level receipt state is in the rail');
+  assert.equal(pill.getAttribute('data-status-recebimento'), 'parcial');
+  // The aggregate — a sum of what the server already derived per item.
+  const railText = text(rail);
+  assert.match(railText, /150,000 kg/, 'total ordered');
+  assert.match(railText, /70,000 kg/, 'total received');
+  assert.match(railText, /80,000 kg/, 'total remaining');
+  assert.match(railText, /2,000 kg/, 'total real excess');
+  // What is meaningful now, at the only scope where the action exists.
+  assert.match(text(findById(view, 'oc-rail-orientacao')), /Falta receber 1 material/);
+  // §2.1's first exception: in the rail every control is width:100%.
+  const reg = findById(rail, 'oc-registrar-recebimento');
+  assert.ok(reg, 'the dominant flow action lives in the rail');
+  assert.match(reg.getAttribute('style'), /width:100%/);
+  assert.match(reg.getAttribute('style'), /height:var\(--rv-h-primary\)/);
+});
+
+test('phase 3: the server blocker sits in the rail, beside the action it blocks', () => {
+  const s = makeSandbox();
+  const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' },
+    projection({ acoes: { receber: false, estornar: true }, bloqueio_recebimento: 'recebimento_canonico_inativo' }));
+  const rail = findAll(view, (n) => typeof n.getAttribute === 'function'
+    && n.getAttribute('data-rv-rail') != null)[0];
+  assert.ok(findById(rail, 'oc-recebimento-inativo'), 'the blocker notice is in the rail');
+  assert.equal(findById(view, 'oc-registrar-recebimento'), null, 'and no actionable control exists');
 });
 
 test('row-level reversal button: all §8.1 guards, enabled when server allows', () => {

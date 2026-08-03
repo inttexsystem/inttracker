@@ -29,18 +29,29 @@
 
     function render() {
       // ORDEM DA PILHA (IA aceita do BACKLOG 7): primeiro o documento e o seu
-      // estado, depois o recebimento — que e a leitura operacional principal —
-      // e SO ENTAO o log administrativo, que e apoio.
+      // estado, depois o COCKPIT de recebimento — que e a leitura operacional
+      // principal, com os materiais a esquerda e o rail a direita — e SO ENTAO
+      // os blocos de APOIO: a proveniencia somente-leitura e o log
+      // administrativo.
       //
       // renderEventosAdmin saiu de dentro de renderDetail exatamente por isto:
       // enquanto vivia la, o log aparecia ACIMA da secao de recebimento que ele
       // descreve, e a tela tinha DOIS blocos chamados "Histórico" a poucos
       // pixels um do outro. Agora e o ultimo, e chama-se "Eventos
       // administrativos".
+      //
+      // BACKLOG-7 PHASE 3: renderProvenanceSection saiu de renderDetail pela
+      // mesma razao. Enquanto era construida la dentro, a proveniencia — que e
+      // apoio somente-leitura — ficava ENTRE o cabecalho e a superficie de
+      // recebimento, separando o operador da leitura principal.
       var nodes = [ns.renderDetail(state, handlers)];
       if (typeof ns.renderReceiptSection === 'function') {
         var receiptSection = ns.renderReceiptSection(state, handlers);
         if (receiptSection) nodes.push(receiptSection);
+      }
+      if (typeof ns.renderProvenanceSection === 'function') {
+        var provenance = ns.renderProvenanceSection(state);
+        if (provenance) nodes.push(provenance);
       }
       if (typeof ns.renderEventosAdmin === 'function') {
         var eventos = ns.renderEventosAdmin(state);

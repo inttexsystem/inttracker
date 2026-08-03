@@ -196,13 +196,22 @@ for (const rel of FIRST_PARTY) {
   }
 }
 
-test('16b2. ARCHETYPE_A_COCKPIT_COUNT = 4 e MARKED_COCKPIT_COUNT = 4', () => {
-  // As quatro superficies, por rota e estado alcancavel:
+test('16b2. ARCHETYPE_A_COCKPIT_COUNT = 5 e MARKED_COCKPIT_COUNT = 5', () => {
+  // As cinco superficies, por rota e estado alcancavel:
   //   OP Tecelagem em producao  js/screens/op-tecelagem-producao-admin.js
   //   OP Latex em producao      js/screens/op-latex-admin.js  (status em_producao)
   //   OP Latex aberta           js/screens/op-latex-admin.js  (status aberta)
   //   OP Tecelagem aberta       js/screens/op-nova.js         (isOpAbertaTecelagem)
-  assert.equal(cockpitSurfaces.length, 4,
+  //   Pedido de Compra          js/screens/ordem-compra-receipt-render.js
+  //                             (#/ordens-compra/:id, ordem NATIVA fora do
+  //                             rascunho — BACKLOG-7 fase 3)
+  //
+  // A quinta superficie ENTRA MARCADA. O guard nunca exigiu que a populacao
+  // fosse quatro para sempre: ele exige que TODA grade do arquetipo A seja
+  // membro do contrato responsivo, e o comentario acima dele diz literalmente
+  // "uma quinta grade SEM MARCACAO falha". css/responsive.css continua o dono
+  // unico do breakpoint e nao foi tocado — o novo cockpit colapsa por atributo.
+  assert.equal(cockpitSurfaces.length, 5,
     `ARCHETYPE_A_COCKPIT_COUNT = ${cockpitSurfaces.length} (HARD STOP — POPULACAO DE COCKPIT MUDOU)`);
   assert.deepEqual(
     cockpitSurfaces.map((c) => c.rel).sort(),
@@ -211,17 +220,18 @@ test('16b2. ARCHETYPE_A_COCKPIT_COUNT = 4 e MARKED_COCKPIT_COUNT = 4', () => {
       'js/screens/op-latex-admin.js',
       'js/screens/op-nova.js',
       'js/screens/op-tecelagem-producao-admin.js',
+      'js/screens/ordem-compra-receipt-render.js',
     ],
     'a populacao de cockpits do arquetipo A mudou de arquivo',
   );
   const unmarked = cockpitSurfaces.filter((c) => !c.marked);
   assert.deepEqual(unmarked, [],
     `UNMARKED_ARCHETYPE_A_COCKPIT_COUNT = ${unmarked.length}: ${unmarked.map((c) => c.rel).join(', ')}`);
-  assert.equal(cockpitSurfaces.filter((c) => c.marked).length, 4);
+  assert.equal(cockpitSurfaces.filter((c) => c.marked).length, 5);
 });
 
-test('16b3. MARKED_RAIL_COUNT = 4 — todo rail do arquetipo A e membro', () => {
-  assert.equal(railSurfaces.length, 4,
+test('16b3. MARKED_RAIL_COUNT = 5 — todo rail do arquetipo A e membro', () => {
+  assert.equal(railSurfaces.length, 5,
     `ARCHETYPE_A_RAIL_COUNT = ${railSurfaces.length} (HARD STOP — POPULACAO DE RAIL MUDOU)`);
   const unmarked = railSurfaces.filter((r) => !r.marked);
   assert.deepEqual(unmarked, [],

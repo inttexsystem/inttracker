@@ -1,42 +1,71 @@
 // =====================================================================
 // === SCREENS: ORDEM DE COMPRA — RECEIPT RENDER (PHASE-C4) =============
 // Phase: PHASE-C4 (docs/architecture/ORDEM_COMPRA_C4_PHASE_CONTRACT.md,
-// OC-C4-ADMIN-001). Pure render for the persistent "Recebimentos" section on
-// the dedicated purchase-order detail screen (§R.24.9). Receives
+// OC-C4-ADMIN-001). Pure render for the persistent receipt surface on the
+// dedicated purchase-order detail screen (§R.24.9). Receives
 // (state, handlers) and returns DOM nodes — NO Supabase, NO state mutation,
 // NO DML (CODE_HEALTH §9). All action availability is read from the
 // server-derived `acoes` object in the read model (state.receiptHistory) —
 // never recomputed client-side, never inferred from local status fields.
 //
 // Rendered ONLY for native orders past the draft stage; legacy
-// (modelo==='legado') and native-draft orders render no section (contract §7
+// (modelo==='legado') and native-draft orders render no surface (contract §7
 // matrix). NULL-op / Pedido-origin allocations render as a first-class,
 // honest "Pedido (compartilhada)" attribution — never a fabricated OP
 // (§R.28.6/§R.29.2). Excess is shown explicitly and distinctly from
 // allocation quantities.
 //
-// VISUAL — BACKLOG-7 PHASE 1. Every visual value on this surface now resolves
-// through a CANONICAL css/tokens.css owner. The file previously spoke the
-// `--rv-color-*` / `--rv-radius-card` / `--rv-radius-control` compatibility
-// namespace that tokens.css itself declares "LEGACY COMPATIBILITY —
-// NONCONFORMING / DEPRECATED … New code must not use them", and took every type
-// size from a Tailwind utility — including `text-sm` (14px), a value that is not
-// in the UI_VISUAL_CONTRACT.md §5 enum at all.
+// ---------------------------------------------------------------------
+// VISUAL — BACKLOG-7 PHASE 3. THE MATERIAL IS THE OPERATIONAL UNIT.
 //
-// Now: flat hairline card at --rv-radius with a --rv-border hairline and no
-// shadow (§2.4); a 20px section icon chip on --rv-chip-bg / --rv-chip-glyph with
-// a SECTION_LABEL heading (§2.4); golden-rule tables (§2.5) whose headers take
-// the TABLE_HEADER role and whose cells take BODY_CONTROL_CELL, right-aligned
-// with tabular numerics and decimal comma + unit (§7); one dominant
-// "Registrar recebimento" action on the §2.1 Primary variant at a declared ladder
-// height; command-type badges built by the js/badges.js canonical owner (§2.6)
-// rather than a screen-local family map; and the ratified compact icon-only
+// Until now this surface published the SAME operational reality as THREE
+// competing primary representations, each a table of its own with its own
+// band: "Itens" (on the detail card above), "Saldos por item" and
+// "Alocações". A material's ordered quantity lived in the first, its
+// received/remaining/excess in the second, and its destinations in the
+// third — so the operator had to reassemble one material from three places
+// and hold the join in their head. None of the three answered, on its own,
+// the question that makes somebody open this screen: what did I order, how
+// much of it arrived, how much is still missing, is any of it excess, and
+// what can I do now.
+//
+// The three are now ONE block, MATERIAIS, whose unit is the material and not
+// the row. Each material states its own identity, its own receipt state, its
+// four quantities and its own destinations, together, in one place. The
+// destinations are DEMOTED inside the material they belong to — secondary
+// disclosure per the approved D1 — instead of standing as a third top-level
+// table.
+//
+// The surface is now an Archetype-A cockpit (UI_VISUAL_CONTRACT.md §3A):
+// content on the left, and a sticky rail carrying the ORDER-level state, the
+// order-level aggregate and the one dominant flow action. §3A's "never repeat
+// the same datum on both sides" is why the rail carries aggregates and the
+// order's own status, and the left carries per-material facts: an aggregate
+// is not the datum its parts are.
+//
+// WHAT THIS PHASE DOES NOT DO. It does not change receipt accounting. Every
+// number rendered here is projected by the server
+// (obter_historico_recebimento_ordem_compra, db/100): kg_pedido, kg_recebido,
+// kg_restante = GREATEST(kg_pedido - kg_recebido, 0) and kg_excesso are read,
+// never derived. Action availability still comes only from `acoes`. The
+// command history below is unchanged and its refoundation into a business
+// timeline is phase 4; the registration modal is phase 5; the demotion of
+// provenance and administrative events is phase 6.
+//
+// VISUAL — BACKLOG-7 PHASE 1 (retained). Every visual value on this surface
+// resolves through a CANONICAL css/tokens.css owner: flat hairline card at
+// --rv-radius (§2.4); 20px section icon chips on --rv-chip-bg /
+// --rv-chip-glyph with SECTION_LABEL headings and A DISTINCT ICON PER SECTION
+// (§2.4); the golden-rule table (§2.5) that survives in the history block;
+// right-aligned tabular numerics with decimal comma + unit (§7); one dominant
+// "Registrar recebimento" action on the §2.1 Primary variant at a declared
+// ladder height, now width:100% because §2.1's first exception is exactly
+// "in the rail every control is width:100%"; command-type badges built by the
+// js/badges.js canonical owner (§2.6); and the ratified compact icon-only
 // row-level reversal button (§2.9) via js/ui.js's actionButton().
 //
 // Tailwind still owns LAYOUT and SPACING only (flex, grid, padding), for which
-// no canonical --rv token exists. Tables are hand-built with the sibling
-// ordem-compra-render.js idiom so numeric HEADERS align right with their VALUES
-// (dataTable() header cells are text-left only).
+// no canonical --rv token exists.
 // =====================================================================
 
 (function (window) {
@@ -55,7 +84,12 @@
     tmp.innerHTML = String(markup).trim();
     return tmp.firstChild;
   }
+  // §2.4 requires A DISTINCT ICON PER SECTION. The surface now opens three
+  // sections — Materiais, Histórico and the rail's Recebimento — so each takes
+  // its own glyph instead of repeating the inbox three times.
+  var ICON_LAYERS = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>';
   var ICON_INBOX = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>';
+  var ICON_CLOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
   var ICON_UNDO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
   // §2.11/D12: a standalone notice carries an icon from its own semantic family.
   var ICON_ALERT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
@@ -83,28 +117,42 @@
   // As RPCs aceitas de recebimento atribuem origem apenas por `op_id`, entao
   // a identidade e resolvida por `public.op_identidade_projecao` (db/95) e
   // entregue aqui num mapa op_id -> identidade. Sem mapa, estado diagnostico
-  // explicito: nunca mais a chave crua.
-  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: as RPCs aceitas de recebimento
-  // devolvem apenas `op_id`. O mapa op_id -> identidade e resolvido uma vez
-  // por carga (ordem-compra-receipt-data.js) e guardado aqui em variavel de
-  // modulo, porque as funcoes internas de tabela nao recebem `state` e
-  // threadar o parametro por todas elas seria ruido sem ganho.
+  // explicito: nunca mais a chave crua. O mapa e resolvido uma vez por carga
+  // (ordem-compra-receipt-data.js) e guardado aqui em variavel de modulo,
+  // porque as funcoes internas nao recebem `state` e threadar o parametro por
+  // todas elas seria ruido sem ganho.
   var opIdentidades = null;
 
   function opLabel(opId) {
     return window.RAVATEX_OP_DISPLAY.formatOpIdentityFromMap(opId, opIdentidades);
   }
 
-  function sectionCard(children) {
+  function sectionCard(id, children) {
     return el('div', {
-      id: 'oc-recebimentos', class: 'overflow-hidden',
+      id: id, class: 'overflow-hidden',
       style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);',
     }, children);
   }
 
   // Section header: icon chip (20px, --rv-radius) using the neutral
   // section chip tokens (§6) + 11px UPPERCASE --rv-text-tertiary label +
-  // optional dominant action on the right (§8).
+  // optional trailing node on the right (§8).
+  function sectionHeader(label, iconMarkup, trailingNode) {
+    var chip = el('span', {
+      style: 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;'
+        + 'border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex:none;',
+    }, svgIcon(iconMarkup));
+    var title = el('span', {
+      style: 'font-size:var(--rv-fs-label);font-weight:700;letter-spacing:var(--rv-tracking-label);'
+        + 'text-transform:uppercase;color:var(--rv-text-tertiary);',
+    }, label);
+    var left = el('div', { class: 'flex items-center gap-2 min-w-0' }, chip, title);
+    return el('div', {
+      class: 'px-5 py-3 flex items-center justify-between gap-3 flex-wrap',
+      style: 'border-bottom:1px solid var(--rv-border);',
+    }, left, trailingNode || el('span', {}));
+  }
+
   // BACKLOG-7 PHASE 2 — o estado de recebimento DA ORDEM, finalmente dito.
   //
   // `status_recebimento` e derivado pelo servidor e projetado pelos DOIS read
@@ -133,27 +181,39 @@
     return pill;
   }
 
+  // BACKLOG-7 PHASE 3 — o estado de recebimento DE CADA MATERIAL.
+  //
+  // O servidor projeta `status_recebimento` para a ORDEM inteira; nao existe
+  // coluna equivalente por item, e este phase NAO acrescenta uma. Esta funcao
+  // e PRESENTATION sobre numeros que o servidor ja derivou — le kg_recebido e
+  // kg_restante exatamente como vieram de db/100 e nao recalcula nenhum deles.
+  //
+  // O vocabulario e o MESMO ja ruled para a ordem (RECEBIMENTO_LABEL acima),
+  // deliberadamente: as tres chaves resolvem a familia pelo dono canonico
+  // js/badges.js (§2.6) e nenhuma quarta familia e inventada aqui. O excedente
+  // NAO ganha pill propria — a decisao aberta D5 (vocabulario de pill de estado
+  // de excedente) nao foi decidida pelo arquiteto, entao o excedente real e
+  // dito como QUANTIDADE explicita e rotulada no bloco do material, que e o
+  // que §1 chama de bare signal sobre um numero.
+  function estadoMaterial(it) {
+    if (!(Number(it.kg_recebido) > 0)) return 'nao_recebido';
+    if (Number(it.kg_restante) > 0) return 'parcial';
+    return 'recebido';
+  }
+
+  function estadoMaterialPill(it) {
+    var chave = estadoMaterial(it);
+    var pill = window.rvStatusPill(RECEBIMENTO_LABEL[chave], chave);
+    if (pill && typeof pill.setAttribute === 'function') {
+      pill.setAttribute('data-estado-material', chave);
+    }
+    return pill;
+  }
+
   // ator_tipo e um enum do banco ('admin' | 'fornecedor'). A linha de metadados
   // imprimia o valor cru — "Ator: admin" — que e vocabulario interno numa
   // superficie operacional.
   var ATOR_LABEL = { admin: 'Administrador', fornecedor: 'Fornecedor' };
-
-  function sectionHeader(actionNode, statusNode) {
-    var chip = el('span', {
-      style: 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;'
-        + 'border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex:none;',
-    }, svgIcon(ICON_INBOX));
-    var label = el('span', {
-      style: 'font-size:var(--rv-fs-label);font-weight:700;letter-spacing:var(--rv-tracking-label);'
-        + 'text-transform:uppercase;color:var(--rv-text-tertiary);',
-    }, 'Recebimentos');
-    var left = el('div', { class: 'flex items-center gap-2' }, chip, label);
-    if (statusNode) left.appendChild(statusNode);
-    return el('div', {
-      class: 'px-5 py-3 flex items-center justify-between gap-3 flex-wrap',
-      style: 'border-bottom:1px solid var(--rv-border);',
-    }, left, actionNode || el('span', {}));
-  }
 
   // §2.5 owns the table header role: --rv-fs-thead / 600 / uppercase /
   // --rv-text-tertiary. The Tailwind `text-xs` this used to carry painted 12px,
@@ -197,10 +257,10 @@
   //
   // `obter_historico_recebimento_ordem_compra` projeta apenas cor_id e
   // cor_poliester, entao um item de ALGODAO (que nao tem cor_poliester) caia no
-  // ramo `'Cor ' + cor_id` e a secao Recebimentos imprimia "Algodão · Cor 3".
-  // A tabela Itens LOGO ACIMA, na mesma tela, ja imprimia "Algodão · CRU":
-  // `obter_ordem_compra_admin` faz LEFT JOIN public.cores e projeta `cor_nome`
-  // (db/100), e ordem-compra-render.js::fioLabel ja o prefere.
+  // ramo `'Cor ' + cor_id` e a superficie de recebimento imprimia
+  // "Algodão · Cor 3". A tabela Itens LOGO ACIMA, na mesma tela, ja imprimia
+  // "Algodão · CRU": `obter_ordem_compra_admin` faz LEFT JOIN public.cores e
+  // projeta `cor_nome` (db/100), e ordem-compra-render.js::fioLabel ja o prefere.
   //
   // A mesma tela dizia a mesma cor de duas maneiras. A correcao NAO precisa de
   // migracao: os dois read models chaveiam pelo mesmo ordem_compra_item.id, e o
@@ -226,56 +286,233 @@
     return mat + ' · ' + cor;
   }
 
-  // Per-item saldos: Kg pedido / recebido / restante / excesso (item totals).
-  function itensTable(itens) {
-    var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
-    // Pass-8 §2.5: `table-layout:fixed` alone left the column widths to the
-    // browser. The <colgroup> is the missing width owner; its five <col>s match
-    // the five header cells and the five value cells exactly. Every width is a
-    // LITERAL style — a computed `'width:' + w` would be undecodable for the
-    // conformance detector and would open a UIC-000 coverage gap for a value
-    // that is entirely static.
-    t.appendChild(el('colgroup', {},
-      el('col', { style: 'width:36%;' }),
-      el('col', { style: 'width:16%;' }),
-      el('col', { style: 'width:16%;' }),
-      el('col', { style: 'width:16%;' }),
-      el('col', { style: 'width:16%;' })));
-    t.appendChild(theadRow([th('Fio'), th('Kg pedido', true), th('Kg recebido', true), th('Kg restante', true), th('Kg excesso', true)]));
-    var body = el('tbody', {});
-    itens.forEach(function (it) {
-      body.appendChild(bodyRow({ 'data-item-id': String(it.item_id) },
-        [tdText(fioLabel(it)), tdNum(it.kg_pedido), tdNum(it.kg_recebido), tdNum(it.kg_restante), tdNum(it.kg_excesso)]));
-    });
-    t.appendChild(body);
-    return el('div', { class: 'overflow-x-auto' }, t);
+  // ---- MATERIAIS -------------------------------------------------------
+  //
+  // Um material e um BLOCO, nao uma linha: a linha de tabela nao comporta a
+  // identidade, o estado, quatro quantidades e os destinos sem espremer todos
+  // eles, e era exatamente por isso que a informacao estava repartida por tres
+  // tabelas. O bloco tambem e o que deixa o material ser a unidade primaria de
+  // leitura em vez de mais uma celula.
+  //
+  // Nenhuma tabela e construida aqui, e nenhuma coluna de px fixo: a grelha de
+  // metricas e `auto-fit` sobre uma largura minima, entao ela mesma reduz de
+  // quatro colunas para duas no viewport estreito sem precisar de container de
+  // rolagem proprio nem de qualquer regra em css/responsive.css.
+
+  // PAIR_VALUE (§5) — o valor de um par rotulo/valor, que e exatamente o que
+  // cada metrica e. As duas variantes sao declaradas por extenso: §2.1 proibe
+  // derivar uma declaracao da outra por substituicao de texto, e o excedente
+  // real toma o bare signal de §1 (a cor sobre o NUMERO carrega o significado)
+  // sem nunca ser a unica portadora — o rotulo "Kg excedente" esta sempre la.
+  function metricaNeutra(label, valor) {
+    return el('div', { class: 'min-w-0' },
+      el('div', {
+        style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);',
+      }, label),
+      el('div', {
+        style: 'font-size:var(--rv-fs-value);font-weight:600;color:var(--rv-text-primary);'
+          + 'font-variant-numeric:tabular-nums;',
+      }, fmtKg(valor)));
+  }
+  function metricaExcedente(label, valor) {
+    return el('div', { class: 'min-w-0' },
+      el('div', {
+        style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);',
+      }, label),
+      el('div', {
+        style: 'font-size:var(--rv-fs-value);font-weight:600;color:var(--rv-signal-caution);'
+          + 'font-variant-numeric:tabular-nums;',
+      }, fmtKg(valor)));
   }
 
-  // Per-allocation remaining: honest OP/Pedido attribution + kg remaining.
-  function alocacoesTable(itens) {
-    var count = 0;
-    itens.forEach(function (it) { count += (it.alocacoes || []).length; });
-    if (!count) {
-      return el('div', { class: 'px-5 py-4', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' }, 'Nenhuma alocação neste item.');
-    }
-    var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
-    t.appendChild(el('colgroup', {},
-      el('col', { style: 'width:28%;' }),
-      el('col', { style: 'width:24%;' }),
-      el('col', { style: 'width:16%;' }),
-      el('col', { style: 'width:16%;' }),
-      el('col', { style: 'width:16%;' })));
-    t.appendChild(theadRow([th('Fio'), th('Origem'), th('Kg alocado', true), th('Kg recebido', true), th('Kg restante', true)]));
-    var body = el('tbody', {});
-    itens.forEach(function (it) {
-      (it.alocacoes || []).forEach(function (a) {
-        body.appendChild(bodyRow({ 'data-alocacao-id': String(a.alocacao_id) },
-          [tdText(fioLabel(it)), tdText(opLabel(a.op_id), a.op_id == null),
-            tdNum(a.kg_alocado), tdNum(a.kg_recebido), tdNum(a.kg_restante)]));
-      });
+  // Os destinos DEIXAM de ser uma terceira tabela de topo e passam a ser o
+  // detalhe secundario do material a que pertencem (D1: a distribuicao continua
+  // disponivel como divulgacao secundaria). Nenhuma quantidade se perde: os
+  // tres valores que a tabela "Alocações" mostrava continuam todos aqui,
+  // rotulados, na linha do seu proprio destino.
+  function destinos(it) {
+    var alocacoes = it.alocacoes || [];
+    if (!alocacoes.length) return null;
+    var wrap = el('div', {
+      style: 'margin-top:12px;padding-top:10px;border-top:1px solid var(--rv-border-soft);',
     });
-    t.appendChild(body);
-    return el('div', { class: 'overflow-x-auto' }, t);
+    wrap.appendChild(el('div', {
+      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);margin-bottom:6px;',
+    }, 'Destinos'));
+    alocacoes.forEach(function (a) {
+      wrap.appendChild(el('div', {
+        'data-alocacao-id': String(a.alocacao_id),
+        class: 'flex items-baseline justify-between gap-3 flex-wrap',
+        style: 'padding:3px 0;',
+      },
+        el('span', {
+          style: 'font-size:var(--rv-fs-sm);color:'
+            + (a.op_id == null ? 'var(--rv-text-secondary)' : 'var(--rv-text-primary)') + ';',
+        }, opLabel(a.op_id)),
+        el('span', {
+          style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);'
+            + 'font-variant-numeric:tabular-nums;',
+        }, 'Alocado ' + fmtKg(a.kg_alocado) + ' · Recebido ' + fmtKg(a.kg_recebido)
+          + ' · Restante ' + fmtKg(a.kg_restante))));
+    });
+    return wrap;
+  }
+
+  function materialBlock(it, primeiro) {
+    var bloco = el('div', {
+      'data-item-id': String(it.item_id),
+      class: 'px-5 py-4',
+      style: primeiro ? '' : 'border-top:1px solid var(--rv-border-soft);',
+    });
+
+    // Identidade + estado: a primeira linha do bloco responde "que material e
+    // este" e "em que pe esta", que sao as duas primeiras perguntas da tela.
+    bloco.appendChild(el('div', { class: 'flex items-center justify-between gap-3 flex-wrap mb-3' },
+      el('span', {
+        class: 'min-w-0',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:600;color:var(--rv-text-primary);',
+      }, fioLabel(it)),
+      estadoMaterialPill(it)));
+
+    // As quatro quantidades, na ordem em que o operador as le: quanto pedi,
+    // quanto chegou, quanto falta, quanto veio a mais.
+    bloco.appendChild(el('div', {
+      style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px 16px;',
+    },
+      metricaNeutra('Kg pedido', it.kg_pedido),
+      metricaNeutra('Kg recebido', it.kg_recebido),
+      metricaNeutra('Kg restante', it.kg_restante),
+      Number(it.kg_excesso) > 0
+        ? metricaExcedente('Kg excedente', it.kg_excesso)
+        : metricaNeutra('Kg excedente', it.kg_excesso)));
+
+    var dest = destinos(it);
+    if (dest) bloco.appendChild(dest);
+    return bloco;
+  }
+
+  function materiaisSection(itens) {
+    var corpo;
+    if (!itens.length) {
+      corpo = el('div', {
+        class: 'px-5 py-8 text-center',
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+      }, 'Nenhum material nesta ordem.');
+    } else {
+      corpo = el('div', { id: 'oc-materiais' });
+      itens.forEach(function (it, i) { corpo.appendChild(materialBlock(it, i === 0)); });
+    }
+    return sectionCard('oc-recebimentos', [
+      sectionHeader('Materiais', ICON_LAYERS, null),
+      corpo,
+    ]);
+  }
+
+  // ---- RAIL (§3A) ------------------------------------------------------
+  //
+  // O rail carrega o que e da ORDEM: o seu estado de recebimento, o agregado e
+  // a unica acao de fluxo que existe de verdade. §3A e explicito — "summary,
+  // metrics and the flow action in the rail" e "never repeat the same datum on
+  // both sides": o agregado NAO e o mesmo dado que as parcelas por material, e
+  // o estado da ordem NAO e o estado de um material.
+  //
+  // A REGRA DO RAIL e "tudo vertical e width:100%", e um grid de colunas fixas
+  // dentro do rail e proibido (§6) — por isso cada metrica e uma linha
+  // rotulo/valor, nunca uma grelha.
+
+  // O somatorio e de APRESENTACAO. O read model db/100 nao projeta totais de
+  // ordem, e este agregado nao decide nada: nenhuma acao, nenhuma habilitacao e
+  // nenhuma persistencia depende dele. Ele soma exatamente os quatro campos que
+  // o servidor ja derivou por item, e nao reconstroi nenhuma regra de
+  // contabilidade de recebimento.
+  function agregado(itens) {
+    var t = { kg_pedido: 0, kg_recebido: 0, kg_restante: 0, kg_excesso: 0, pendentes: 0 };
+    itens.forEach(function (it) {
+      t.kg_pedido += Number(it.kg_pedido) || 0;
+      t.kg_recebido += Number(it.kg_recebido) || 0;
+      t.kg_restante += Number(it.kg_restante) || 0;
+      t.kg_excesso += Number(it.kg_excesso) || 0;
+      if (Number(it.kg_restante) > 0) t.pendentes += 1;
+    });
+    return t;
+  }
+
+  function railMetrica(label, valor, excedente) {
+    return el('div', {
+      class: 'flex items-baseline justify-between gap-3',
+      style: 'width:100%;',
+    },
+      el('span', { style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);' }, label),
+      excedente
+        ? el('span', {
+          style: 'font-size:var(--rv-fs-metric-rail);font-weight:600;color:var(--rv-signal-caution);'
+            + 'font-variant-numeric:tabular-nums;',
+        }, fmtKg(valor))
+        : el('span', {
+          style: 'font-size:var(--rv-fs-metric-rail);font-weight:600;color:var(--rv-text-primary);'
+            + 'font-variant-numeric:tabular-nums;',
+        }, fmtKg(valor)));
+  }
+
+  // A frase que responde "o que posso fazer agora" no unico escopo em que a
+  // acao existe de verdade. O escritor nativo
+  // (registrar_recebimento_ordem_compra) recebe p_ordem_id e p_linhas: nao
+  // existe recebimento por material, e um botao por material seria uma
+  // affordance fabricada para uma operacao que o servidor nao oferece.
+  function railOrientacao(total, itens) {
+    if (!itens.length) return 'Esta ordem não tem materiais.';
+    if (total.pendentes === 0) return 'Todos os materiais foram recebidos por completo.';
+    if (total.pendentes === 1) return 'Falta receber 1 material.';
+    return 'Faltam receber ' + total.pendentes + ' materiais.';
+  }
+
+  function railCard(hist, itens, registrarBtn) {
+    var total = agregado(itens);
+    var corpo = el('div', {
+      style: 'padding:var(--rv-pad-card-rail);display:flex;flex-direction:column;gap:8px;',
+    },
+      railMetrica('Kg pedido', total.kg_pedido, false),
+      railMetrica('Kg recebido', total.kg_recebido, false),
+      railMetrica('Kg restante', total.kg_restante, false),
+      railMetrica('Kg excedente', total.kg_excesso, total.kg_excesso > 0));
+
+    var rodape = el('div', {
+      style: 'padding:var(--rv-pad-card-rail);border-top:1px solid var(--rv-border-soft);'
+        + 'display:flex;flex-direction:column;gap:10px;',
+    },
+      el('div', {
+        id: 'oc-rail-orientacao',
+        style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-secondary);',
+      }, railOrientacao(total, itens)));
+    if (registrarBtn) rodape.appendChild(registrarBtn);
+
+    return sectionCard('oc-recebimento-rail', [
+      sectionHeader('Recebimento', ICON_INBOX, statusRecebimentoPill(hist.status_recebimento)),
+      corpo,
+      rodape,
+    ]);
+  }
+
+  // §2.11/D12: isto e um AVISO AUTONOMO, e a regra e global — "every standalone
+  // warning ... occupies the full width of its containing content region and
+  // renders as a card surface ... background, border, icon and text from ONE
+  // MATCHING SEMANTIC FAMILY". Antes era uma linha cinza inline em
+  // --rv-text-secondary, indistinguivel de uma legenda.
+  function bloqueioCard() {
+    return el('div', {
+      id: 'oc-recebimento-inativo',
+      style: 'display:flex;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;'
+        + 'padding:10px 14px;border-radius:var(--rv-radius);font-size:var(--rv-fs-body);'
+        + 'background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);'
+        + 'color:var(--rv-signal-caution);',
+    },
+    el('span', {
+      style: 'display:inline-flex;flex:none;color:var(--rv-signal-caution);',
+      'aria-hidden': 'true',
+    }, svgIcon(ICON_ALERT)),
+    el('span', {}, 'Registro de recebimento indisponível: a virada para o recebimento canônico ainda '
+      + 'não foi ativada. O histórico abaixo é somente leitura.'));
   }
 
   // §2.6 names js/badges.js as the SINGLE runtime owner of the state → family
@@ -395,6 +632,10 @@
   // Command history: one block per command (recebimento/estorno) with its
   // header metadata and a nested lançamentos table carrying honest per-line
   // OP/excess attribution and the row-level reversal control.
+  //
+  // UNCHANGED BY PHASE 3. Its refoundation into a business-event timeline —
+  // including the deferred removal of the structurally dead Reversível/Ações
+  // columns on reversal rows — is phase 4 and is not started here.
   function historico(comandos, acoes, handlers, atorTipo) {
     if (!comandos.length) {
       return el('div', {
@@ -481,23 +722,10 @@
     return wrap;
   }
 
-  // A subsection band inside the card. SECTION_LABEL role (§5): 11px / 700 /
-  // uppercase / --rv-text-tertiary, with the canonical label tracking. The
-  // Tailwind `text-xs`+`tracking-wide` pair painted 12px at .025em, neither of
-  // which is the declared value for this role.
-  function subHeader(label) {
-    return el('div', {
-      class: 'px-5 py-2',
-      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
-        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);'
-        + 'background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
-    }, label);
-  }
-
-  // renderReceiptSection(state, handlers) → DOM node, or null when no section
+  // renderReceiptSection(state, handlers) → DOM node, or null when no surface
   // must exist (non-native order, or native draft — contract §7 matrix).
   ns.renderReceiptSection = function (state, handlers) {
-    // Ponto de entrada unico desta secao: sincroniza os dois mapas de
+    // Ponto de entrada unico desta superficie: sincroniza os dois mapas de
     // resolucao — identidade canonica de OP e o item da ordem, que carrega o
     // nome real da cor (cor_nome) que o read model de recebimento nao projeta.
     opIdentidades = (state && state.opIdentidades) || null;
@@ -515,16 +743,19 @@
 
     var hist = state.receiptHistory;
 
-    // Loading / error / empty are honest, distinct states (§15).
+    // Loading / error are honest, distinct states (§15). They are a single
+    // card, not a cockpit: there is nothing yet to summarise in a rail, and a
+    // rail of empty metrics beside a "loading" message would be an invented
+    // aggregate.
     if (!hist || hist.loading) {
-      return sectionCard([
-        sectionHeader(null),
+      return sectionCard('oc-recebimentos', [
+        sectionHeader('Materiais', ICON_LAYERS, null),
         el('div', { class: 'px-5 py-8 text-center', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' }, 'Carregando recebimentos…'),
       ]);
     }
     if (hist.ok !== true) {
-      return sectionCard([
-        sectionHeader(null),
+      return sectionCard('oc-recebimentos', [
+        sectionHeader('Materiais', ICON_LAYERS, null),
         el('div', { id: 'oc-recebimentos-erro', class: 'px-5 py-8 text-center', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' },
           'Não foi possível carregar os recebimentos.'),
       ]);
@@ -534,22 +765,34 @@
     var registrarBtn = null;
     if (acoes.receber === true) {
       // §2.1 Primary: --rv-brand fill, --rv-text-on-brand foreground, no border,
-      // and a declared height from the closed 3-rung ladder. It used to take its
-      // height from `py-2` (~36px, off the ladder), its foreground from Tailwind
-      // `text-white`, and its size from `text-sm` (14px, absent from the enum).
+      // and a declared height from the closed 3-rung ladder. `width:100%` is
+      // §2.1's FIRST declared exception — "in the rail every control is
+      // width:100%" — not a liberty taken here.
       registrarBtn = el('button', {
         id: 'oc-registrar-recebimento',
         class: 'font-semibold px-3 hover:opacity-90',
         style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;'
-          + 'height:var(--rv-h-primary);padding-top:0;padding-bottom:0;'
-          + 'display:inline-flex;align-items:center;justify-content:center;'
+          + 'height:var(--rv-h-primary);padding-top:0;padding-bottom:0;width:100%;'
+          + 'display:inline-flex;align-items:center;justify-content:center;cursor:pointer;'
           + 'font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
         onclick: function () { handlers.abrirRegistroRecebimento(); },
       }, 'Registrar recebimento');
     }
 
-    var children = [sectionHeader(registrarBtn, statusRecebimentoPill(hist.status_recebimento))];
+    var itens = hist.itens || [];
 
+    // ---- LEFT: the material-centric reading, then the history ------------
+    var esquerda = el('div', {
+      style: 'min-width:0;display:flex;flex-direction:column;gap:var(--rv-gap-stack);',
+    },
+      materiaisSection(itens),
+      sectionCard('oc-recebimentos-historico-card', [
+        sectionHeader('Histórico', ICON_CLOCK, null),
+        historico(hist.comandos || [], acoes, handlers, hist.ator_tipo),
+      ]));
+
+    // ---- RIGHT: the rail (§3A) -------------------------------------------
+    var railKids = [railCard(hist, itens, registrarBtn)];
     // PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1. O recebimento canônico
     // só existe depois do cutover (ordem_compra_cutover = canonical_active /
     // canonical). Enquanto ele não vale, o escritor recusa com
@@ -559,38 +802,24 @@
     //
     // O bloqueador é SERVIDOR (`hist.bloqueio_recebimento`). Esta tela apenas
     // o repete; nunca reconstrói o estado do cutover em JavaScript, e não
-    // existe nenhum caminho aqui que leia ordem_compra_cutover.
+    // existe nenhum caminho aqui que leia ordem_compra_cutover. Ele vive no
+    // rail porque é exatamente "o que o operador precisa entender antes de
+    // agir", ao lado da ação que ele bloqueia.
     if (hist.bloqueio_recebimento === 'recebimento_canonico_inativo') {
-      // BACKLOG-7 PHASE 2: isto e um AVISO AUTONOMO, e a regra §2.11/D12 e
-      // global: "every standalone warning ... occupies the full width of its
-      // containing content region and renders as a card surface ... background,
-      // border, icon and text from ONE MATCHING SEMANTIC FAMILY". Antes era uma
-      // linha cinza inline em --rv-text-secondary, indistinguivel de uma
-      // legenda — a mesma classe de defeito que D12 fechou no painel.
-      children.push(el('div', { class: 'px-5 pt-4' },
-        el('div', {
-          id: 'oc-recebimento-inativo',
-          style: 'display:flex;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;'
-            + 'padding:10px 14px;border-radius:var(--rv-radius);font-size:var(--rv-fs-body);'
-            + 'background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);'
-            + 'color:var(--rv-signal-caution);',
-        },
-        el('span', {
-          style: 'display:inline-flex;flex:none;color:var(--rv-signal-caution);',
-          'aria-hidden': 'true',
-        }, svgIcon(ICON_ALERT)),
-        el('span', {}, 'Registro de recebimento indisponível: a virada para o recebimento canônico ainda '
-          + 'não foi ativada. O histórico abaixo é somente leitura.'))));
+      railKids.push(bloqueioCard());
     }
+    var direita = el('div', {
+      'data-rv-rail': '',
+      style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:var(--rv-gap-stack);',
+    }, railKids);
 
-    var itens = hist.itens || [];
-    children.push(subHeader('Saldos por item'));
-    children.push(itens.length ? itensTable(itens) : el('div', { class: 'px-5 py-4', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' }, 'Nenhum item nesta ordem.'));
-    children.push(subHeader('Alocações'));
-    children.push(alocacoesTable(itens));
-    children.push(subHeader('Histórico'));
-    children.push(historico(hist.comandos || [], acoes, handlers, hist.ator_tipo));
-
-    return sectionCard(children);
+    // A grade do arquetipo A. css/responsive.css é o dono único do breakpoint:
+    // abaixo dele `[data-rv-cockpit]` vira uma coluna e `[data-rv-rail]` perde
+    // o sticky, por atributo, sem uma linha de folha de estilo nova.
+    return el('div', {
+      'data-rv-cockpit': '',
+      style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);'
+        + 'gap:var(--rv-gap-cols);align-items:start;',
+    }, esquerda, direita);
   };
 })(window);
