@@ -143,6 +143,41 @@
     });
   }
 
+  // §2.11 / D12 standalone notice card. Full width of its content region, one
+  // matching semantic family for background, border, icon and text. The three
+  // families this screen can raise are enumerated whole — a name assembled by
+  // concatenating a family suffix would hide the token from static validation.
+  var NOTICE_SKIN = {
+    positive: 'background:var(--rv-signal-positive-bg);border:1px solid var(--rv-signal-positive-border);color:var(--rv-signal-positive);',
+    caution: 'background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);color:var(--rv-signal-caution);',
+    negative: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);color:var(--rv-signal-negative);',
+  };
+  var NOTICE_ICON = {
+    positive: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    caution: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    negative: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+  };
+
+  function noticeIcon(markup) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = String(markup).trim();
+    return tmp.firstChild;
+  }
+
+  function noticeCard(id, familia, message) {
+    var skin = NOTICE_SKIN[familia];
+    if (!skin) throw new Error('ordem-compra-render: familia de aviso desconhecida: ' + familia);
+    return el('div', {
+      id: id,
+      class: 'mb-4',
+      style: 'display:flex;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;'
+        + 'padding:10px 14px;border-radius:var(--rv-radius);font-size:var(--rv-fs-body);' + skin,
+    },
+    el('span', { style: 'display:inline-flex;flex:none;', 'aria-hidden': 'true' },
+      noticeIcon(NOTICE_ICON[familia])),
+    el('span', {}, message));
+  }
+
   // §2.11 honest empty/unavailable state inside a card.
   function emptyCard(message) {
     var node = card('p-8 text-center');
@@ -297,8 +332,11 @@
   ns.renderDetail = function (state, handlers) {
     var box = el('div', { id: 'ordem-compra-detail' });
 
-    box.appendChild(el('div', { class: 'mb-4' },
-      linkButton('← Ordens de compra', function () { handlers.voltar(); })));
+    // O link "<- Ordens de compra" foi REMOVIDO. Era a forma legada de uma
+    // navegacao de volta: uma seta desenhada com um caractere de texto dentro
+    // de um link azul sublinhado, solto acima do cartao. O archetype A pede um
+    // BREADCRUMB no cabecalho, nao isto, e a barra lateral ja roteia para
+    // #/ordens-compra. O breadcrumb canonico entra com o cabecalho da fase 3.
 
     if (state.indisponivel) {
       box.appendChild(emptyCard(
@@ -314,30 +352,80 @@
 
     var acoes = o.acoes || {};
 
-    // Header card
+    // ---- ENTITY HEADER (§2.1) ------------------------------------------
+    //
+    // A barra de acoes era uma linha `mt-4` ABAIXO do bloco de titulo, alinhada
+    // a ESQUERDA dentro do cartao. §2.1 e categorico nos dois pontos: "entity
+    // header: bar RIGHT-ALIGNED, align-items: flex-start (aligns to the TOP of
+    // the title block), gap 8px, flex-wrap on the parent", e fecha a secao com
+    // "A left-aligned button inside a card is a DEFECT."
+    //
+    // Esta e exatamente a geometria ja ratificada em
+    // ADMIN-DASHBOARD-REVIEW-DEFECT-STABILIZATION-R1, que corrigiu o mesmo
+    // defeito no painel: acoes no topo do bloco de titulo, nao centradas nem
+    // empurradas para baixo dele.
     var head = card('p-5 mb-4');
-    head.appendChild(el('div', { class: 'flex items-center gap-3 mb-3 flex-wrap' },
+
+    var titleBlock = el('div', { class: 'min-w-0' });
+    titleBlock.appendChild(el('div', { class: 'flex items-center gap-3 flex-wrap' },
       el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, ocLabel(o.ordem_id, state)),
       modeloBadge(o.modelo), statusBadge(o.status_administrativo),
       o.modelo === 'nativo' ? statusAceiteBadge(o.status_aceite) : null));
-    head.appendChild(el('div', { style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' },
-      'Fornecedor: ' + (o.fornecedor_nome || '— não atribuído')));
+    titleBlock.appendChild(el('div', {
+      class: 'mt-2',
+      style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+    }, 'Fornecedor: ' + (o.fornecedor_nome || '— não atribuído')));
     if (o.modelo === 'legado') {
-      head.appendChild(el('div', {
+      titleBlock.appendChild(el('div', {
         class: 'mt-2',
         style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);',
       }, 'Ordem importada do modelo legado — inerte no novo modelo (administração pela via legada).'));
     }
 
-    // Actions row (server-derived)
-    var actions = el('div', { class: 'flex items-center gap-2 mt-4' });
+    // Actions bar (server-derived). `data-rv-page-actions` declara o papel de
+    // grupo de acoes de cabecalho, como o dono compartilhado js/ui.js::pageHeader
+    // ja faz nas telas que o consomem.
+    // `flex:none` seria um defeito de alcance: com quatro acoes a barra mede
+    // 467px, e a 375px ela empurrava o documento para 520px de largura — o
+    // operador perdia o botao Emitir fora da tela, sem rolagem local. A barra
+    // encolhe e as suas proprias acoes quebram; `min-width:0` e o que permite
+    // que um filho flex encolha abaixo do seu conteudo minimo.
+    var actions = el('div', {
+      'data-rv-page-actions': '',
+      class: 'flex flex-wrap justify-end',
+      style: 'gap:8px;min-width:0;',
+    });
+
+    // ---- Barra estreita: menos texto, nao mais linhas -------------------
+    //
+    // A 375px as quatro acoes por extenso ocupam 467px e so cabem quebrando em
+    // duas linhas. A decisao do arquiteto: no estreito, "Abrir Pedido" sai — e
+    // navegacao, nao acao de estado, e o Pedido continua alcancavel pela
+    // barra lateral — e as outras tres ficam so com o verbo.
+    //
+    // O breakpoint e literalmente o mesmo 767px que css/responsive.css ja
+    // possui, avaliado NO MOMENTO DO RENDER. Sem listener de resize, sem
+    // matchMedia guardado em estado e sem folha de estilo tocada: e o mesmo
+    // mecanismo ja aceito em cadastros.js (`window.innerWidth < breakpoint`),
+    // e a proibicao vigente de editar css/responsive.css para adaptar uma tela
+    // continua respeitada. Uma mudanca de largura ao vivo so se reflete no
+    // proximo render, exatamente como na marca do topo.
+    var estreito = (typeof window.innerWidth === 'number' && window.innerWidth > 0)
+      ? window.innerWidth < 768
+      : false;
+    // O rotulo encurta; o NOME ACESSIVEL nunca. "Cancelar" sozinho e ambiguo
+    // para quem ouve a tela, entao a forma completa continua no aria-label.
+    function acaoLabel(completo, curto) {
+      return estreito ? curto : completo;
+    }
     if (acoes.cancelar) {
       actions.appendChild(el('button', {
         id: 'oc-cancelar',
         class: 'font-semibold px-3',
         style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);color:var(--rv-signal-negative);height:var(--rv-h-default);padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
+        'aria-label': 'Cancelar ordem',
         onclick: function () { handlers.cancelar(o); },
-      }, 'Cancelar ordem'));
+      }, acaoLabel('Cancelar ordem', 'Cancelar')));
     }
     // EXCLUIR (db/96 + db/97). Distinto de Cancelar: Cancelar preserva uma
     // ordem real na historia; Excluir apaga uma que nao deveria existir. A
@@ -348,10 +436,13 @@
         id: 'oc-excluir',
         class: 'font-semibold px-3',
         style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);color:var(--rv-signal-negative);height:var(--rv-h-default);padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
+        'aria-label': 'Excluir ordem',
         onclick: function () { handlers.excluir(o); },
-      }, 'Excluir ordem'));
+      }, acaoLabel('Excluir ordem', 'Excluir')));
     }
-    if (o.pedido_id) {
+    // AUSENTE no estreito, nao encurtado: e navegacao contextual (§2.5.1), nao
+    // uma acao de estado, e a barra lateral ja roteia para o Pedido.
+    if (o.pedido_id && !estreito) {
       actions.appendChild(el('button', {
         id: 'oc-abrir-pedido', class: 'font-semibold px-3',
         style: 'background:none;border:none;cursor:pointer;height:var(--rv-h-default);'
@@ -375,8 +466,9 @@
           + 'height:var(--rv-h-primary);padding-top:0;padding-bottom:0;cursor:pointer;'
           + 'display:inline-flex;align-items:center;justify-content:center;'
           + 'font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
+        'aria-label': 'Emitir ordem',
         onclick: function () { handlers.emitir(o); },
-      }, 'Emitir ordem');
+      }, acaoLabel('Emitir ordem', 'Emitir'));
     } else {
       // §2.1: "A disabled control KEEPS ITS ENABLED COLOURS — there is no
       // disabled colour token and a washed-out substitute value is a defect
@@ -392,25 +484,37 @@
           + 'font-size:var(--rv-fs-body);border-radius:var(--rv-radius);'
           + 'opacity:.45;cursor:default;',
         title: BLOQUEIO_LABEL[o.bloqueio_emissao] || 'Emissão indisponível nesta fase.',
+        'aria-label': 'Emitir ordem',
         disabled: true,
-      }, 'Emitir ordem');
+      }, acaoLabel('Emitir ordem', 'Emitir'));
     }
     actions.appendChild(emitBtn);
-    head.appendChild(actions);
 
-    // Readiness / blocker context (server-derived, §7 matrix). Emittable orders
-    // show a readiness + irreversibility note; blocked orders show the honest
-    // server reason.
+    // A linha do cabecalho: titulo a esquerda, acoes a direita, alinhadas ao
+    // TOPO do bloco de titulo. `flex-wrap` no PAI, para que num viewport
+    // estreito a barra caia inteira em vez de espremer o titulo.
+    head.appendChild(el('div', {
+      class: 'flex flex-wrap justify-between',
+      style: 'align-items:flex-start;gap:12px;',
+    }, titleBlock, actions));
+
+    // Readiness / blocker context (server-derived, §7 matrix).
+    //
+    // §2.11/D12: estes sao AVISOS AUTONOMOS. A regra e global — cada um ocupa a
+    // largura inteira da sua regiao de conteudo COMO CARTAO, com fundo, borda,
+    // icone e texto de UMA familia semantica coerente, e "must not be rendered
+    // INLINE INSIDE A PAGE-TITLE BLOCK". Eram tres linhas de texto colorido de
+    // 11,5px penduradas no cartao do cabecalho — o mesmo defeito que D12 fechou
+    // no painel administrativo, onde a correcao ratificada foi exatamente
+    // mover o aviso "out of the title block into its own full-width card row".
+    box.appendChild(head);
+
     if (podeEmitir) {
-      head.appendChild(el('div', {
-        id: 'oc-emissao-pronta', class: 'mt-2',
-        style: 'font-size:var(--rv-fs-2xs);color:var(--rv-signal-positive);',
-      }, 'Distribuição completa — pronta para emissão. A emissão é definitiva (reversível apenas por cancelamento).'));
+      box.appendChild(noticeCard('oc-emissao-pronta', 'positive',
+        'Distribuição completa — pronta para emissão. A emissão é definitiva (reversível apenas por cancelamento).'));
     } else if (o.bloqueio_emissao) {
-      head.appendChild(el('div', {
-        id: 'oc-bloqueio-emissao', class: 'mt-2',
-        style: 'font-size:var(--rv-fs-2xs);color:var(--rv-signal-caution);',
-      }, BLOQUEIO_LABEL[o.bloqueio_emissao] || o.bloqueio_emissao));
+      box.appendChild(noticeCard('oc-bloqueio-emissao', 'caution',
+        BLOQUEIO_LABEL[o.bloqueio_emissao] || o.bloqueio_emissao));
     }
 
     // An emitted order that awaits acceptance is NOT lifecycle-complete until the
@@ -418,12 +522,9 @@
     // unreachable via the canonical path (exige_aceite is seeded false), so this
     // is a defensive notice; no acceptance/rejection control is offered.
     if (o.status_administrativo === 'emitida' && o.status_aceite === 'pendente') {
-      head.appendChild(el('div', {
-        id: 'oc-aceite-pendente-aviso', class: 'mt-2',
-        style: 'font-size:var(--rv-fs-2xs);color:var(--rv-signal-caution);',
-      }, 'Ordem emitida, aguardando aceite — o fluxo de aceite ainda não está disponível, portanto a ordem ainda não está concluída.'));
+      box.appendChild(noticeCard('oc-aceite-pendente-aviso', 'caution',
+        'Ordem emitida, aguardando aceite — o fluxo de aceite ainda não está disponível, portanto a ordem ainda não está concluída.'));
     }
-    box.appendChild(head);
 
     // Items
     var itemsCard = card('overflow-hidden mb-4');

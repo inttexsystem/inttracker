@@ -123,9 +123,17 @@ const YARN_COLOR_LABEL_ASSETS = [
 // esta ordem.
 const BACKLOG7_PHASE1_TOKEN = '20260803-backlog7-phase1-canonical-tokens-r1';
 const BACKLOG7_PHASE1_ASSETS = [
-  'js/screens/ordem-compra-render.js',
   'js/screens/ordem-compra-events.js',
   'js/screens/ordem-compra-distribuicao.js',
+];
+
+// BACKLOG-7-OC-HEADER-ALIGNMENT: revisao direta do Kleber sobre a tela
+// publicada. O link "<- Ordens de compra" saiu e a barra de acoes passou a ser
+// alinhada a direita no TOPO do bloco de titulo (§2.1). ordem-compra-render.js
+// migra da lista da fase 1 pela mesma razao: alterado por ultimo por esta ordem.
+const OC_HEADER_TOKEN = '20260803-backlog7-oc-header-alignment-r1';
+const OC_HEADER_ASSETS = [
+  'js/screens/ordem-compra-render.js',
 ];
 
 // BACKLOG-7-PHASE-2: as correcoes de VERDADE da superficie de recebimento — o
@@ -139,9 +147,10 @@ const BACKLOG7_PHASE2_ASSETS = [
   'js/screens/ordem-compra-receipt-render.js',
   'js/screens/ordem-compra-receipt-events.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN];
 
 function tokenEsperado(asset) {
+  if (OC_HEADER_ASSETS.includes(asset)) return OC_HEADER_TOKEN;
   if (BACKLOG7_PHASE2_ASSETS.includes(asset)) return BACKLOG7_PHASE2_TOKEN;
   if (BACKLOG7_PHASE1_ASSETS.includes(asset)) return BACKLOG7_PHASE1_TOKEN;
   if (YARN_COLOR_LABEL_ASSETS.includes(asset)) return YARN_COLOR_LABEL_TOKEN;
