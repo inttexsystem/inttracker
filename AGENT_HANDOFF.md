@@ -9,7 +9,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 - Workspace: `D:\Programação\controle-tapetes-g28`
 - Branch: `dev`
 - Publication boundary: `staging/dev`; EXPLICIT_SINGLE_FAST_FORWARD_ONLY
-- Accepted operational checkpoint: `e5ebbec256c3cf1ad3c1bf64eccdec151cb1ef5a`
+- Accepted operational checkpoint: `648f09cf8235c2b1cea73ed1f877da34007efac2`
 
 ## Environment
 
@@ -21,8 +21,8 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `CLOSED / ACCEPTED. P6 IS OPERATIONALLY VALIDATED. Kleber directly operated and validated the full chain in the published application: native receipt (OC-001-4-26, poliester BRANCO and PRETO, 880.650 kg each) raised the Pedido productive pool, which raised the previously zero ceiling of OP-T001-1-26, exposing sliders at proportional factor 1.00 with non-zero individual maxima; a manual redistribution recalculated coherently and the adjusted distribution was saved. accepted_operational_checkpoint ADVANCES from ef4a01a0844fd80d3fdce35b78b21a511994fbf0 to e5ebbec256c3cf1ad3c1bf64eccdec151cb1ef5a. THE OC-001-3-26 HISTORICAL RECEIVING EVENT IS SEPARATE AND NOT COMPLETE: CRU, KRAFT and CINZA remain PENDING and the real db/118 surplus scenario is NOT yet operationally validated. No implementation phase is started by this closeout.`
-- Objective: Reconcile the canonical documentary owners with the P6 operational validation that already occurred in the published application and in the repository's own already-committed corrections. Native receipt on the real purchase order OC-001-4-26 fed the Pedido's shared productive pool and, through it, the production ceiling of OP-T001-1-26; the full downstream chain (proportional factor, individual maxima, sliders, manual redistribution, saved distribution) was exercised and validated directly by Kleber. Two receipt-flow defects discovered during that validation (origin type wrongly presented as optional; a Pedido-pool allocation wrongly presented as surplus or as affecting no productive destination) were corrected in eb09c19 and b7bafe4, already applied to this repository before this closeout.
+- Status: `CLOSED / ACCEPTED AS INTERIM STATE. Kleber accepts the currently published purchase-order receipt surface as sufficient for now. BACKLOG 7 status: INTERIM ACCEPTED / PAUSED. Phases 3-6 of the approved target design are not started and must not be started without a new explicit authorization. accepted_operational_checkpoint ADVANCES from e5ebbec256c3cf1ad3c1bf64eccdec151cb1ef5a to 648f09cf8235c2b1cea73ed1f877da34007efac2. No implementation phase is started by this closeout.`
+- Objective: Reconcile the canonical documentary owners with the interim BACKLOG 7 acceptance that already occurred in the published application: five sequential commits (bc0aafe, d953136, 026aa7c, d331154, 648f09c) implementing the architect-approved target design's Phase 1 (canonical visual tokens) and Phase 2 (state legibility), plus three direct-review corrections (entity-header alignment, the text-label metadata-edit control, and stack spacing/event-log ordering). Each commit was pushed to staging/dev and verified live before the next began.
 - Next authorizable action: `NATIVE-RECEIPT-OC-001-3-26-REMAINING-EVENT-CRU-KRAFT-CINZA` / `SEPARATE EXPLICIT ARCHITECT ORDER REQUIRED; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
