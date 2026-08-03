@@ -57,7 +57,7 @@
     ordem_nao_encontrada: 'Ordem de compra não encontrada.',
     lancamento_invalido: 'Lançamento inválido para estorno.',
     nao_encontrado: 'Recebimento não encontrado.',
-    comando_invalido: 'Dados do recebimento inválidos.',
+    comando_invalido: 'Recebimento inválido: data e tipo de origem são obrigatórios.',
     concorrencia_ocupada: 'Outra operação está alterando este recebimento. Tente novamente.',
     item_invalido: 'Item inválido.',
     alocacao_invalida: 'Alocação inválida.',
@@ -181,13 +181,23 @@
 
       var dateInput = window.textInput({ type: 'date', value: todayIso() });
       var docInput = window.textInput({ placeholder: 'Documento / referência (opcional)' });
-      var origemTipoInput = window.textInput({ placeholder: 'Ex.: nota_fiscal (opcional)' });
+      // ORIGEM É OBRIGATÓRIA NO ESCRITOR, não opcional na tela:
+      //   IF p_recebido_em IS NULL OR p_origem_tipo IS NULL
+      //      OR length(btrim(p_origem_tipo)) NOT BETWEEN 1 AND 80
+      //   THEN 'comando_invalido', 'Data e origem sao obrigatorias'
+      // O campo dizia "(opcional)". Quem acreditava no rótulo e deixava vazio
+      // tinha o recebimento recusado antes de qualquer escrita, com uma
+      // mensagem que não nomeava o campo. Vem preenchido com um valor honesto
+      // ("Sem nota") para que o caminho comum não exija digitação, e continua
+      // editável quando existe nota real.
+      var origemTipoInput = window.textInput({ value: 'Sem nota', placeholder: 'Ex.: nota_fiscal' });
+      origemTipoInput.setAttribute('data-receipt-origem-tipo', '1');
       var origemRefInput = window.textInput({ placeholder: 'Referência de origem (opcional)' });
 
       var body = el('div', {});
       body.appendChild(window.formField({ label: 'Data do recebimento', input: dateInput }));
       body.appendChild(window.formField({ label: 'Documento', input: docInput }));
-      body.appendChild(window.formField({ label: 'Tipo de origem', input: origemTipoInput }));
+      body.appendChild(window.formField({ label: 'Tipo de origem *', input: origemTipoInput, hint: 'Obrigatório. Ex.: nota_fiscal. Use "Sem nota" quando não houver documento fiscal.' }));
       body.appendChild(window.formField({ label: 'Referência de origem', input: origemRefInput }));
 
       // One kg input per allocation + exactly one explicit "Excesso" row per
@@ -243,6 +253,16 @@
           }));
           if (!linhas.length) {
             window.toast('Informe ao menos uma quantidade maior que zero.', 'error');
+            return false;
+          }
+          // Os DOIS campos que o escritor exige. Recusar aqui evita gastar uma
+          // tentativa contra um `comando_invalido` que não nomeia o campo.
+          if (!String(dateInput.value || '').trim()) {
+            window.toast('Informe a data do recebimento.', 'error');
+            return false;
+          }
+          if (!String(origemTipoInput.value || '').trim()) {
+            window.toast('Informe o tipo de origem do recebimento.', 'error');
             return false;
           }
           var params = {

@@ -420,3 +420,70 @@ test('reversal: trocar SO a data cunha um token novo (a data entra na intencao)'
   assert.equal(calls[0].params.p_ocorrido_em, '2026-08-03');
   assert.equal(calls[1].params.p_ocorrido_em, '2026-08-04');
 });
+
+// ---------------------------------------------------------------------
+// RECEIPT-ORIGIN-REQUIRED-R1
+//
+// O escritor exige DATA e ORIGEM (_c3c_registrar_recebimento_impl, linha 21,
+// medido na producao):
+//
+//   IF p_recebido_em IS NULL OR p_origem_tipo IS NULL
+//      OR length(btrim(p_origem_tipo)) NOT BETWEEN 1 AND 80 THEN
+//     RETURN ... 'codigo', 'comando_invalido', 'erro', 'Data e origem sao obrigatorias';
+//
+// O campo "Tipo de origem" era rotulado "(opcional)". Quem acreditava no
+// rotulo e deixava vazio tinha o recebimento RECUSADO antes de qualquer
+// escrita — foi assim que um lancamento de poliester PRETO simplesmente nao
+// existiu no banco. Estes casos amarram os dois campos obrigatorios.
+// ---------------------------------------------------------------------
+
+test('registro: o comando carrega data E origem, e a origem vem preenchida', async () => {
+  const env = setup({ registrar_recebimento_ordem_compra: () => ({ data: { ok: true, lancamentos: [] }, error: null }) }, projection());
+  env.handlers.abrirRegistroRecebimento();
+  const modal = overlayByTitle(env.sandbox, /Registrar recebimento/);
+  const origem = inputByAttr(modal, 'data-receipt-origem-tipo', 1);
+  assert.ok(origem, 'o modal tem de expor o campo de origem');
+  assert.ok(String(origem.value || '').trim(), 'a origem vem preenchida: o caminho comum nao exige digitacao');
+  inputByAttr(modal, 'data-alocacao-id', 42).value = '5';
+  await btnByText(modal, /^Registrar$/)._listeners.click();
+  const call = rpcCalls(env.supa, 'registrar_recebimento_ordem_compra')[0];
+  assert.ok(call, 'o recebimento tem de chegar ao servidor');
+  assert.ok(call.params.p_ocorrido_em, 'p_ocorrido_em obrigatorio');
+  assert.ok(String(call.params.p_origem_tipo || '').trim(),
+    'p_origem_tipo obrigatorio — NULL devolve comando_invalido e nada e gravado');
+  assert.ok(String(call.params.p_origem_tipo).length <= 80, 'origem cabe no limite do escritor');
+});
+
+test('registro: origem em branco bloqueia o envio com mensagem propria, sem gastar RPC', async () => {
+  const env = setup({ registrar_recebimento_ordem_compra: () => ({ data: { ok: true, lancamentos: [] }, error: null }) }, projection());
+  env.handlers.abrirRegistroRecebimento();
+  const modal = overlayByTitle(env.sandbox, /Registrar recebimento/);
+  inputByAttr(modal, 'data-alocacao-id', 42).value = '5';
+  inputByAttr(modal, 'data-receipt-origem-tipo', 1).value = '   ';
+  await btnByText(modal, /^Registrar$/)._listeners.click();
+  assert.equal(rpcCalls(env.supa, 'registrar_recebimento_ordem_compra').length, 0,
+    'sem origem o comando nem chega ao servidor');
+  assert.match(String(lastToast(env.sandbox)._text || lastToast(env.sandbox).textContent || ''), /origem/i);
+});
+
+test('registro: data em branco bloqueia o envio com mensagem propria', async () => {
+  const env = setup({ registrar_recebimento_ordem_compra: () => ({ data: { ok: true, lancamentos: [] }, error: null }) }, projection());
+  env.handlers.abrirRegistroRecebimento();
+  const modal = overlayByTitle(env.sandbox, /Registrar recebimento/);
+  inputByAttr(modal, 'data-alocacao-id', 42).value = '5';
+  findAll(modal, (n) => n.tagName === 'INPUT' && n.getAttribute('type') === 'date')[0].value = '';
+  await btnByText(modal, /^Registrar$/)._listeners.click();
+  assert.equal(rpcCalls(env.supa, 'registrar_recebimento_ordem_compra').length, 0);
+  assert.match(String(lastToast(env.sandbox)._text || lastToast(env.sandbox).textContent || ''), /data do recebimento/i);
+});
+
+test('registro: recusa comando_invalido nomeia os campos que faltam', async () => {
+  const env = setup({ registrar_recebimento_ordem_compra: () => ({ data: { ok: false, codigo: 'comando_invalido' }, error: null }) }, projection());
+  env.handlers.abrirRegistroRecebimento();
+  const modal = overlayByTitle(env.sandbox, /Registrar recebimento/);
+  inputByAttr(modal, 'data-alocacao-id', 42).value = '5';
+  await btnByText(modal, /^Registrar$/)._listeners.click();
+  const msg = String(lastToast(env.sandbox)._text || lastToast(env.sandbox).textContent || '');
+  assert.match(msg, /origem/i, 'a recusa tem de dizer QUAL campo falta');
+  assert.doesNotMatch(msg, /^Dados do recebimento inv/i, 'a mensagem muda nao ajudava ninguem');
+});
