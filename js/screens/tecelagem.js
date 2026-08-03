@@ -52,6 +52,7 @@
   var ICON_LAYERS = '<path d="M12 2 2 7l10 5 10-5-10-5Z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path>';
   var ICON_BOX = '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path>';
   var ICON_LIST = '<line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>';
+  var ICON_PRINT = '<path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect>';
 
   function icon(markup, size) {
     var svg = window.el('span', {});
@@ -159,12 +160,19 @@
     return node;
   }
 
+  // COR do modelo, no formato compartilhado por rótulo de tela e etiquetas:
+  // "KRAFT/CRU" com as duas cores, ou uma só quando a outra está ausente.
+  function corProduto(modelo) {
+    if (!modelo) return null;
+    var cor1 = modelo.cor_1 && modelo.cor_1.nome ? modelo.cor_1.nome : null;
+    var cor2 = modelo.cor_2 && modelo.cor_2.nome ? modelo.cor_2.nome : null;
+    return (cor1 && cor2) ? (cor1 + '/' + cor2) : (cor1 || cor2 || null);
+  }
+
   // Rótulo do produto: NOITE · 2,10 m · KRAFT/CRU
   function rotuloProduto(modelo) {
     if (!modelo) return 'Produto não identificado';
-    var cor1 = modelo.cor_1 && modelo.cor_1.nome ? modelo.cor_1.nome : null;
-    var cor2 = modelo.cor_2 && modelo.cor_2.nome ? modelo.cor_2.nome : null;
-    var cores = (cor1 && cor2) ? (cor1 + '/' + cor2) : (cor1 || cor2 || null);
+    var cores = corProduto(modelo);
     var partes = [modelo.nome, fmtLargura(modelo.largura)];
     if (cores) partes.push(cores);
     return partes.join(' · ');
@@ -303,9 +311,16 @@
   }
 
   // Produtos da OP + o modelo que os descreve. Dado definido pela Ravatex.
+  //
+  // emborrachar mora em op_itens (db/124), não em modelos: é a instrução da
+  // ESPECIFICAÇÃO deste produto NESTA OP, não um atributo do modelo
+  // reutilizável — o mesmo modelo em outra OP pode carregar outra instrução.
+  // tipo_produto vem de modelos porque é o dono existente e único da
+  // distinção tapete/manta (db/78); é lido aqui só para decidir a
+  // aplicabilidade de EMBORRACHAR, nunca reescrito.
   async function carregarProdutos(opId) {
     var itensRes = await window.supa.from('op_itens')
-      .select('id, op_id, modelo_id, metros_pedidos, metros_ajustados')
+      .select('id, op_id, modelo_id, metros_pedidos, metros_ajustados, emborrachar')
       .eq('op_id', opId)
       .order('id');
     if (itensRes.error) throw itensRes.error;
@@ -314,7 +329,7 @@
 
     var modeloIds = Array.from(new Set(itens.map(function (i) { return i.modelo_id; })));
     var modelosRes = await window.supa.from('modelos')
-      .select('id, nome, largura, cor_1:cor_1_id(id,nome), cor_2:cor_2_id(id,nome)')
+      .select('id, nome, largura, tipo_produto, cor_1:cor_1_id(id,nome), cor_2:cor_2_id(id,nome)')
       .in('id', modeloIds);
     if (modelosRes.error) throw modelosRes.error;
 
@@ -338,6 +353,274 @@
       (porItem[r.op_item_id] = porItem[r.op_item_id] || []).push(r);
     });
     return porItem;
+  }
+
+  // -------------------------------------------------------------------
+  // ETIQUETAS — dois conceitos de produto distintos, nunca fundidos (§6).
+  //
+  //   ETIQUETA DO ROLO         identifica o rolo físico da tecelagem.
+  //   ETIQUETA PARA O ACABAMENTO   carrega a instrução operacional da
+  //                                 próxima etapa (EMBORRACHAR).
+  //
+  // As duas são SOMENTE LEITURA sobre dado já carregado nesta tela: nenhuma
+  // delas chama RPC nova, grava nada, cria rolo ou lançamento, nem muda
+  // estado de OP. Imprimir é saída de informação existente, não mutação de
+  // produção — a isolação desta fase (db/123) permanece intacta.
+  //
+  // Mecânica de impressão: cada etiqueta é montada UMA vez, como uma lista
+  // ordenada de pares [rótulo, valor] (`camposEtiquetaRolo` /
+  // `camposBasicosAcabamento`). Essa mesma lista alimenta dois
+  // renderizadores — o nó DOM da pré-visualização dentro do modal
+  // (`campoBloco`/`nodeEtiquetaGenerica`) e o HTML da janela de impressão
+  // (`linhaHtml`) — para que os dois nunca possam divergir sobre QUAIS
+  // campos aparecem. QR físico escaneável fica fora desta fase (fora de
+  // escopo: "workflow de leitura de QR"); IDENTIFICAÇÃO é o código de texto
+  // legível que a etiqueta do rolo exige.
+  // -------------------------------------------------------------------
+
+  function escapeHtml(valor) {
+    return String(valor == null ? '' : valor).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // Código de identificação textual do rolo. Não é um QR escaneável — a
+  // leitura por QR é workflow de fase futura (fora de escopo desta fatia).
+  function identificacaoRolo(op, rolo) {
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op) + ' · ROLO ' + fmtRolo(rolo.numero);
+  }
+
+  // ETIQUETA DO ROLO — CLIENTE, MODELO, COR, LARGURA, OP, ROLO,
+  // IDENTIFICAÇÃO e, SE o rolo tiver comprimento registrado, COMPRIMENTO.
+  // A ausência de comprimento nunca bloqueia a etiqueta (§1/§2 do produto).
+  function camposEtiquetaRolo(op, produto, rolo) {
+    var modelo = produto && produto.modelo;
+    var linhas = [
+      ['CLIENTE', op && op.cliente_nome ? String(op.cliente_nome).trim() : null],
+      ['MODELO', modelo ? modelo.nome : null],
+      ['COR', corProduto(modelo)],
+      ['LARGURA', modelo ? fmtLargura(modelo.largura) : null],
+      ['OP', window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)],
+      ['ROLO', fmtRolo(rolo.numero)],
+    ];
+    if (rolo.comprimento_m != null) linhas.push(['COMPRIMENTO', fmtMetros(rolo.comprimento_m)]);
+    linhas.push(['IDENTIFICAÇÃO', identificacaoRolo(op, rolo)]);
+    return linhas.filter(function (par) { return par[1] != null && par[1] !== ''; });
+  }
+
+  // Campos comuns da ETIQUETA PARA O ACABAMENTO. EMBORRACHAR e COMPRIMENTO
+  // NÃO entram aqui: EMBORRACHAR tem renderização própria com destaque
+  // visual (§4), e COMPRIMENTO é sempre uma linha em branco para
+  // preenchimento manual (§5) — nunca um valor filtrável como os demais.
+  function camposBasicosAcabamento(op, produto) {
+    var modelo = produto && produto.modelo;
+    var linhas = [
+      ['CLIENTE', op && op.cliente_nome ? String(op.cliente_nome).trim().toUpperCase() : null],
+      ['MODELO', modelo ? modelo.nome : null],
+      ['COR', corProduto(modelo)],
+    ];
+    return linhas.filter(function (par) { return par[1] != null && par[1] !== ''; });
+  }
+
+  // EMBORRACHAR: definido pela Ravatex por PRODUTO DA OP (op_itens.emborrachar,
+  // db/124) — nunca pelo modelo reutilizável, e nunca escolhido ou editado
+  // pela tecelagem aqui. Três estados de primeira classe, nenhum inferido:
+  //
+  //   'valor'         — a Ravatex já definiu a instrução para ESTE produto
+  //                      desta OP.
+  //   'nao_definido'  — produto aplicável (Tapete), mas ainda sem instrução
+  //                      registrada. Nunca bloqueia a etiqueta.
+  //   'nao_aplica'    — Manta nunca leva borracha (regra de produto); isto é
+  //                      DIFERENTE de "não definido" e não pode ser
+  //                      confundido com ele.
+  //
+  // A distinção tapete/manta vem do único dono existente dela,
+  // modelos.tipo_produto (db/78) — esta função não inventa uma segunda
+  // classificação nem infere o lado/cor a emborrachar por nenhuma regra
+  // implícita.
+  function estadoEmborrachar(produto) {
+    var modelo = produto && produto.modelo;
+    if (modelo && String(modelo.tipo_produto).trim().toLowerCase() === 'manta') {
+      return { estado: 'nao_aplica', valor: null };
+    }
+    var bruto = produto && produto.emborrachar ? String(produto.emborrachar).trim() : '';
+    return bruto ? { estado: 'valor', valor: bruto } : { estado: 'nao_definido', valor: null };
+  }
+
+  var TEXTO_EMBORRACHAR = {
+    nao_definido: 'Não definido pela Ravatex',
+    nao_aplica: 'Não se aplica',
+  };
+
+  function textoEmborrachar(estado) {
+    return estado.estado === 'valor' ? estado.valor : TEXTO_EMBORRACHAR[estado.estado];
+  }
+
+  // MANTA NÃO TEM ETIQUETA DE ACABAMENTO (regra de produto, não apenas um
+  // valor diferente dentro da etiqueta): a própria AÇÃO fica indisponível.
+  // Deriva do MESMO estado tri-valor acima — não é uma segunda classificação
+  // tapete/manta, é a mesma decisão lida de outro ângulo.
+  function temEtiquetaAcabamento(produto) {
+    return estadoEmborrachar(produto).estado !== 'nao_aplica';
+  }
+
+  // -- pré-visualização em DOM (dentro do modal) --------------------------
+
+  function campoBloco(rotulo, valor) {
+    return window.el('div', { style: 'margin-bottom:10px;' },
+      window.el('div', {
+        style: 'font-size:var(--rv-fs-label); font-weight:700; text-transform:uppercase;'
+          + ' letter-spacing:.02em; color:var(--rv-text-tertiary);',
+      }, rotulo),
+      window.el('div', {
+        style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary); margin-top:2px;',
+      }, valor)
+    );
+  }
+
+  function nodeEtiquetaGenerica(linhas) {
+    var wrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
+    linhas.forEach(function (par) { wrap.appendChild(campoBloco(par[0], par[1])); });
+    return wrap;
+  }
+
+  // O bloco EMBORRACHAR é visualmente destacado (borda + fonte maior) porque
+  // é uma instrução operacional para a PRÓXIMA etapa, não um dado de
+  // identificação como os demais (§4 do produto).
+  function blocoEmborrachar(produto) {
+    return window.el('div', {
+      style: 'margin:2px 0 10px; padding:10px 12px; border:1px solid var(--rv-border-strong);'
+        + ' border-radius:var(--rv-radius); background:var(--rv-chip-bg);',
+    },
+      window.el('div', {
+        style: 'font-size:var(--rv-fs-label); font-weight:700; text-transform:uppercase;'
+          + ' letter-spacing:.02em; color:var(--rv-text-tertiary);',
+      }, 'Emborrachar'),
+      window.el('div', {
+        style: 'font-size:var(--rv-fs-section-heading); font-weight:800; color:var(--rv-text-primary); margin-top:3px;',
+      }, textoEmborrachar(estadoEmborrachar(produto)))
+    );
+  }
+
+  function nodeEtiquetaAcabamento(op, produto) {
+    var wrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
+    camposBasicosAcabamento(op, produto).forEach(function (par) { wrap.appendChild(campoBloco(par[0], par[1])); });
+    wrap.appendChild(blocoEmborrachar(produto));
+    wrap.appendChild(campoBloco('OP', window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)));
+    // Comprimento do ACABAMENTO nunca reaproveita o comprimento do rolo de
+    // tecelagem (§5): na próxima etapa rolos podem ser abertos e emendados,
+    // então o comprimento final é outro. Fica em branco para preenchimento
+    // manual, deliberadamente.
+    wrap.appendChild(campoBloco('Comprimento', '________________ m'));
+    return wrap;
+  }
+
+  // -- HTML de impressão (janela dedicada) ---------------------------------
+
+  function linhaHtml(rotulo, valor) {
+    return '<div style="margin-bottom:10px;">'
+      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#667085;">'
+      + escapeHtml(rotulo) + '</div>'
+      + '<div style="font-size:15px;font-weight:700;color:#101828;margin-top:2px;">' + escapeHtml(valor) + '</div>'
+      + '</div>';
+  }
+
+  function corpoEtiquetaRolo(op, produto, rolo) {
+    return camposEtiquetaRolo(op, produto, rolo).map(function (par) { return linhaHtml(par[0], par[1]); }).join('');
+  }
+
+  function corpoEtiquetaAcabamento(op, produto) {
+    var partes = camposBasicosAcabamento(op, produto).map(function (par) { return linhaHtml(par[0], par[1]); });
+    partes.push(
+      '<div style="margin:2px 0 10px; padding:10px 12px; border:1px solid #667085; border-radius:4px;">'
+      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#667085;">EMBORRACHAR</div>'
+      + '<div style="font-size:18px;font-weight:800;color:#101828;margin-top:3px;">'
+      + escapeHtml(textoEmborrachar(estadoEmborrachar(produto))) + '</div></div>'
+    );
+    partes.push(linhaHtml('OP', window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)));
+    partes.push(linhaHtml('Comprimento', '________________ m'));
+    return partes.join('');
+  }
+
+  function documentoImpressao(titulo, corpoHtml) {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + escapeHtml(titulo) + '</title>'
+      + '<style>@page{size:80mm auto; margin:6mm;} body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:12px;color:#101828;}'
+      + '.rv-etiqueta{page-break-after:always;}</style></head><body>' + corpoHtml + '</body></html>';
+  }
+
+  // Mecânica de impressão do navegador (§7 do produto: implementação livre
+  // do executor, nunca virando regra de produto permanente). Uma janela
+  // nova evita tocar no CSS/impressão do resto do app; se o navegador
+  // bloquear o pop-up, a recusa é comunicada — nunca falha silenciosa.
+  function imprimir(titulo, corpoHtml) {
+    var win = window.open('', '_blank');
+    if (!win) {
+      window.toast('Não foi possível abrir a janela de impressão. Habilite pop-ups.', 'error');
+      return;
+    }
+    win.document.open();
+    win.document.write(documentoImpressao(titulo, corpoHtml));
+    win.document.close();
+    win.focus();
+    win.print();
+  }
+
+  // -- ações que abrem a pré-visualização ----------------------------------
+
+  function abrirEtiquetaRolo(op, produto, rolo) {
+    window.modal({
+      title: 'Etiqueta do rolo ' + fmtRolo(rolo.numero),
+      saveLabel: 'Imprimir',
+      body: nodeEtiquetaGenerica(camposEtiquetaRolo(op, produto, rolo)),
+      onSave: function () {
+        imprimir('Etiqueta - Rolo ' + fmtRolo(rolo.numero), corpoEtiquetaRolo(op, produto, rolo));
+      },
+    });
+  }
+
+  function abrirEtiquetaAcabamento(op, produto) {
+    window.modal({
+      title: 'Etiqueta para o acabamento',
+      saveLabel: 'Imprimir',
+      body: nodeEtiquetaAcabamento(op, produto),
+      onSave: function () {
+        imprimir('Etiqueta de acabamento', corpoEtiquetaAcabamento(op, produto));
+      },
+    });
+  }
+
+  // ETIQUETAS DISPONÍVEIS: aberta logo depois de um registro de produção
+  // bem-sucedido, com os rolos que ACABARAM de ser criados. O operador não
+  // precisa voltar a identificá-los para poder imprimir (§2 do produto).
+  function abrirEtiquetasDisponiveis(op, produto, rolosCriados) {
+    var lista = window.el('div', { style: 'display:flex; flex-direction:column;' });
+    rolosCriados.forEach(function (rolo) {
+      lista.appendChild(window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:8px;'
+          + ' padding:9px 0; border-top:1px solid var(--rv-border-soft);',
+      },
+        window.el('span', {
+          style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
+        }, 'Rolo ' + fmtRolo(rolo.numero)),
+        secondaryButton('Imprimir etiqueta', function () {
+          imprimir('Etiqueta - Rolo ' + fmtRolo(rolo.numero), corpoEtiquetaRolo(op, produto, rolo));
+        })
+      ));
+    });
+
+    window.modal({
+      title: rolosCriados.length === 1
+        ? '1 rolo criado — etiqueta disponível'
+        : rolosCriados.length + ' rolos criados — etiquetas disponíveis',
+      saveLabel: 'Imprimir todas',
+      body: lista,
+      onSave: function () {
+        var corpo = rolosCriados.map(function (rolo) {
+          return '<div class="rv-etiqueta">' + corpoEtiquetaRolo(op, produto, rolo) + '</div>';
+        }).join('');
+        imprimir('Etiquetas - ' + window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op), corpo);
+      },
+    });
   }
 
   // -------------------------------------------------------------------
@@ -492,11 +775,18 @@
               secondaryButton('Ver rolos', function () {
                 window.navigate('#/tecelagem/ops/' + op.op_id + '/produtos/' + produto.id + '/rolos');
               }),
+              // Etiqueta para o acabamento: saída de leitura, sempre
+              // disponível — nunca depende do estado de produção (§7 ISOLAMENTO).
+              // AUSENTE para manta: a ação em si não existe, não só o valor
+              // dentro dela (regra de produto — manta nunca é emborrachada).
+              temEtiquetaAcabamento(produto) && secondaryButton('Etiqueta de acabamento', function () {
+                abrirEtiquetaAcabamento(op, produto);
+              }),
               // A ação só fica acionável depois do INÍCIO LOCAL da produção
               // desta OP. A recusa de verdade é do servidor (db/123); aqui ela
               // é apenas antecipada para o operador ver o estado.
               primaryButton('Registrar produção', function () {
-                abrirRegistro(produto, reload);
+                abrirRegistro(op, produto, reload);
               }, !podeRegistrar)
             )
           ));
@@ -547,7 +837,7 @@
   // A quantidade de rolos é a entrada primária. O comprimento individual é
   // OPCIONAL: registrar sem informá-lo é um caminho normal, não uma exceção.
   // -------------------------------------------------------------------
-  function abrirRegistro(produto, aoConcluir) {
+  function abrirRegistro(op, produto, aoConcluir) {
     var inputQtd = window.textInput({ type: 'number', value: '', placeholder: 'Ex.: 10' });
     inputQtd.setAttribute('min', '1');
     inputQtd.setAttribute('step', '1');
@@ -617,6 +907,24 @@
         var criados = (res.data && res.data.quantidade_rolos) || qtd;
         window.toast(criados === 1 ? '1 rolo registrado.' : criados + ' rolos registrados.', 'success');
         if (typeof aoConcluir === 'function') aoConcluir();
+
+        // ETIQUETAS DISPONÍVEIS logo após o registro: o operador não precisa
+        // voltar a identificar os rolos que acabou de criar (§2 do produto).
+        // Os rolos vêm do PRÓPRIO retorno do dono da escrita
+        // (numero_inicial/numero_final) e do comprimento que este mesmo
+        // formulário já validou — sem nova leitura ao servidor.
+        var numeroInicial = res.data && res.data.numero_inicial;
+        var numeroFinal = res.data && res.data.numero_final;
+        if (numeroInicial != null && numeroFinal != null) {
+          var rolosCriados = [];
+          for (var n = numeroInicial; n <= numeroFinal; n += 1) {
+            rolosCriados.push({
+              numero: n,
+              comprimento_m: comprimentos ? comprimentos[n - numeroInicial] : null,
+            });
+          }
+          abrirEtiquetasDisponiveis(op, produto, rolosCriados);
+        }
       },
     });
   }
@@ -706,7 +1014,7 @@
 
       var corpo = window.el('div', { style: 'display:flex; flex-direction:column; gap:12px;' });
 
-      corpo.appendChild(card(
+      var produtoCard = card(
         sectionChip('Produto', ICON_BOX),
         window.el('div', {
           style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
@@ -715,13 +1023,21 @@
           style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-top:5px;',
         }, window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)),
         linhaCliente(op)
-      ));
+      );
+      // AUSENTE para manta (regra de produto): sem a ação, o rodapé do card
+      // não existe — nunca um rodapé vazio.
+      if (temEtiquetaAcabamento(produto)) {
+        produtoCard.appendChild(cardFooter(secondaryButton('Etiqueta de acabamento', function () {
+          abrirEtiquetaAcabamento(op, produto);
+        })));
+      }
+      corpo.appendChild(produtoCard);
 
       var tabela = card(sectionChip('Rolos registrados', ICON_LIST));
       if (!rolos.length) {
         tabela.appendChild(emptyText('Nenhum rolo registrado ainda.'));
       } else {
-        tabela.appendChild(tabelaRolos(rolos));
+        tabela.appendChild(tabelaRolos(op, produto, rolos));
       }
       corpo.appendChild(tabela);
 
@@ -739,12 +1055,14 @@
 
   // Tabela §2.5: UM dono de largura, lido pelo cabeçalho E pelas linhas, para
   // que os dois não possam divergir. Coluna numérica alinhada à direita no
-  // cabeçalho e no valor.
-  var GRID_COLS = '90px 1fr 1fr';
+  // cabeçalho e no valor. A quarta coluna (Ações) é onde REIMPRIMIR ETIQUETA
+  // mora (§3 do produto): reimprimir sempre se refere ao MESMO rolo já
+  // existente — não há caminho aqui para criar rolo ou lançamento novo.
+  var GRID_COLS = '90px 1fr 1fr 44px';
 
-  function tabelaRolos(rolos) {
+  function tabelaRolos(op, produto, rolos) {
     var wrap = window.el('div', { style: 'overflow-x:auto;', 'data-rv-table-scroll': '' });
-    var tabela = window.el('div', { style: 'min-width:360px;' });
+    var tabela = window.el('div', { style: 'min-width:400px;' });
 
     function linha(estilo, celulas) {
       return window.el('div', {
@@ -759,6 +1077,7 @@
       window.el('div', { style: thStyle }, 'Rolo'),
       window.el('div', { style: thStyle + ' text-align:right;' }, 'Comprimento'),
       window.el('div', { style: thStyle }, 'Situação'),
+      window.el('div', { style: thStyle }, ''),
     ]));
 
     rolos.forEach(function (rolo) {
@@ -777,6 +1096,11 @@
           }, fmtRolo(rolo.numero))),
           celComprimento,
           window.el('div', {}, window.RV_BADGES.rvStatusPill('Na tecelagem', 'em_producao')),
+          window.actionButton({
+            title: 'Reimprimir etiqueta do rolo ' + fmtRolo(rolo.numero),
+            icon: icon(ICON_PRINT, 15),
+            onclick: function () { abrirEtiquetaRolo(op, produto, rolo); },
+          }),
         ]
       ));
     });
@@ -800,5 +1124,9 @@
     execucao: execucao,
     mensagemDeErro: mensagemDeErro,
     mensagemDeInicio: mensagemDeInicio,
+    camposEtiquetaRolo: camposEtiquetaRolo,
+    camposBasicosAcabamento: camposBasicosAcabamento,
+    estadoEmborrachar: estadoEmborrachar,
+    temEtiquetaAcabamento: temEtiquetaAcabamento,
   };
 })(window);

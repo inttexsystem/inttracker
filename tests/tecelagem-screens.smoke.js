@@ -35,17 +35,22 @@ const indexSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // ---------------------------------------------------------------------
 // Duplo do Supabase: responde por tabela e registra o que foi perguntado.
 // ---------------------------------------------------------------------
-function makeSupa({ rolos = [], rpcResult, inicioResult, ops } = {}) {
+function makeSupa({ rolos = [], rpcResult, inicioResult, ops, modelo, modelos, item, itens } = {}) {
   const calls = { from: [], rpc: [] };
   const listaOps = ops || [OP_EM_PRODUCAO];
+  // `item`/`modelo` aceitam um único objeto (caso comum, um produto); `itens`/
+  // `modelos` aceitam listas, para o caso de uma OP com mais de um produto
+  // (ex.: um Tapete e uma Manta na mesma OP).
+  const dadosItens = itens || (item ? [].concat(item) : [ITEM]);
+  const dadosModelos = modelos || (modelo ? [].concat(modelo) : [MODELO]);
 
   function resolve(state) {
     calls.from.push({ table: state.table, filters: state.filters });
     switch (state.table) {
       case 'op_itens':
-        return { data: [ITEM], error: null };
+        return { data: dadosItens, error: null };
       case 'modelos':
-        return { data: [MODELO], error: null };
+        return { data: dadosModelos, error: null };
       case 'tecelagem_rolos':
         return { data: rolos, error: null };
       default:
@@ -106,12 +111,26 @@ const OP_BLOQUEADA = {
 };
 const ITEM = { id: 511, op_id: 501, modelo_id: 221, metros_pedidos: 4000, metros_ajustados: null };
 const MODELO = {
-  id: 221, nome: 'NOITE', largura: 2.10,
+  id: 221, nome: 'NOITE', largura: 2.10, tipo_produto: 'tapete',
   cor_1: { id: 1, nome: 'KRAFT' }, cor_2: { id: 2, nome: 'CRU' },
 };
+// db/124: EMBORRACHAR é definido pela Ravatex POR PRODUTO DA OP
+// (op_itens.emborrachar), nunca por modelo — o mesmo modelo NOITE em outra OP
+// pode carregar outro valor, ou nenhum. Um produto aplicável (Tapete) pode ou
+// não já ter o valor registrado; os dois casos são de primeira classe.
+const ITEM_COM_EMBORRACHAR = Object.assign({}, ITEM, { emborrachar: 'CRU' });
+// Manta nunca é emborrachada (regra de produto): 'Não se aplica' é um estado
+// DIFERENTE de 'não definido', derivado do único dono existente da distinção
+// tapete/manta, modelos.tipo_produto (db/78). Cores deliberadamente
+// diferentes de MODELO (nenhuma é "CRU"), para que um teste possa provar que
+// nada do texto de EMBORRACHAR vaza sem colidir com um nome de cor legítimo.
+const MODELO_MANTA = Object.assign({}, MODELO, {
+  id: 222, nome: 'ARABESCO', tipo_produto: 'manta',
+  cor_1: { id: 3, nome: 'AZUL' }, cor_2: { id: 4, nome: 'BEGE' },
+});
 
-function boot({ rolos, rpcResult, inicioResult, ops, fornecedorId = 401 } = {}) {
-  const { supa, calls } = makeSupa({ rolos, rpcResult, inicioResult, ops });
+function boot({ rolos, rpcResult, inicioResult, ops, fornecedorId = 401, modelo, modelos, item, itens } = {}) {
+  const { supa, calls } = makeSupa({ rolos, rpcResult, inicioResult, ops, modelo, modelos, item, itens });
   const toasts = [];
   const h = createScreenHarness({
     files: ['js/op-display.js', SCREEN_REL],
@@ -125,10 +144,24 @@ function boot({ rolos, rpcResult, inicioResult, ops, fornecedorId = 401 } = {}) 
   // tem de ser instalada DEPOIS da carga, não via globals.
   h.win.toast = (msg, kind) => { toasts.push({ msg, kind }); };
 
+  // Duplo de window.open: a mecânica real de impressão abre uma janela e
+  // grava HTML nela (js/screens/tecelagem.js `imprimir`). Aqui só provamos
+  // QUE a impressão foi acionada e COM QUE conteúdo — nunca a renderização
+  // real do navegador, que este harness não reproduz.
+  const opens = [];
+  h.win.open = () => {
+    const janela = {
+      document: { open() {}, write(html) { janela.html = html; }, close() {} },
+      focus() {}, print() { janela.impressa = true; },
+    };
+    opens.push(janela);
+    return janela;
+  };
+
   // Deixa a cadeia assíncrona de reload() drenar por inteiro.
   const settle = async () => { for (let i = 0; i < 8; i += 1) await h.settle(); };
 
-  return { h, calls, toasts, settle };
+  return { h, calls, toasts, opens, settle };
 }
 
 const btn = (h, label, root) => h.findOne(h.buttonLabelled(label), root);
@@ -530,4 +563,263 @@ test('14. Ver rolos sem nenhum rolo mostra um estado vazio honesto', async () =>
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
   assert.match(h.textOf(node), /Nenhum rolo registrado ainda/);
+});
+
+// =====================================================================
+// ETIQUETAS — TECELAGEM-V1-LABELS-SLICE
+// =====================================================================
+
+// -- campos puros: nenhum rende DOM, então provam a REGRA sem depender de
+//    layout -------------------------------------------------------------
+
+test('15. etiqueta do rolo SEM comprimento não exige nem inventa o campo', () => {
+  const rolo = { numero: 43, comprimento_m: null };
+  const campos = h_pure().camposEtiquetaRolo(OP_EM_PRODUCAO, { modelo: MODELO }, rolo);
+  const rotulos = campos.map((par) => par[0]);
+  assert.ok(!rotulos.includes('COMPRIMENTO'), 'sem comprimento, o campo não aparece — nunca um valor inventado');
+  assert.deepEqual(rotulos, ['CLIENTE', 'MODELO', 'COR', 'LARGURA', 'OP', 'ROLO', 'IDENTIFICAÇÃO'],
+    'os campos obrigatórios da etiqueta do rolo devem estar todos presentes');
+});
+
+test('16. etiqueta do rolo COM comprimento mostra o valor em pt-BR', () => {
+  const rolo = { numero: 43, comprimento_m: 28.4 };
+  const campos = h_pure().camposEtiquetaRolo(OP_EM_PRODUCAO, { modelo: MODELO }, rolo);
+  const comprimento = campos.find((par) => par[0] === 'COMPRIMENTO');
+  assert.ok(comprimento, 'com comprimento informado, o campo deve aparecer');
+  assert.equal(comprimento[1], '28,40 m');
+});
+
+test('17. EMBORRACHAR vem do PRODUTO DA OP (não do modelo) e nunca bloqueia quando ausente', () => {
+  const helpers = h_pure();
+  const produtoComValor = { modelo: MODELO, emborrachar: 'CRU' };
+  const produtoSemValor = { modelo: MODELO, emborrachar: null };
+  assert.deepEqual(helpers.estadoEmborrachar(produtoComValor), { estado: 'valor', valor: 'CRU' });
+  assert.deepEqual(helpers.estadoEmborrachar(produtoSemValor), { estado: 'nao_definido', valor: null },
+    'produto aplicável sem o campo ainda preenchido é um estado válido, não um erro');
+});
+
+test('17b. dois produtos do MESMO modelo em OPs diferentes carregam EMBORRACHAR independentes', () => {
+  const helpers = h_pure();
+  // Mesma modelo_id (221 / NOITE), duas linhas de op_itens distintas — a
+  // cardinalidade correta é por produto da OP, nunca por modelo reutilizável.
+  const produtoOpA = { modelo: MODELO, emborrachar: 'CRU' };
+  const produtoOpB = { modelo: MODELO, emborrachar: null };
+  assert.equal(helpers.estadoEmborrachar(produtoOpA).valor, 'CRU');
+  assert.equal(helpers.estadoEmborrachar(produtoOpB).estado, 'nao_definido',
+    'a mesma modelo_id em outra OP não pode herdar o valor da primeira');
+});
+
+test('17c. MANTA é "não se aplica", nunca confundida com "não definido", e nunca inferida por cor', () => {
+  const helpers = h_pure();
+  const mantaSemValor = { modelo: MODELO_MANTA, emborrachar: null };
+  const mantaComValorEsquecido = { modelo: MODELO_MANTA, emborrachar: 'CRU' };
+  assert.deepEqual(helpers.estadoEmborrachar(mantaSemValor), { estado: 'nao_aplica', valor: null });
+  // Mesmo que um valor tenha sido gravado por engano, MANTA continua
+  // "não se aplica": a regra de produto (manta nunca é emborrachada) prevalece.
+  assert.equal(helpers.estadoEmborrachar(mantaComValorEsquecido).estado, 'nao_aplica');
+});
+
+test('17d. MANTA não tem etiqueta de acabamento; produto aplicável (Tapete) tem, com ou sem valor', () => {
+  const helpers = h_pure();
+  assert.equal(helpers.temEtiquetaAcabamento({ modelo: MODELO_MANTA, emborrachar: null }), false,
+    'manta: a AÇÃO em si não existe, não é só um valor diferente dentro da etiqueta');
+  assert.equal(helpers.temEtiquetaAcabamento({ modelo: MODELO, emborrachar: 'CRU' }), true);
+  assert.equal(helpers.temEtiquetaAcabamento({ modelo: MODELO, emborrachar: null }), true,
+    'tapete sem instrução ainda cadastrada continua com a ação disponível');
+});
+
+test('18. a etiqueta de acabamento NUNCA inclui EMBORRACHAR ou COMPRIMENTO como campo filtrável',
+  () => {
+    const helpers = h_pure();
+    const campos = helpers.camposBasicosAcabamento(OP_EM_PRODUCAO, { modelo: MODELO, emborrachar: 'CRU' });
+    const rotulos = campos.map((par) => par[0]);
+    assert.deepEqual(rotulos, ['CLIENTE', 'MODELO', 'COR']);
+    assert.equal(campos.find((par) => par[0] === 'CLIENTE')[1], 'FELIPE GRANDI',
+      'a etiqueta de acabamento mostra o cliente em caixa alta');
+  });
+
+// Um harness leve só para os pure helpers acima: nenhuma tela é montada.
+function h_pure() {
+  const { supa } = makeSupa({});
+  const h = createScreenHarness({
+    files: ['js/op-display.js', SCREEN_REL],
+    rpc: async () => ({ data: null, error: null }),
+    globals: { supa, CURRENT_USER: { tipo: 'fornecedor', fornecedor_id: 401 } },
+  });
+  return h.win.RAVATEX_TECELAGEM;
+}
+
+// -- fluxo completo: REGISTRAR -> ETIQUETAS DISPONÍVEIS -----------------
+
+test('19. registrar rolos SEM comprimento abre ETIQUETAS DISPONÍVEIS, e nenhuma etiqueta trava', async () => {
+  const { h, opens, settle } = boot({
+    rolos: [],
+    rpcResult: { data: { quantidade_rolos: 10, numero_inicial: 1, numero_final: 10 }, error: null },
+  });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  h.click(btn(h, 'Registrar produção', node));
+  await settle();
+  h.type(h.findOne((n) => n.tagName === 'INPUT' && n.getAttribute('placeholder') === 'Ex.: 10'), '10');
+  h.click(btn(h, 'Registrar produção'));
+  await settle();
+
+  assert.match(h.textOf(h.body), /10 rolos criados — etiquetas disponíveis/,
+    'as etiquetas devem ficar disponíveis imediatamente, sem nova navegação');
+  const botoesImprimir = h.findAll((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Imprimir etiqueta');
+  assert.equal(botoesImprimir.length, 10, 'cada um dos 10 rolos criados deve oferecer a própria etiqueta');
+
+  h.click(botoesImprimir[0]);
+  await settle();
+  assert.equal(opens.length, 1, 'imprimir uma etiqueta deve abrir a janela de impressão');
+  assert.ok(opens[0].impressa, 'a impressão deve ser efetivamente acionada');
+  assert.ok(!/COMPRIMENTO/.test(opens[0].html),
+    'sem comprimento informado no registro, a etiqueta impressa não pode inventar o campo');
+});
+
+test('20. registrar rolos COM comprimento propaga o valor para a etiqueta de cada rolo', async () => {
+  const { h, opens, settle } = boot({
+    rolos: [],
+    rpcResult: { data: { quantidade_rolos: 3, numero_inicial: 1, numero_final: 3 }, error: null },
+  });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  h.click(btn(h, 'Registrar produção', node));
+  await settle();
+  h.type(h.findOne((n) => n.tagName === 'INPUT' && n.getAttribute('placeholder') === 'Ex.: 10'), '3');
+  h.type(h.findOne((n) => n.tagName === 'INPUT' && n.getAttribute('placeholder') === 'Opcional'), '28,4');
+  h.click(btn(h, 'Registrar produção'));
+  await settle();
+
+  const botoesImprimir = h.findAll((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Imprimir etiqueta');
+  assert.equal(botoesImprimir.length, 3);
+  h.click(botoesImprimir[1]);
+  await settle();
+  assert.match(opens[0].html, /28,40 m/, 'o comprimento informado no registro deve chegar à etiqueta impressa');
+});
+
+// -- REIMPRIMIR (VER ROLOS): mesmo rolo, nenhuma criação -----------------
+
+test('21. reimprimir etiqueta em VER ROLOS não chama o dono da escrita nem cria rolo novo', async () => {
+  const rolos = [{ id: 901, op_item_id: 511, numero: 43, comprimento_m: 28.4, situacao: 'na_tecelagem' }];
+  const { h, calls, opens, settle } = boot({ rolos });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const reimprimir = h.findOne((n) => n.tagName === 'BUTTON'
+    && n.getAttribute('title') === 'Reimprimir etiqueta do rolo 043', node);
+  assert.ok(reimprimir, 'a ação de reimprimir deve existir na linha do rolo 043');
+
+  const chamadasAntes = calls.rpc.length;
+  h.click(reimprimir);
+  await settle();
+
+  assert.match(h.textOf(h.body), /Etiqueta do rolo 043/, 'a pré-visualização deve identificar o rolo exato');
+  assert.equal(calls.rpc.length, chamadasAntes, 'reimprimir não pode chamar RPC nenhuma — é leitura pura');
+  assert.equal(calls.rpc.filter((c) => c.name === 'registrar_producao_tecelagem').length, 0,
+    'reimprimir nunca pode criar um rolo ou um lançamento novo');
+
+  h.click(btn(h, 'Imprimir'));
+  await settle();
+  assert.equal(opens.length, 1, 'confirmar a impressão deve acionar a janela');
+  assert.equal(calls.rpc.length, chamadasAntes, 'nem a impressão em si chama RPC nenhuma');
+});
+
+// -- ETIQUETA PARA O ACABAMENTO ------------------------------------------
+
+test('22. etiqueta de acabamento mostra EMBORRACHAR com destaque, sem nenhum campo editável', async () => {
+  const { h, settle } = boot({ rolos: [], item: ITEM_COM_EMBORRACHAR });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  h.click(btn(h, 'Etiqueta de acabamento', node));
+  await settle();
+
+  const texto = h.textOf(h.body);
+  assert.match(texto, /Emborrachar/i);
+  assert.match(texto, /CRU/, 'o valor definido pela Ravatex para ESTE produto da OP deve estar visível');
+  assert.match(texto, /FELIPE GRANDI/, 'o cliente aparece em caixa alta na etiqueta de acabamento');
+
+  const editaveis = h.findAll((n) => n.tagName === 'INPUT' || n.tagName === 'TEXTAREA', h.body);
+  assert.equal(editaveis.length, 0,
+    'EMBORRACHAR é definido pela Ravatex: a tela do fornecedor não pode oferecer nenhum controle de edição');
+});
+
+test('23. sem EMBORRACHAR registrado ainda, a etiqueta declara o estado honestamente e não bloqueia', async () => {
+  const { h, settle } = boot({ rolos: [] });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  const acao = btn(h, 'Etiqueta de acabamento', node);
+  assert.ok(acao, 'a ação deve continuar disponível mesmo sem o valor ainda cadastrado');
+  h.click(acao);
+  await settle();
+
+  assert.match(h.textOf(h.body), /Não definido pela Ravatex/);
+});
+
+test('23b. MANTA não oferece a ação Etiqueta de acabamento na tela da OP; Tapete continua oferecendo',
+  async () => {
+    // Mesma OP, dois produtos: item 511/NOITE (tapete, com CRU gravado por
+    // engano) e item 512/ARABESCO (manta). A ausência da ação é por PRODUTO,
+    // não global à tela.
+    const { h, settle } = boot({
+      rolos: [],
+      itens: [
+        Object.assign({}, ITEM_COM_EMBORRACHAR, { id: 511, modelo_id: 221 }),
+        Object.assign({}, ITEM, { id: 512, modelo_id: 222, emborrachar: null }),
+      ],
+      modelos: [MODELO, MODELO_MANTA],
+    });
+    const node = h.win.screenTecelagemOp(501);
+    await settle();
+
+    const botoesAcabamento = h.findAll((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Etiqueta de acabamento', node);
+    assert.equal(botoesAcabamento.length, 1,
+      'exatamente um produto desta OP (o Tapete) pode oferecer a ação; a Manta não');
+
+    // "Ver rolos" (etiqueta do rolo) continua disponível para os dois produtos.
+    const botoesVerRolos = h.findAll((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Ver rolos', node);
+    assert.equal(botoesVerRolos.length, 2,
+      'a etiqueta do ROLO nunca depende de EMBORRACHAR: continua disponível para a manta');
+  });
+
+test('23c. Ver rolos de um produto MANTA não oferece Etiqueta de acabamento, mas reimprimir etiqueta continua',
+  async () => {
+    const rolosManta = [{ id: 950, op_item_id: 512, numero: 1, comprimento_m: null, situacao: 'na_tecelagem' }];
+    const { h, settle } = boot({
+      rolos: rolosManta,
+      modelo: MODELO_MANTA,
+      item: Object.assign({}, ITEM, { id: 512, modelo_id: 222 }),
+    });
+    const node = h.win.screenTecelagemRolos(501, 512);
+    await settle();
+
+    assert.equal(btn(h, 'Etiqueta de acabamento', node), null,
+      'a manta não pode oferecer a etiqueta de acabamento em nenhuma tela');
+
+    const reimprimir = h.findOne((n) => n.tagName === 'BUTTON'
+      && n.getAttribute('title') === 'Reimprimir etiqueta do rolo 001', node);
+    assert.ok(reimprimir, 'a etiqueta do ROLO da manta continua disponível normalmente');
+    h.click(reimprimir);
+    await settle();
+    assert.match(h.textOf(h.body), /Etiqueta do rolo 001/,
+      'a etiqueta do rolo abre normalmente para um produto manta');
+  });
+
+test('24. o comprimento da etiqueta de acabamento é SEMPRE uma linha em branco, mesmo com rolo medido', async () => {
+  const rolos = [{ id: 901, op_item_id: 511, numero: 43, comprimento_m: 28.4, situacao: 'na_tecelagem' }];
+  const { h, settle } = boot({ rolos, item: ITEM_COM_EMBORRACHAR });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(btn(h, 'Etiqueta de acabamento', node));
+  await settle();
+
+  const texto = h.textOf(h.body);
+  assert.match(texto, /_{5,}\s*m/, 'o comprimento do acabamento deve ser uma linha em branco para preenchimento manual');
+  assert.ok(!/28,40/.test(texto),
+    'o comprimento do rolo de tecelagem NUNCA pode ser reaproveitado como comprimento do acabamento');
 });

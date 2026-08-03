@@ -1,0 +1,76 @@
+-- =============================================================================
+-- db/124 — OP ITENS: RAVATEX-DEFINED FINISHING (EMBORRACHAR) INSTRUCTION
+-- =============================================================================
+-- ORDER: TECELAGEM-V1-LABELS-SLICE (CHANGES REQUIRED — CARDINALITY CORRECTION).
+--
+-- PRODUCT REQUIREMENT BEING SATISFIED
+-- The finishing label (etiqueta para o acabamento) must show an EMBORRACHAR
+-- instruction (e.g. "CRU") that is defined by Ravatex, seen and printed by the
+-- weaving supplier, and never chosen or edited by the supplier.
+--
+-- WHY public.op_itens AND NOT public.modelos (SUPERSEDES THE FIRST db/124)
+-- The first version of this migration added the column to `modelos`. The
+-- architect rejected that cardinality: a model such as NOITE is reusable
+-- across many OPs and many colour combinations, and EMBORRACHAR is an
+-- instruction about the SPECIFIC OP PRODUCT / SPECIFICATION being produced —
+-- "OP -> PRODUCT/OP ITEM -> COLORS/WIDTH/SPECIFICATION -> EMBORRACHAR" — not a
+-- property of the reusable model row. Two op_itens rows that both reference
+-- the same modelo_id (two different OPs both weaving NOITE) must be able to
+-- carry two different EMBORRACHAR values, and modelos cannot represent that:
+-- there is exactly one modelos row for NOITE regardless of how many OPs use
+-- it. public.op_itens is already the row that represents ONE product WITHIN
+-- ONE OP (op_id + modelo_id + its own metros_pedidos/metros_ajustados), so it
+-- is the correct owner of another per-OP-product specification field. This
+-- migration is corrective and was never applied anywhere: the first version
+-- was versioned in Git only and never committed, so this is a plain
+-- replacement, not a forward correction of accepted history.
+--
+-- ROOT CAUSE THIS MIGRATION ADDRESSES (measured, not assumed)
+-- A repository-wide search for emborrachar/emborrachado/borracha/revestimento
+-- across every db/*.sql migration, every js/screens/*.js file and every
+-- docs/architecture/*.md file returns nothing. No table anywhere represents
+-- the finishing/rubberizing instruction. The requirement cannot be satisfied
+-- by reusing an existing column.
+--
+-- "NÃO DEFINIDO" VS "NÃO SE APLICA" — TWO DIFFERENT FALSY STATES
+-- Mantas are never rubber-backed (product rule, ratified in this order); the
+-- existing route separation already treats latex/acabamento as a Tapete-only
+-- stage (public.modelos.tipo_produto, db/78 — the SOLE existing authoritative
+-- classification of tapete vs manta; this migration reads it and invents no
+-- second one). A manta op_item therefore is NOT "missing an instruction": the
+-- instruction category does not apply to it at all, and NULL alone cannot
+-- distinguish "Ravatex has not decided yet" from "this product is never
+-- rubber-backed". This migration does not add a second column to encode that
+-- distinction: op_itens.emborrachar stays a single nullable TEXT, and the two
+-- falsy states are DERIVED at read time from modelos.tipo_produto (manta ->
+-- not applicable; anything else with a NULL value -> not yet defined). Adding
+-- a redundant applicability flag here would create two owners of the same
+-- tapete/manta fact and risk them drifting apart; deriving it keeps
+-- tipo_produto the single owner.
+--
+-- SCOPE — STRICTLY ADDITIVE, NO ADMIN EDITOR IN THIS SLICE
+-- This migration only:
+--   - ADDs ONE nullable TEXT column to public.op_itens;
+--   - changes NO RLS policy, NO grant, NO other object.
+--
+-- No new grant is required: op_itens already carries op_itens_fornecedor_read
+-- (db/03), a table-level SELECT policy that reaches every column, present and
+-- future, for a supplier assigned to the OP.
+--
+-- It deliberately does NOT add an admin editing surface for this column.
+-- Building that editor is explicitly out of scope for TECELAGEM-V1-LABELS-SLICE
+-- ("editing Ravatex specifications" / "Do not build the Admin editing surface
+-- in this slice"). Until a future phase adds one, the value is set directly
+-- in the database by an administrator. NULL is a legitimate, first-class
+-- value for an applicable (Tapete) product: a product with no recorded
+-- instruction yet must not block any weaving screen, and the finishing label
+-- renders an honest "Não definido pela Ravatex" placeholder rather than
+-- fabricating or inferring a value from colour order, cor_1, cor_2, the
+-- model, or any historical record.
+-- =============================================================================
+
+ALTER TABLE public.op_itens
+  ADD COLUMN IF NOT EXISTS emborrachar TEXT;
+
+COMMENT ON COLUMN public.op_itens.emborrachar IS
+  'db/124. Ravatex-defined finishing (rubberizing) instruction for THIS OP product/specification, e.g. CRU. Per-OP-item, never per-model: two op_itens rows sharing the same modelo_id may carry different values. Read-only to the weaving supplier; printed on the finishing label. NULL means either "not yet recorded" (applicable product, e.g. Tapete) or "not applicable" (Manta, which is never rubber-backed) — the caller derives which by reading modelos.tipo_produto for this item''s modelo_id; this column never encodes that distinction itself. No admin editing surface exists yet — set directly by an administrator.';
