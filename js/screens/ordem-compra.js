@@ -44,18 +44,24 @@
       // mesma razao. Enquanto era construida la dentro, a proveniencia — que e
       // apoio somente-leitura — ficava ENTRE o cabecalho e a superficie de
       // recebimento, separando o operador da leitura principal.
+      // BACKLOG-7 PHASE 6: a proveniencia e o log administrativo eram DUAS
+      // bandas de topo anexadas aqui, uma a seguir a outra, cada uma com a
+      // mesma pele de cartao das bandas primarias. Estavam na ordem certa e com
+      // o peso errado. Agora ha UMA seccao de apoio — "Proveniência e
+      // auditoria" — que as contem como subseccoes, e a pilha da pagina passa a
+      // ser: documento e estado, cockpit operacional, apoio.
+      //
+      // A MONTAGEM VIVE NO RENDER, nao aqui: este ficheiro e orquestracao pura
+      // e nao declara valor visual nenhum (e o que o inventario de conformidade
+      // regista como "conforming — no visual declaration").
       var nodes = [ns.renderDetail(state, handlers)];
       if (typeof ns.renderReceiptSection === 'function') {
         var receiptSection = ns.renderReceiptSection(state, handlers);
         if (receiptSection) nodes.push(receiptSection);
       }
-      if (typeof ns.renderProvenanceSection === 'function') {
-        var provenance = ns.renderProvenanceSection(state);
-        if (provenance) nodes.push(provenance);
-      }
-      if (typeof ns.renderEventosAdmin === 'function') {
-        var eventos = ns.renderEventosAdmin(state);
-        if (eventos) nodes.push(eventos);
+      if (typeof ns.renderSecondarySection === 'function') {
+        var apoio = ns.renderSecondarySection(state);
+        if (apoio) nodes.push(apoio);
       }
       container.replaceChildren.apply(container, nodes);
     }

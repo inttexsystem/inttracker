@@ -112,25 +112,45 @@
       label + ': ' + value);
   }
 
+  // O rótulo de uma SUBSEÇÃO (BACKLOG-7 PHASE 6). Papel tipográfico
+  // SECTION_LABEL (§5), sem chip e sem banda: é a ausência do chip que declara
+  // "isto está dentro de outra seção". O literal é escrito aqui, e não
+  // importado do módulo irmão, porque o front-end de conformidade js-screen só
+  // decodifica um literal no próprio ficheiro — e porque assim esta subseção
+  // não passa a depender da ordem de carga de outro script.
+  function subsectionLabel(label) {
+    return el('div', {
+      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);margin-bottom:8px;',
+    }, label);
+  }
+
   // Um bloco por item: identidade do fio, quantidade pedida, reconciliação e
   // a lista de origens que a compõem. Somente leitura por construção — nenhum
   // nó interativo é criado aqui.
-  function renderItem(item, cancelada) {
+  //
+  // BACKLOG-7 PHASE 6: o bloco era uma CAIXA — borda própria, raio próprio e
+  // 12px de padding — dentro de um cartão que já era uma caixa. Caixa dentro de
+  // caixa dentro de uma seção é peso que a proveniência não deve carregar: ela
+  // é apoio. Agora é uma linha separada por fio de cabelo, como as linhas do
+  // log administrativo vizinho. Nenhum dado sai; a moldura é que sai.
+  function renderItem(item, cancelada, primeiro) {
     var alocado = Number(item.kg_alocado);
     var diferenca = Number(item.kg_diferenca);
     var conciliado = diferenca === 0 && Number(item.kg_pedido) > 0;
     var needs = needsById(item);
 
     var card = el('div', {
-      style: 'border:1px solid var(--rv-border-soft);border-radius:var(--rv-radius);'
-        + 'padding:12px 14px;margin-bottom:10px;',
+      style: primeiro
+        ? 'padding:8px 0;'
+        : 'padding:8px 0;border-top:1px solid var(--rv-border-soft);',
       'data-prov-item-id': String(item.item_id),
     });
 
     card.appendChild(el('div', {
       class: 'flex justify-between items-center gap-3 flex-wrap',
     },
-      el('div', { style: 'font-size:var(--rv-fs-body);font-weight:600;color:var(--rv-text-primary);' },
+      el('div', { style: 'font-size:var(--rv-fs-sm);font-weight:600;color:var(--rv-text-primary);' },
         fioLabelItem(item)),
       el('div', {
         class: 'tnum',
@@ -194,29 +214,23 @@
     }
     if (!ordem || ordem.modelo !== 'nativo') return null;
 
-    var card = el('div', {
-      id: 'oc-proveniencia',
-      class: 'overflow-hidden',
-      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);'
-        + 'border-radius:var(--rv-radius);',
-    });
-    card.appendChild(el('div', {
-      class: 'px-5 py-3',
-      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
-        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);'
-        + 'border-bottom:1px solid var(--rv-border);',
-    }, 'Proveniência'));
+    // BACKLOG-7 PHASE 6: devolve uma SUBSEÇÃO, não mais uma seção de topo. O
+    // cartão, o chip e a banda pertencem agora à seção "Proveniência e
+    // auditoria" que contém esta subseção e a do log administrativo. O
+    // identificador `oc-proveniencia` e todos os identificadores internos são
+    // preservados: só a moldura mudou de dono.
+    var card = el('div', { id: 'oc-proveniencia' });
+    card.appendChild(subsectionLabel('Origem dos materiais'));
 
     if (!distrib || distrib.ok !== true) {
       card.appendChild(el('div', {
         id: 'oc-proveniencia-indisponivel',
-        class: 'px-5 py-6 text-center',
-        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+        style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);',
       }, (distrib && distrib.erro) ? distrib.erro : 'Proveniência indisponível.'));
       return card;
     }
 
-    var body = el('div', { class: 'p-5' });
+    var body = el('div', {});
 
     // Identidade do Pedido de origem. `pedido_numero`/`pedido_ano` são
     // projetados por obter_ordem_compra_admin (db/100); sem eles a seção
@@ -254,7 +268,7 @@
         style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
       }, 'Nenhum item neste Pedido de Compra.'));
     } else {
-      itens.forEach(function (it) { body.appendChild(renderItem(it, cancelada)); });
+      itens.forEach(function (it, i) { body.appendChild(renderItem(it, cancelada, i === 0)); });
     }
 
     card.appendChild(body);

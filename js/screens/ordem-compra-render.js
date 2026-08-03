@@ -124,6 +124,22 @@
     return (typeof window.fmtKg === 'function') ? window.fmtKg(v) : String(v);
   }
 
+  // ISO timestamp -> DD/MM/AAAA HH:MM (§7: "Dates DD/MM/AAAA"). O log
+  // administrativo imprimia `criado_em` cru, cortado a 19 caracteres com o `T`
+  // trocado por espaco — ou seja, 2026-08-03 11:40:05, um timestamp ISO numa
+  // superficie operacional. Este e o mesmo formatador ja escrito, com o mesmo
+  // corpo, em ordem-compra-receipt-render.js: nao existe dono partilhado de
+  // data no runtime (ao contrario de window.fmtKg), e cada tela declara o seu,
+  // exatamente como este ficheiro ja faz para fmtKg.
+  function fmtDateTime(ts) {
+    if (!ts) return '—';
+    var s = String(ts);
+    var d = s.slice(0, 10).split('-');
+    if (d.length !== 3) return s;
+    var time = s.length >= 16 ? (' ' + s.slice(11, 16)) : '';
+    return d[2] + '/' + d[1] + '/' + d[0] + time;
+  }
+
   // ---- BACKLOG-7 PHASE 1: canonical surface primitives -----------------
   //
   // This screen held the OLDEST visual generation in the purchase-order
@@ -239,6 +255,55 @@
         + 'border-bottom:1px solid var(--rv-border);',
     }, label);
   }
+
+  // ---- BACKLOG-7 PHASE 6: SECAO vs SUBSECAO ---------------------------
+  //
+  // §2.4 e literal: "Every section opens with a 20px icon chip ... A DISTINCT
+  // ICON PER SECTION". A superficie de recebimento (fases 3 e 4) cumpre-o —
+  // Materiais, Linha do tempo e Recebimento abrem cada uma com o seu chip.
+  // Proveniencia e Eventos administrativos NAO: abriam com uma banda de texto
+  // sem chip nenhum, o que era simultaneamente uma infracao ao §2.4 e uma
+  // TERCEIRA e QUARTA banda de topo a competir com o cockpit.
+  //
+  // A fase 6 resolve as duas coisas com uma so distincao, e e esta:
+  //
+  //   O CHIP E O QUE MARCA UMA SECAO DE TOPO. Um bloco sem chip e uma
+  //   SUBSECAO — informacao de apoio dentro da seccao que a contem.
+  //
+  // Proveniencia e Eventos administrativos deixam de ser duas secoes de topo e
+  // passam a ser as duas subseccoes de UMA seccao de apoio, que abre com o seu
+  // proprio chip distinto. A informacao nao encolhe: e a HIERARQUIA que desce.
+  function sectionChipHeader(label, iconMarkup) {
+    var chip = el('span', {
+      style: 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;'
+        + 'border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex:none;',
+    }, noticeIcon(iconMarkup));
+    var title = el('span', {
+      style: 'font-size:var(--rv-fs-label);font-weight:700;letter-spacing:var(--rv-tracking-label);'
+        + 'text-transform:uppercase;color:var(--rv-text-tertiary);',
+    }, label);
+    return el('div', {
+      class: 'px-5 py-3 flex items-center gap-2 min-w-0',
+      style: 'border-bottom:1px solid var(--rv-border);',
+    }, chip, title);
+  }
+
+  // O rotulo de uma SUBSECAO: mesmo papel tipografico SECTION_LABEL (§5), sem
+  // chip e sem banda. E a ausencia do chip que diz "isto esta dentro de outra
+  // coisa" — nao um tamanho de letra inventado fora do enum fechado.
+  function subsectionLabel(label) {
+    return el('div', {
+      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);margin-bottom:8px;',
+    }, label);
+  }
+  ns.subsectionLabel = subsectionLabel;
+
+  // §2.4 pede um icone DISTINTO por seccao. Os tres ja usados nesta tela sao
+  // camadas (Materiais), caixa de entrada (Recebimento) e relogio (Linha do
+  // tempo); a seccao de apoio toma o documento, que e o que ela de facto
+  // guarda: a origem declarada e o registo administrativo.
+  var ICON_FILE_TEXT = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
 
   // A row hover cannot be expressed by an inline style, and this screen holds
   // no stylesheet class of its own. The imperative pair mirrors the ratified
@@ -626,51 +691,148 @@
 
   // ---- EVENTOS ADMINISTRATIVOS ----------------------------------------
   //
-  // DUAS correcoes de revisao numa so extracao.
+  // POSICAO (fase 3, preservada). Este bloco era construido DENTRO de
+  // renderDetail e ficava ACIMA da secao de recebimento que ele descreve, com
+  // DOIS blocos chamados "Histórico" a poucos pixels um do outro. Foi extraido
+  // para o fim da pilha e renomeado para "Eventos administrativos".
   //
-  // 1. POSICAO. Este bloco era construido DENTRO de renderDetail e ficava
-  //    ACIMA da secao Recebimentos, porque o orquestrador anexa a secao de
-  //    recebimento como IRMA do detalhe, depois dele. O resultado era a tela
-  //    a apresentar o log administrativo (emitida, recebimento_registrado,
-  //    recebimento_estornado) ANTES do estado operacional que ele descreve, e
-  //    DOIS blocos chamados "Histórico" a poucos pixels um do outro. Agora ele
-  //    e o ULTIMO bloco da pilha, como manda a IA aceita do BACKLOG 7:
-  //    proveniencia e log administrativo sao apoio, nao a leitura principal.
+  // ---------------------------------------------------------------------
+  // BACKLOG-7 PHASE 6 — O LOG DEIXA DE FALAR A LINGUA DO BANCO.
   //
-  // 2. NOME. Passa a chamar-se "Eventos administrativos". "Histórico" era o
-  //    mesmo rotulo que a secao de recebimento ja usa para a sua propria
-  //    historia de comandos — duas coisas diferentes com o mesmo nome, na
-  //    mesma tela.
+  // O criterio 7 desta fase pede que a terminologia tecnica nao domine a
+  // experiencia do operador. Este bloco imprimia o valor CRU de tres colunas:
   //
-  // O conteudo, a fonte (state.eventos) e a formatacao das linhas nao mudam.
+  //     recebimento_registrado
+  //     emitida (rascunho → emitida)
+  //     aceite_registrado (pendente → aceita)
+  //
+  // `tipo_evento`, `valor_anterior` e `valor_novo` sao enums de banco, e o que
+  // aparecia na tela era literalmente o conteudo da coluna. O operador lia o
+  // esquema.
+  //
+  // O VOCABULARIO NAO E INVENTADO AQUI. Os seis tipos sao o conjunto FECHADO
+  // que os escritores realmente gravam — derivado dos donos executaveis, nao de
+  // prosa: db/68 e db/103b gravam `emitida`; db/66, db/68 e db/100 gravam
+  // `cancelada`; db/103 grava `aceite_registrado`/`aceite_rejeitado`; db/70 e
+  // db/74 gravam `recebimento_registrado`/`recebimento_estornado`. Um tipo
+  // desconhecido cai no proprio valor cru: falha ABERTA e honesta, nunca um
+  // rotulo inventado para um evento que esta tela nao conhece.
+  //
+  // A TRANSICAO usa os rotulos que ESTA TELA JA POSSUI — STATUS_LABEL para a
+  // dimensao administrativa e ACEITE_LABEL para a de aceite. Nenhum mapa novo
+  // de estado nasce aqui: §2.6 nomeia um dono unico e este ficheiro nao e ele.
+  // A dimensao `recebimento` grava os dois valores como NULL (db/70), portanto
+  // nao produz linha de transicao nenhuma.
+  var EVENTO_LABEL = {
+    emitida: 'Ordem emitida',
+    cancelada: 'Ordem cancelada',
+    aceite_registrado: 'Aceite confirmado',
+    aceite_rejeitado: 'Aceite rejeitado',
+    recebimento_registrado: 'Recebimento registrado',
+    recebimento_estornado: 'Recebimento estornado',
+  };
+  ns.EVENTO_LABEL = EVENTO_LABEL;
+
+  function transicaoLabel(e) {
+    var mapa = e.dimensao === 'aceite' ? ACEITE_LABEL : STATUS_LABEL;
+    var antes = e.valor_anterior ? (mapa[e.valor_anterior] || e.valor_anterior) : null;
+    var depois = e.valor_novo ? (mapa[e.valor_novo] || e.valor_novo) : null;
+    if (antes && depois) return antes + ' → ' + depois;
+    return depois || antes || null;
+  }
+
+  function eventoLinha(e, primeiro) {
+    var esquerda = el('div', { class: 'min-w-0' },
+      el('div', {
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);',
+      }, EVENTO_LABEL[e.tipo_evento] || e.tipo_evento || '—'));
+    var transicao = transicaoLabel(e);
+    if (transicao) {
+      esquerda.appendChild(el('div', {
+        style: 'font-size:var(--rv-fs-xs);color:var(--rv-text-tertiary);',
+      }, transicao));
+    }
+    return el('div', {
+      'data-evento-id': e.id != null ? String(e.id) : '',
+      class: 'flex items-baseline justify-between gap-3 flex-wrap',
+      style: primeiro
+        ? 'padding:7px 0;'
+        : 'padding:7px 0;border-top:1px solid var(--rv-border-soft);',
+    }, esquerda,
+      el('span', {
+        style: 'font-size:var(--rv-fs-xs);color:var(--rv-text-tertiary);'
+          + 'font-variant-numeric:tabular-nums;white-space:nowrap;',
+      }, fmtDateTime(e.criado_em)));
+  }
+
+  // Devolve uma SUBSECAO (sem cartao e sem chip), nao mais uma seccao de topo.
+  // O cartao e o chip pertencem agora a seccao de apoio que a contem.
   ns.renderEventosAdmin = function (state) {
     var o = state && state.ordem;
     if (state.indisponivel || !o) return null;
 
-    var evCard = card('overflow-hidden');
-    evCard.appendChild(sectionBand('Eventos administrativos'));
+    var bloco = el('div', { id: 'oc-eventos-administrativos' });
+    bloco.appendChild(subsectionLabel('Eventos administrativos'));
     var evs = state.eventos || [];
     if (!evs.length) {
-      evCard.appendChild(el('div', {
-        class: 'p-6 text-center',
-        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+      // §2.11: "Empty: short honest sentence, --rv-fs-sm --rv-text-tertiary."
+      // Antes era --rv-fs-body/secondary centrado num bloco de 24px de altura,
+      // ou seja, um estado vazio com mais peso do que o conteudo que substitui.
+      bloco.appendChild(el('div', {
+        style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);',
       }, 'Sem eventos administrativos.'));
-    } else {
-      var list = el('div', {});
-      evs.forEach(function (e, i) {
-        list.appendChild(el('div', {
-          class: 'px-5 py-3 flex justify-between',
-          style: i > 0
-            ? 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);border-top:1px solid var(--rv-border-soft);'
-            : 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);',
-        },
-          el('span', {}, (e.tipo_evento || '') + (e.valor_anterior ? (' (' + e.valor_anterior + ' → ' + e.valor_novo + ')') : '')),
-          el('span', {
-            style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);',
-          }, e.criado_em ? String(e.criado_em).slice(0, 19).replace('T', ' ') : '')));
-      });
-      evCard.appendChild(list);
+      return bloco;
     }
-    return evCard;
+    var list = el('div', {});
+    evs.forEach(function (e, i) { list.appendChild(eventoLinha(e, i === 0)); });
+    bloco.appendChild(list);
+    return bloco;
+  };
+
+  // ---- SECCAO DE APOIO (BACKLOG-7 PHASE 6) -----------------------------
+  //
+  // A IA aceita desta fase termina em "Secondary provenance / administrative
+  // information" — UMA regiao, nao duas. Ate aqui a pagina publicava, DEPOIS do
+  // cockpit, mais DUAS bandas de largura inteira com a mesma pele de cartao e a
+  // mesma banda de titulo das bandas primarias. Estavam na ordem certa e com o
+  // peso errado: nada na sua aparencia dizia que eram apoio.
+  //
+  // Passam a ser as duas subseccoes de uma unica seccao, que abre com o seu
+  // proprio chip. A pagina passa de quatro bandas de topo a duas: o cockpit
+  // operacional e a seccao de apoio.
+  //
+  // NADA E REMOVIDO. Toda a proveniencia e todos os eventos continuam
+  // renderizados, com os mesmos identificadores e a mesma fonte de dados. A
+  // ordem diz "Demote hierarchy, not information integrity", e e exatamente
+  // isso que acontece: o que muda e o PESO, nunca o conteudo.
+  //
+  // Devolve null quando nenhuma das duas subseccoes existe — uma seccao de
+  // apoio vazia seria uma banda a anunciar que nao tem nada a dizer.
+  ns.renderSecondarySection = function (state) {
+    var proveniencia = (typeof ns.renderProvenanceSection === 'function')
+      ? ns.renderProvenanceSection(state) : null;
+    var eventos = (typeof ns.renderEventosAdmin === 'function')
+      ? ns.renderEventosAdmin(state) : null;
+    if (!proveniencia && !eventos) return null;
+
+    var wrap = card('overflow-hidden');
+    wrap.setAttribute('id', 'oc-apoio');
+    wrap.appendChild(sectionChipHeader('Proveniência e auditoria', ICON_FILE_TEXT));
+
+    var corpo = el('div', {
+      class: 'px-5 py-4',
+      style: 'display:flex;flex-direction:column;gap:var(--rv-gap-stack);',
+    });
+    if (proveniencia) corpo.appendChild(proveniencia);
+    if (eventos) {
+      // A divisoria so existe quando ha de facto duas subseccoes a separar.
+      if (proveniencia) {
+        eventos.setAttribute('style',
+          'border-top:1px solid var(--rv-border-soft);padding-top:14px;');
+      }
+      corpo.appendChild(eventos);
+    }
+    wrap.appendChild(corpo);
+    return wrap;
   };
 })(window);
