@@ -455,7 +455,16 @@ test('19g · the ruled semantic pills keep pill geometry and declare their role'
     'js/screens/op-latex-admin.js',
     'js/screens/op-nova.js',
     'js/screens/op-tecelagem-producao-admin.js',
-    'js/screens/ordem-compra-receipt-render.js',
+    // BACKLOG-7 PHASE 1 removed js/screens/ordem-compra-receipt-render.js from
+    // this list. The marker exists so the js-screen front-end can decode a
+    // SCREEN-LOCAL pill declaration and confirm its --rv-radius-pill geometry is
+    // legitimate. That screen no longer declares a pill at all: its command-type
+    // badge is built by the canonical js/badges.js constructor, which owns the
+    // geometry (§2.6 names it the SINGLE runtime owner and forbids a screen from
+    // holding its own family map). There is no local pill left to mark, so both
+    // clauses below — "must declare the pill role" and the exclusive carrier
+    // list — are satisfied by its absence. This TIGHTENS conformance; it does not
+    // waive the rule.
     'js/screens/pedido-itens-edit.js',
     'js/screens/pedido-tracking-admin.js',
   ];

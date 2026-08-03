@@ -39,6 +39,11 @@ function makeSandbox() {
   // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
   // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
+  // BACKLOG-7 phase 1: the command-type badge now goes through the canonical
+  // js/badges.js owner (UI_VISUAL_CONTRACT.md 2.6) instead of a screen-local
+  // colour map, so that owner is a real sandbox dependency exactly as
+  // op-display.js is. index.html loads it at line 18, long before any screen.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -234,30 +239,61 @@ test('linha reversivel mantem a acao enquanto a linha exaurida perde a acao', ()
     'a linha 54 continua na historia');
 });
 
-test('visual tokens: flat card at --rv-radius-card, neutral chip tokens, accent action, token numerics (VISUAL-GATE-R1)', () => {
+/*
+ * BACKLOG-7 PHASE 1 RECONCILIATION.
+ *
+ * This guard is UNCHANGED IN INTENT: flat card, neutral section chip, section
+ * label, one dominant action, tokenised numeric cells. Only its SUBJECT moved.
+ *
+ * It used to name --rv-radius-card, --rv-color-line-200, --rv-color-chip-bg,
+ * --rv-color-chip-glyph, --rv-radius-control, --rv-color-section-label,
+ * --rv-color-accent and --rv-color-value. css/tokens.css declares every one of
+ * those under "LEGACY COMPATIBILITY — NONCONFORMING / DEPRECATED … New code must
+ * not use them", so a guard that REQUIRED them was pinning the screen to the
+ * namespace the contract is retiring. The assertions now name the canonical
+ * owners the screen actually renders.
+ *
+ * The old title also claimed --rv-radius-card was 6px. The alias has resolved to
+ * var(--rv-radius) (4px) since the radius pass; the literal in the title was
+ * stale, not a second value.
+ *
+ * This adds NO new visual assertion and relaxes none: it is the same eight
+ * properties under their current names, plus an explicit negative proving the
+ * deprecated namespace does not come back.
+ */
+test('visual tokens: flat canonical card, neutral chip, dominant action, token numerics (VISUAL-GATE-R1)', () => {
   const s = makeSandbox();
   const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
-  // Card: canonical card radius + hairline line-200 border, flat (no shadow, no rounded-lg 8px).
+  // Card: canonical radius + hairline border, flat (no shadow, no rounded-lg 8px).
   const card = findById(view, 'oc-recebimentos');
   const cardStyle = card.getAttribute('style') || '';
-  assert.match(cardStyle, /border-radius:var\(--rv-radius-card\)/, 'card uses --rv-radius-card (6px), not rounded-lg (8px)');
-  assert.match(cardStyle, /border:1px solid var\(--rv-color-line-200\)/, 'card uses the hairline line-200 border token');
+  assert.match(cardStyle, /border-radius:var\(--rv-radius\)/, 'card uses the canonical --rv-radius');
+  assert.match(cardStyle, /border:1px solid var\(--rv-border\)/, 'card uses the canonical hairline border token');
   assert.doesNotMatch(cardStyle, /shadow|box-shadow/, 'flat card, no shadow');
   assert.doesNotMatch(card.className, /rounded-lg|shadow/, 'no residual rounded-lg / shadow utility classes');
-  // Section chip: neutral --rv-color-chip-bg / --rv-color-chip-glyph, control radius.
-  const chip = findAll(view, (n) => /var\(--rv-color-chip-bg\)/.test(n.getAttribute && n.getAttribute('style') || ''))[0];
-  assert.ok(chip, 'section chip uses --rv-color-chip-bg');
-  assert.match(chip.getAttribute('style'), /color:var\(--rv-color-chip-glyph\)/, 'chip glyph token');
-  assert.match(chip.getAttribute('style'), /border-radius:var\(--rv-radius-control\)/, 'chip control radius');
-  // Section label token.
-  assert.ok(findAll(view, (n) => /color:var\(--rv-color-section-label\)/.test(n.getAttribute && n.getAttribute('style') || '')).length > 0, 'section label uses --rv-color-section-label');
-  // Dominant action: accent bg + control radius.
+  // Section chip: neutral --rv-chip-bg / --rv-chip-glyph, canonical radius.
+  const chip = findAll(view, (n) => /var\(--rv-chip-bg\)/.test(n.getAttribute && n.getAttribute('style') || ''))[0];
+  assert.ok(chip, 'section chip uses --rv-chip-bg');
+  assert.match(chip.getAttribute('style'), /color:var\(--rv-chip-glyph\)/, 'chip glyph token');
+  assert.match(chip.getAttribute('style'), /border-radius:var\(--rv-radius\)/, 'chip canonical radius');
+  // Section label: the SECTION_LABEL role on the canonical tertiary text token.
+  assert.ok(findAll(view, (n) => /font-size:var\(--rv-fs-label\)/.test(n.getAttribute && n.getAttribute('style') || '')
+    && /color:var\(--rv-text-tertiary\)/.test(n.getAttribute('style') || '')).length > 0,
+  'section label takes --rv-fs-label on --rv-text-tertiary');
+  // Dominant action: §2.1 Primary — brand fill, on-brand foreground, ladder height.
   const reg = findById(view, 'oc-registrar-recebimento');
-  assert.match(reg.getAttribute('style'), /background:var\(--rv-color-accent\)/, 'registrar uses --rv-color-accent');
-  assert.match(reg.getAttribute('style'), /border-radius:var\(--rv-radius-control\)/, 'registrar uses control radius');
-  // Numeric cells: strong value token + tabular numerals.
-  const numCell = findAll(view, (n) => n.tagName === 'TD' && /var\(--rv-color-value\)/.test(n.getAttribute('style') || '') && /tabular-nums/.test(n.getAttribute('style') || ''))[0];
-  assert.ok(numCell, 'numeric value cell uses --rv-color-value + tabular-nums');
+  assert.match(reg.getAttribute('style'), /background:var\(--rv-brand\)/, 'registrar uses --rv-brand');
+  assert.match(reg.getAttribute('style'), /color:var\(--rv-text-on-brand\)/, 'registrar uses --rv-text-on-brand');
+  assert.match(reg.getAttribute('style'), /height:var\(--rv-h-primary\)/, 'registrar declares a ladder height');
+  assert.match(reg.getAttribute('style'), /border-radius:var\(--rv-radius\)/, 'registrar uses the canonical radius');
+  // Numeric cells: primary text token + tabular numerals.
+  const numCell = findAll(view, (n) => n.tagName === 'TD' && /var\(--rv-text-primary\)/.test(n.getAttribute('style') || '') && /tabular-nums/.test(n.getAttribute('style') || ''))[0];
+  assert.ok(numCell, 'numeric value cell uses --rv-text-primary + tabular-nums');
+  // The retired namespace must not reappear anywhere in the rendered tree.
+  const allStyles = findAll(view, (n) => typeof n.getAttribute === 'function')
+    .map((n) => n.getAttribute('style') || '').join(' ');
+  assert.doesNotMatch(allStyles, /var\(--rv-color-|var\(--rv-radius-card\)|var\(--rv-radius-control\)/,
+    'no deprecated compatibility token survives in the rendered receipt section');
 });
 
 test('reversal control absent on estorno (negative) command rows', () => {

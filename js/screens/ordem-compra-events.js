@@ -107,7 +107,7 @@
           return;
         }
         var nome = ns.ocLabel(ordemId, state);
-        var body = el('div', { style: 'color:var(--rv-color-text);font-size:13.5px;line-height:1.55;' });
+        var body = el('div', { style: 'color:var(--rv-text-primary);font-size:var(--rv-fs-value);line-height:1.55;' });
         body.appendChild(el('p', { class: 'mb-2' },
           'Cancelar a ordem ' + nome + '?'));
         body.appendChild(el('p', { class: 'mb-2' },
@@ -116,7 +116,7 @@
         body.appendChild(el('p', { class: 'mb-2' },
           'As quantidades ativas desta ordem são liberadas e voltam a ficar disponíveis '
           + 'para novo planejamento no Pedido.'));
-        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-color-muted);' },
+        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-text-secondary);' },
           'Uma ordem com recebimento, lançamento de fio ou movimento de estoque não pode ser '
           + 'cancelada — nesses casos o caminho é o estorno.'));
         var submitting = false;
@@ -151,13 +151,13 @@
           return;
         }
         var nome = ns.ocLabel(ordemId, state);
-        var body = el('div', { style: 'color:var(--rv-color-text);font-size:13.5px;line-height:1.55;' });
+        var body = el('div', { style: 'color:var(--rv-text-primary);font-size:var(--rv-fs-value);line-height:1.55;' });
         body.appendChild(el('p', { class: 'mb-2' },
           'Excluir permanentemente a ordem ' + nome + '?'));
         body.appendChild(el('p', { class: 'mb-2' },
           'A ordem, os seus itens e as suas alocações são removidos definitivamente. '
           + 'As quantidades alocadas voltam a ficar disponíveis nas necessidades do Pedido.'));
-        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-color-muted);' },
+        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-text-secondary);' },
           'Esta ação não pode ser desfeita. Para preservar a ordem no histórico, use Cancelar.'));
         var submitting = false;
         window.modal({
@@ -209,12 +209,12 @@
         // o operador reconhece. `ordemId` (o BIGSERIAL) segue sendo apenas o
         // argumento tecnico do RPC, nunca o nome exibido.
         var ocNome = window.RAVATEX_SCREENS.ordemCompra.ocLabel(ordemId, state);
-        var body = el('div', { style: 'color:var(--rv-color-text);font-size:13.5px;line-height:1.55;' });
+        var body = el('div', { style: 'color:var(--rv-text-primary);font-size:var(--rv-fs-value);line-height:1.55;' });
         body.appendChild(el('p', { class: 'mb-2' },
           'Emitir a ordem ' + ocNome + ' a retira do rascunho e a marca como emitida.'));
         body.appendChild(el('p', { class: 'mb-2' },
           'Após a emissão, os itens e as alocações ficam congelados. Esta ação não edita itens nem a distribuição.'));
-        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-color-muted);' },
+        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-text-secondary);' },
           'A emissão é definitiva — o único caminho de reversão é cancelar a ordem. Esta ordem não exige aceite.'));
 
         // Mint the local attempt on modal open (§13).

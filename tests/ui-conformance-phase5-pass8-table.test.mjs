@@ -194,8 +194,22 @@ test('2.3 S05 carries the SIX-column history contract, Ações included', () => 
 test('2.4 the semantic tables keep their pre-existing right-aligned tabular numerals', () => {
   // Pass 8 added the width owner; it must not have cost the numeric contract
   // those two modules already satisfied.
+  // BACKLOG-7 PHASE 1: the PROPERTY is unchanged — the same three numeric cells
+  // are still right-aligned with tabular numerals. Only the CONSTRUCTION moved.
+  //
+  // Those cells used to be three hand-typed `el('td', ...)` sites, so counting
+  // the literal spelling was the only way to reach them. They are now built by
+  // two cell constructors, exactly as this same test already asserts for the
+  // sibling ordem-compra-receipt-render.js three lines below. The guard follows
+  // the construction: each constructor must declare the contract, and the three
+  // numeric cells must still be the ones calling them.
   const render = read('js/screens/ordem-compra-render.js');
-  assert.equal((render.match(/text-right[^']*',\s*style:\s*'font-variant-numeric:tabular-nums;'/g) || []).length, 3);
+  assert.match(render, /function tdNum\(value, pad\)[\s\S]*?text-right[\s\S]*?tabular-nums/,
+    'tdNum() must declare right alignment and tabular numerals');
+  assert.match(render, /function tdNumMuted\(value, pad\)[\s\S]*?text-right[\s\S]*?tabular-nums/,
+    'tdNumMuted() must declare right alignment and tabular numerals');
+  assert.equal((render.match(/\b(tdNum|tdNumMuted)\(/g) || []).length - 2, 3,
+    'the three numeric cells still resolve through a numeric constructor');
   const receipt = read('js/screens/ordem-compra-receipt-render.js');
   assert.match(receipt, /function tdNum\(value\)[\s\S]*?text-right[\s\S]*?tabular-nums/);
   assert.match(receipt, /function th\(label, right\)[\s\S]*?right \? 'text-right' : 'text-left'/);

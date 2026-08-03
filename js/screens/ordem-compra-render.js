@@ -95,10 +95,10 @@
   // without status_aceite (or a legacy order) renders no badge.
   function statusAceiteBadge(statusAceite) {
     var colors = {
-      nao_aplicavel: ['var(--rv-color-chip-bg)', 'var(--rv-color-muted)'],
-      pendente: ['var(--rv-signal-caution-bg)', 'var(--rv-color-warning)'],
-      aceita: ['var(--rv-signal-positive-bg)', 'var(--rv-color-success)'],
-      rejeitada: ['var(--rv-surface)', 'var(--rv-color-danger)'],
+      nao_aplicavel: ['var(--rv-chip-bg)', 'var(--rv-text-secondary)'],
+      pendente: ['var(--rv-signal-caution-bg)', 'var(--rv-signal-caution)'],
+      aceita: ['var(--rv-signal-positive-bg)', 'var(--rv-signal-positive)'],
+      rejeitada: ['var(--rv-surface)', 'var(--rv-signal-negative)'],
     };
     var c = colors[statusAceite];
     if (!c) return null;
@@ -124,6 +124,114 @@
     return (typeof window.fmtKg === 'function') ? window.fmtKg(v) : String(v);
   }
 
+  // ---- BACKLOG-7 PHASE 1: canonical surface primitives -----------------
+  //
+  // This screen held the OLDEST visual generation in the purchase-order
+  // surface: `bg-white shadow` cards (a shadow on a card is forbidden outright
+  // by §6), Tailwind grey/blue/red/amber literals for every foreground, and
+  // `text-sm` (14px) — a size absent from the §5 enum — for every cell. The
+  // four helpers below are the single owners of card, table-header, cell and
+  // hover geometry on this screen, so the idiom is declared once instead of
+  // being retyped at 52 literal sites.
+
+  // §2.4: --rv-surface fill, one --rv-border hairline, --rv-radius, FLAT.
+  function card(extraClass) {
+    return el('div', {
+      class: extraClass || '',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);'
+        + 'border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);',
+    });
+  }
+
+  // §2.11 honest empty/unavailable state inside a card.
+  function emptyCard(message) {
+    var node = card('p-8 text-center');
+    node.appendChild(el('div', {
+      style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+    }, message));
+    return node;
+  }
+
+  // §2.5 TABLE_HEADER role: --rv-fs-thead / 600 / uppercase / --rv-text-tertiary.
+  //
+  // Every style below is written as ONE STRING LITERAL, never assembled from a
+  // shared variable. The js-screen conformance front-end can only decode a
+  // literal; a `style: SOME_CONST` or `style: A + b` site becomes a
+  // NON_LITERAL_STYLE_VALUE / CONCATENATED_STYLE_EXPRESSION coverage gap, so
+  // factoring these into constants would hide the very values this pass exists
+  // to make visible. Reuse lives at the FUNCTION level instead.
+  function th(label, right) {
+    return el('th', {
+      class: 'px-4 py-3 ' + (right ? 'text-right' : 'text-left'),
+      style: 'font-size:var(--rv-fs-thead);font-weight:600;text-transform:uppercase;letter-spacing:var(--rv-tracking-thead);color:var(--rv-text-tertiary);',
+    }, label);
+  }
+  // Same role, the tighter vertical padding the detail item table already used.
+  function thCompact(label, right) {
+    return el('th', {
+      class: 'px-4 py-2 ' + (right ? 'text-right' : 'text-left'),
+      style: 'font-size:var(--rv-fs-thead);font-weight:600;text-transform:uppercase;letter-spacing:var(--rv-tracking-thead);color:var(--rv-text-tertiary);',
+    }, label);
+  }
+
+  // Cell constructors — BODY_CONTROL_CELL (§5). `pad` is the only variable part
+  // and it lives in `class`, never in `style`.
+  function tdText(value, pad) {
+    return el('td', {
+      class: (pad || 'px-4 py-3'),
+      style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);',
+    }, value);
+  }
+  function tdNum(value, pad) {
+    return el('td', {
+      class: (pad || 'px-4 py-3') + ' text-right',
+      style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-variant-numeric:tabular-nums;',
+    }, value);
+  }
+  function tdNumMuted(value, pad) {
+    return el('td', {
+      class: (pad || 'px-4 py-3') + ' text-right',
+      style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;',
+    }, value);
+  }
+
+  // The band that titles a card section. SECTION_LABEL role (§2.4/§5).
+  function sectionBand(label) {
+    return el('div', {
+      class: 'px-5 py-3',
+      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);'
+        + 'border-bottom:1px solid var(--rv-border);',
+    }, label);
+  }
+
+  // A row hover cannot be expressed by an inline style, and this screen holds
+  // no stylesheet class of its own. The imperative pair mirrors the ratified
+  // precedent in js/ui.js's pageHeader() and actionButton().
+  function hoverable(node) {
+    node.onmouseenter = function () { node.style.background = 'var(--rv-surface-subtle)'; };
+    node.onmouseleave = function () { node.style.background = ''; };
+    return node;
+  }
+
+  // The row separator (border-top: 1px --rv-border-soft) replaces Tailwind's
+  // divide-gray-* utility, and the §2.1 Destructive variant (--rv-surface fill,
+  // --rv-signal-negative-border hairline, --rv-signal-negative text, 34px from
+  // the closed ladder) replaces the `border-red-300 / text-red-600 /
+  // hover:bg-red-50` trio, which painted three reds belonging to no token while
+  // `py-2` put the control off the ladder entirely. Both are written inline at
+  // their call sites for the literal-decoding reason stated above.
+
+  // §2.5.1 non-mutating contextual navigation link — interactive text takes
+  // --rv-accent-blue, never a Tailwind blue ramp.
+  function linkButton(label, onclick, extraClass) {
+    return el('button', {
+      class: 'hover:underline ' + (extraClass || ''),
+      style: 'font-size:var(--rv-fs-body);color:var(--rv-accent-blue);background:none;border:none;padding:0;cursor:pointer;',
+      onclick: onclick,
+    }, label);
+  }
+
   // ---- LIST -----------------------------------------------------------
   ns.renderList = function (state, handlers) {
     var box = el('div', { id: 'ordens-compra-list' });
@@ -133,18 +241,17 @@
     box.appendChild(header);
 
     if (state.indisponivel) {
-      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
+      box.appendChild(emptyCard(
         'Administração de ordens de compra indisponível neste ambiente (migração db/68 não aplicada).'));
       return box;
     }
 
     if (!state.ordens.length) {
-      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
-        'Nenhuma ordem de compra ainda.'));
+      box.appendChild(emptyCard('Nenhuma ordem de compra ainda.'));
       return box;
     }
 
-    var wrap = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
+    var wrap = card('overflow-hidden');
     // Pass-8 §2.5: `table-layout:fixed` + a <colgroup> whose five <col>s match
     // the five rendered columns, so every header takes exactly the width of its
     // values. Percentage widths only — no fixed-pixel column, so this table
@@ -156,31 +263,27 @@
       el('col', { style: 'width:20%;' }),
       el('col', { style: 'width:12%;' }),
       el('col', { style: 'width:12%;' })));
-    var thead = el('thead', { class: 'bg-gray-50 border-b' });
+    var thead = el('thead', {
+      style: 'background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
+    });
     thead.appendChild(el('tr', {},
-      el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Ordem'),
-      el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Fornecedor'),
-      el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Situação'),
-      el('th', { class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Itens'),
-      el('th', { class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' }, '')));
-    var tbody = el('tbody', { class: 'divide-y divide-gray-100' });
+      th('Ordem'), th('Fornecedor'), th('Situação'), th('Itens', true), th('', true)));
+    var tbody = el('tbody', {});
     state.ordens.forEach(function (o) {
-      var tr = el('tr', { class: 'hover:bg-gray-50', 'data-ordem-id': String(o.ordem_id) });
+      var tr = hoverable(el('tr', { 'data-ordem-id': String(o.ordem_id), style: 'border-top:1px solid var(--rv-border-soft);' }));
       // A identidade canonica e o identificador primario da linha; o modelo
       // (nativo/legado) continua visivel como qualificacao secundaria. A
       // geometria de 5 colunas do contrato pass-8 (S01) e preservada: nenhuma
       // coluna foi adicionada e nenhuma largura mudou.
-      tr.appendChild(el('td', { class: 'px-4 py-3 text-sm' },
-        el('div', { class: 'font-semibold text-gray-900' }, ocLabel(o.ordem_id, state)),
+      tr.appendChild(el('td', { class: 'px-4 py-3', style: 'font-size:var(--rv-fs-body);' },
+        el('div', { class: 'font-semibold', style: 'color:var(--rv-text-primary);' }, ocLabel(o.ordem_id, state)),
         el('div', { class: 'mt-1' }, modeloBadge(o.modelo))));
-      tr.appendChild(el('td', { class: 'px-4 py-3 text-sm text-gray-800' }, o.fornecedor_nome || '— não atribuído'));
-      tr.appendChild(el('td', { class: 'px-4 py-3 text-sm' }, statusBadge(o.status_administrativo)));
-      tr.appendChild(el('td', { class: 'px-4 py-3 text-sm text-right text-gray-800', style: 'font-variant-numeric:tabular-nums;' }, String(o.itens_total)));
+      tr.appendChild(tdText(o.fornecedor_nome || '— não atribuído'));
+      tr.appendChild(el('td', { class: 'px-4 py-3', style: 'font-size:var(--rv-fs-body);' },
+        statusBadge(o.status_administrativo)));
+      tr.appendChild(tdNum(String(o.itens_total)));
       tr.appendChild(el('td', { class: 'px-4 py-3 text-right' },
-        el('button', {
-          class: 'text-sm text-blue-700 hover:underline',
-          onclick: function () { handlers.verOrdem(o.ordem_id); },
-        }, 'Ver ordem')));
+        linkButton('Ver ordem', function () { handlers.verOrdem(o.ordem_id); })));
       tbody.appendChild(tr);
     });
     table.appendChild(thead);
@@ -195,33 +298,35 @@
     var box = el('div', { id: 'ordem-compra-detail' });
 
     box.appendChild(el('div', { class: 'mb-4' },
-      el('button', { class: 'text-sm text-blue-700 hover:underline', onclick: function () { handlers.voltar(); } }, '← Ordens de compra')));
+      linkButton('← Ordens de compra', function () { handlers.voltar(); })));
 
     if (state.indisponivel) {
-      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
+      box.appendChild(emptyCard(
         'Administração de ordens de compra indisponível neste ambiente (migração db/68 não aplicada).'));
       return box;
     }
 
     var o = state.ordem;
     if (!o) {
-      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' }, 'Ordem de compra não encontrada.'));
+      box.appendChild(emptyCard('Ordem de compra não encontrada.'));
       return box;
     }
 
     var acoes = o.acoes || {};
 
     // Header card
-    var head = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-4' });
+    var head = card('p-5 mb-4');
     head.appendChild(el('div', { class: 'flex items-center gap-3 mb-3 flex-wrap' },
       el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, ocLabel(o.ordem_id, state)),
       modeloBadge(o.modelo), statusBadge(o.status_administrativo),
       o.modelo === 'nativo' ? statusAceiteBadge(o.status_aceite) : null));
-    head.appendChild(el('div', { class: 'text-sm text-gray-600' },
+    head.appendChild(el('div', { style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' },
       'Fornecedor: ' + (o.fornecedor_nome || '— não atribuído')));
     if (o.modelo === 'legado') {
-      head.appendChild(el('div', { class: 'mt-2 text-xs text-gray-500' },
-        'Ordem importada do modelo legado — inerte no novo modelo (administração pela via legada).'));
+      head.appendChild(el('div', {
+        class: 'mt-2',
+        style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);',
+      }, 'Ordem importada do modelo legado — inerte no novo modelo (administração pela via legada).'));
     }
 
     // Actions row (server-derived)
@@ -229,7 +334,8 @@
     if (acoes.cancelar) {
       actions.appendChild(el('button', {
         id: 'oc-cancelar',
-        style: 'border-radius:var(--rv-radius);', class: 'border border-red-300 text-red-600 hover:bg-red-50 text-sm font-semibold px-3 py-2',
+        class: 'font-semibold px-3',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);color:var(--rv-signal-negative);height:var(--rv-h-default);padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
         onclick: function () { handlers.cancelar(o); },
       }, 'Cancelar ordem'));
     }
@@ -240,13 +346,17 @@
     if (acoes.excluir === true) {
       actions.appendChild(el('button', {
         id: 'oc-excluir',
-        style: 'border-radius:var(--rv-radius);', class: 'border border-red-300 text-red-600 hover:bg-red-50 text-sm font-semibold px-3 py-2',
+        class: 'font-semibold px-3',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);color:var(--rv-signal-negative);height:var(--rv-h-default);padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
         onclick: function () { handlers.excluir(o); },
       }, 'Excluir ordem'));
     }
     if (o.pedido_id) {
       actions.appendChild(el('button', {
-        id: 'oc-abrir-pedido', class: 'text-blue-700 text-sm font-semibold px-3 py-2',
+        id: 'oc-abrir-pedido', class: 'font-semibold px-3',
+        style: 'background:none;border:none;cursor:pointer;height:var(--rv-h-default);'
+          + 'display:inline-flex;align-items:center;justify-content:center;'
+          + 'font-size:var(--rv-fs-body);color:var(--rv-accent-blue);',
         onclick: function () { handlers.verPedido(o.pedido_id); },
       }, 'Abrir Pedido'));
     }
@@ -260,16 +370,27 @@
     if (podeEmitir) {
       emitBtn = el('button', {
         id: 'oc-emitir',
-        class: 'text-white text-sm font-semibold px-3 py-2 hover:opacity-90',
-        style: 'background:var(--rv-color-accent);border-radius:var(--rv-radius-control);',
+        class: 'font-semibold px-3 hover:opacity-90',
+        style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;'
+          + 'height:var(--rv-h-primary);padding-top:0;padding-bottom:0;cursor:pointer;'
+          + 'display:inline-flex;align-items:center;justify-content:center;'
+          + 'font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
         onclick: function () { handlers.emitir(o); },
       }, 'Emitir ordem');
     } else {
+      // §2.1: "A disabled control KEEPS ITS ENABLED COLOURS — there is no
+      // disabled colour token and a washed-out substitute value is a defect
+      // (D9)." This used to swap the brand fill for a --rv-chip-bg/secondary
+      // pair, which is exactly that substitute. Opacity .45 and the default
+      // cursor are the declared disabled expression.
       emitBtn = el('button', {
         id: 'oc-emitir',
-        class: 'text-sm font-semibold px-3 py-2',
-        style: 'background:var(--rv-color-chip-bg);color:var(--rv-color-muted);'
-          + 'border-radius:var(--rv-radius-control);cursor:not-allowed;opacity:0.6;',
+        class: 'font-semibold px-3',
+        style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;'
+          + 'height:var(--rv-h-primary);padding-top:0;padding-bottom:0;'
+          + 'display:inline-flex;align-items:center;justify-content:center;'
+          + 'font-size:var(--rv-fs-body);border-radius:var(--rv-radius);'
+          + 'opacity:.45;cursor:default;',
         title: BLOQUEIO_LABEL[o.bloqueio_emissao] || 'Emissão indisponível nesta fase.',
         disabled: true,
       }, 'Emitir ordem');
@@ -281,11 +402,15 @@
     // show a readiness + irreversibility note; blocked orders show the honest
     // server reason.
     if (podeEmitir) {
-      head.appendChild(el('div', { id: 'oc-emissao-pronta', class: 'mt-2 text-xs', style: 'color:var(--rv-color-success);' },
-        'Distribuição completa — pronta para emissão. A emissão é definitiva (reversível apenas por cancelamento).'));
+      head.appendChild(el('div', {
+        id: 'oc-emissao-pronta', class: 'mt-2',
+        style: 'font-size:var(--rv-fs-2xs);color:var(--rv-signal-positive);',
+      }, 'Distribuição completa — pronta para emissão. A emissão é definitiva (reversível apenas por cancelamento).'));
     } else if (o.bloqueio_emissao) {
-      head.appendChild(el('div', { id: 'oc-bloqueio-emissao', class: 'mt-2 text-xs text-amber-700' },
-        BLOQUEIO_LABEL[o.bloqueio_emissao] || o.bloqueio_emissao));
+      head.appendChild(el('div', {
+        id: 'oc-bloqueio-emissao', class: 'mt-2',
+        style: 'font-size:var(--rv-fs-2xs);color:var(--rv-signal-caution);',
+      }, BLOQUEIO_LABEL[o.bloqueio_emissao] || o.bloqueio_emissao));
     }
 
     // An emitted order that awaits acceptance is NOT lifecycle-complete until the
@@ -293,17 +418,22 @@
     // unreachable via the canonical path (exige_aceite is seeded false), so this
     // is a defensive notice; no acceptance/rejection control is offered.
     if (o.status_administrativo === 'emitida' && o.status_aceite === 'pendente') {
-      head.appendChild(el('div', { id: 'oc-aceite-pendente-aviso', class: 'mt-2 text-xs', style: 'color:var(--rv-color-warning);' },
-        'Ordem emitida, aguardando aceite — o fluxo de aceite ainda não está disponível, portanto a ordem ainda não está concluída.'));
+      head.appendChild(el('div', {
+        id: 'oc-aceite-pendente-aviso', class: 'mt-2',
+        style: 'font-size:var(--rv-fs-2xs);color:var(--rv-signal-caution);',
+      }, 'Ordem emitida, aguardando aceite — o fluxo de aceite ainda não está disponível, portanto a ordem ainda não está concluída.'));
     }
     box.appendChild(head);
 
     // Items
-    var itemsCard = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden mb-4' });
-    itemsCard.appendChild(el('div', { class: 'px-5 py-3 border-b text-xs font-semibold text-gray-600 uppercase' }, 'Itens'));
+    var itemsCard = card('overflow-hidden mb-4');
+    itemsCard.appendChild(sectionBand('Itens'));
     var items = o.itens || [];
     if (!items.length) {
-      itemsCard.appendChild(el('div', { class: 'p-6 text-center text-gray-500 text-sm' }, 'Nenhum item neste rascunho.'));
+      itemsCard.appendChild(el('div', {
+        class: 'p-6 text-center',
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+      }, 'Nenhum item neste rascunho.'));
     } else {
       // Pass-8 §2.5: four <col>s for the four rendered columns (Fio, Kg pedido,
       // Kg alocado, ações). The two kg columns were already right-aligned with
@@ -314,23 +444,25 @@
         el('col', { style: 'width:22%;' }),
         el('col', { style: 'width:22%;' }),
         el('col', { style: 'width:16%;' })));
-      var th = el('thead', { class: 'bg-gray-50 border-b' });
-      th.appendChild(el('tr', {},
-        el('th', { class: 'px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Fio'),
-        el('th', { class: 'px-4 py-2 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Kg pedido'),
-        el('th', { class: 'px-4 py-2 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Kg alocado'),
-        el('th', { class: 'px-4 py-2 text-right text-xs font-semibold text-gray-600 uppercase' }, '')));
-      var tb = el('tbody', { class: 'divide-y divide-gray-100' });
+      // Renamed from `th`: a local of that name hoisted over the module-level
+      // th() helper for the whole of renderDetail, so any later call would have
+      // thrown on a DOM node.
+      var itemsHead = el('thead', {
+        style: 'background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
+      });
+      itemsHead.appendChild(el('tr', {},
+        thCompact('Fio'), thCompact('Kg pedido', true), thCompact('Kg alocado', true), thCompact('', true)));
+      var tb = el('tbody', {});
       items.forEach(function (it) {
-        var tr = el('tr', { 'data-item-id': String(it.item_id) });
-        tr.appendChild(el('td', { class: 'px-4 py-2 text-sm text-gray-800' }, fioLabel(it)));
-        tr.appendChild(el('td', { class: 'px-4 py-2 text-sm text-right text-gray-800', style: 'font-variant-numeric:tabular-nums;' }, fmtKg(it.kg_pedido)));
-        tr.appendChild(el('td', { class: 'px-4 py-2 text-sm text-right text-gray-500', style: 'font-variant-numeric:tabular-nums;' }, fmtKg(it.kg_alocado)));
+        var tr = el('tr', { 'data-item-id': String(it.item_id), style: 'border-top:1px solid var(--rv-border-soft);' });
+        tr.appendChild(tdText(fioLabel(it), 'px-4 py-2'));
+        tr.appendChild(tdNum(fmtKg(it.kg_pedido), 'px-4 py-2'));
+        tr.appendChild(tdNumMuted(fmtKg(it.kg_alocado), 'px-4 py-2'));
         var actTd = el('td', { class: 'px-4 py-2 text-right whitespace-nowrap' });
         tr.appendChild(actTd);
         tb.appendChild(tr);
       });
-      t.appendChild(th); t.appendChild(tb);
+      t.appendChild(itemsHead); t.appendChild(tb);
       itemsCard.appendChild(t);
     }
     box.appendChild(itemsCard);
@@ -350,17 +482,27 @@
     }
 
     // Event history
-    var evCard = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
-    evCard.appendChild(el('div', { class: 'px-5 py-3 border-b text-xs font-semibold text-gray-600 uppercase' }, 'Histórico'));
+    var evCard = card('overflow-hidden');
+    evCard.appendChild(sectionBand('Histórico'));
     var evs = state.eventos || [];
     if (!evs.length) {
-      evCard.appendChild(el('div', { class: 'p-6 text-center text-gray-500 text-sm' }, 'Sem eventos administrativos.'));
+      evCard.appendChild(el('div', {
+        class: 'p-6 text-center',
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+      }, 'Sem eventos administrativos.'));
     } else {
-      var list = el('div', { class: 'divide-y divide-gray-100' });
-      evs.forEach(function (e) {
-        list.appendChild(el('div', { class: 'px-5 py-3 text-sm text-gray-700 flex justify-between' },
+      var list = el('div', {});
+      evs.forEach(function (e, i) {
+        list.appendChild(el('div', {
+          class: 'px-5 py-3 flex justify-between',
+          style: i > 0
+            ? 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);border-top:1px solid var(--rv-border-soft);'
+            : 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);',
+        },
           el('span', {}, (e.tipo_evento || '') + (e.valor_anterior ? (' (' + e.valor_anterior + ' → ' + e.valor_novo + ')') : '')),
-          el('span', { class: 'text-gray-400 text-xs' }, e.criado_em ? String(e.criado_em).slice(0, 19).replace('T', ' ') : '')));
+          el('span', {
+            style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);',
+          }, e.criado_em ? String(e.criado_em).slice(0, 19).replace('T', ' ') : '')));
       });
       evCard.appendChild(list);
     }

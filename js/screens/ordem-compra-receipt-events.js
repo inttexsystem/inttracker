@@ -199,7 +199,7 @@
         }
         return window.modal({
           title: 'Recebimento registrado',
-          body: window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' }, textoPool),
+          body: window.el('div', { style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);line-height:1.5;' }, textoPool),
           saveLabel: 'Revisar produção do Pedido',
           onSave: function () {
             window.navigate(rotaPool);
@@ -224,7 +224,7 @@
         : 'O recebimento afetou ' + opIds.length + ' OPs. Revise a produção no painel consolidado do Pedido.';
       return window.modal({
         title: 'Recebimento registrado',
-        body: window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' }, descricao),
+        body: window.el('div', { style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);line-height:1.5;' }, descricao),
         saveLabel: 'Revisar produção',
         onSave: function () {
           window.navigate(rota);
@@ -266,8 +266,11 @@
       // item. Excess is entered distinctly and never fabricates an allocation.
       var rows = [];
       (hist.itens || []).forEach(function (it) {
-        body.appendChild(el('div', { class: 'mt-4 mb-1 text-xs font-semibold text-gray-500 uppercase' },
-          fioLabel(it) + ' — restante ' + fmtKg(it.kg_restante)));
+        body.appendChild(el('div', {
+          class: 'mt-4 mb-1',
+          style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
+            + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);',
+        }, fioLabel(it) + ' — restante ' + fmtKg(it.kg_restante)));
         (it.alocacoes || []).forEach(function (a) {
           var input = window.textInput({ placeholder: '0,000' });
           input.setAttribute('data-alocacao-id', String(a.alocacao_id));
@@ -285,11 +288,16 @@
 
       // Sticky total summary — stays visible above the modal footer even when
       // a multi-item order makes the body scroll (VISUAL-GATE-R1). Token colors.
+      // EMPHASISED_METRIC (§5): a modal-local operational readout, not a
+      // screen-level aggregate and not a heading. `text-sm` painted 14px, which
+      // is absent from the enum entirely. Promoting this to SUMMARY_TOTAL is the
+      // registration-modal phase's decision, not this token pass's.
       var totalEl = el('div', {
-        id: 'oc-reg-total', class: 'text-sm font-semibold',
+        id: 'oc-reg-total',
         style: 'position:sticky;bottom:0;margin:12px -24px 0;padding:10px 24px;'
-          + 'background:var(--rv-color-surface);border-top:1px solid var(--rv-color-line-200);'
-          + 'color:var(--rv-color-value);font-variant-numeric:tabular-nums;',
+          + 'font-size:var(--rv-fs-metric);font-weight:700;'
+          + 'background:var(--rv-surface);border-top:1px solid var(--rv-border);'
+          + 'color:var(--rv-text-primary);font-variant-numeric:tabular-nums;',
       });
       body.appendChild(totalEl);
       function recompute() {
@@ -400,7 +408,7 @@
       });
 
       var body = el('div', {});
-      body.appendChild(el('div', { class: 'text-sm mb-3', style: 'color:var(--rv-color-muted);' },
+      body.appendChild(el('div', { class: 'mb-3', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' },
         'As quantidades, alocações, excedente e OPs deste recebimento não são alteradas por esta edição.'));
       body.appendChild(window.formField({ label: 'Data do recebimento', input: dateInput }));
       body.appendChild(window.formField({ label: 'Documento', input: docInput }));
@@ -468,7 +476,7 @@
       // its geometry — so it takes the canonical `rows` role. The reversal
       // reason itself, its placeholder and the submit handling that reads it
       // are unchanged; the two deprecated compatibility tokens it used to
-      // reference (--rv-color-input-border, --rv-radius-control) are retired
+      // reference (--rv-border-strong, --rv-radius) are retired
       // with the inline style, because css/tokens.css now owns the border.
       var motivoInput = window.textArea({
         role: 'rows',
@@ -478,7 +486,7 @@
       });
 
       var body = el('div', {});
-      body.appendChild(el('div', { class: 'text-sm text-gray-600 mb-3' },
+      body.appendChild(el('div', { class: 'mb-3', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' },
         'Lançamento #' + lanc.id + ' — ' + fioLabel(lanc) + ' · ' + opLabel(lanc.op_id)
         + ' · reversível ' + fmtKg(lanc.kg_reversivel) + '.'));
       body.appendChild(window.formField({ label: 'Data do estorno', input: dataInput }));

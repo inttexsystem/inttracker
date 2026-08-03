@@ -39,6 +39,11 @@ function makeSandbox(rpcImpl) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(read('js/op-display.js'), sandbox, { filename: 'js/op-display.js' });
+  // BACKLOG-7 phase 1: the command-type badge now goes through the canonical
+  // js/badges.js owner (UI_VISUAL_CONTRACT.md 2.6) instead of a screen-local
+  // colour map, so that owner is a real sandbox dependency exactly as
+  // op-display.js is. index.html loads it at line 18, long before any screen.
+  vm.runInContext(read('js/badges.js'), sandbox, { filename: 'js/badges.js' });
   for (const [f, s] of srcs) vm.runInContext(s, sandbox, { filename: f });
   return { sandbox, supa, ns: sandbox.RAVATEX_SCREENS.ordemCompra };
 }

@@ -82,19 +82,20 @@ const REACHABILITY_ASSETS = [];
 // enviar a data que o escritor exige, entao ordem-compra-receipt-events.js
 // carrega o token desta ordem — mesmo mecanismo das anteriores. Ele deixa de
 // reter o token de db/119, que era o ultimo a te-lo alterado.
+// BACKLOG-7 PHASE 1 esvaziou esta lista: ordem-compra-receipt-events.js migrou
+// para BACKLOG7_PHASE1_ASSETS, pelo mesmo mecanismo com que op-nova.js saiu de
+// REACHABILITY_ASSETS — alterado por ultimo por aquela ordem.
 const REVERSAL_DATE_TOKEN = '20260803-receipt-pool-destination-r1';
-const REVERSAL_DATE_ASSETS = [
-  'js/screens/ordem-compra-receipt-events.js',
-];
+const REVERSAL_DATE_ASSETS = [];
 
 // REVERSED-RECEIPT-LINE-ACTION-VISIBILITY-R1: a acao de estorno passou a ser
 // AUSENTE (nao desabilitada) num lancamento sem saldo reversivel, entao
 // ordem-compra-receipt-render.js carrega o token desta ordem e deixa de reter
 // o de db/119.
+// BACKLOG-7 PHASE 1 esvaziou esta lista pela mesma razao:
+// ordem-compra-receipt-render.js migrou para BACKLOG7_PHASE1_ASSETS.
 const REVERSED_ACTION_TOKEN = '20260803-reversed-line-action-visibility-r1';
-const REVERSED_ACTION_ASSETS = [
-  'js/screens/ordem-compra-receipt-render.js',
-];
+const REVERSED_ACTION_ASSETS = [];
 
 // YARN-CONSUMPTION-HUMAN-READABLE-COLOR-R1: o eixo de algodao de CONSUMO DE
 // FIO exibia o cor_id cru de oc_disponibilidade_op ("Algodao - cor 1") porque
@@ -111,9 +112,27 @@ const YARN_COLOR_LABEL_ASSETS = [
   'js/screens/pedido-detail-events.js',
   'js/screens/pedido-producao-panel.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN];
+// BACKLOG-7-PHASE-1: a superficie do Pedido de Compra falava DUAS geracoes
+// visuais mortas — o namespace de compatibilidade `--rv-color-*` /
+// `--rv-radius-card` / `--rv-radius-control`, que o proprio css/tokens.css
+// declara "LEGACY COMPATIBILITY — NONCONFORMING / DEPRECATED", e 52 classes
+// literais de cor Tailwind. Os cinco assets alterados por essa migracao
+// carregam o token desta ordem. `ordem-compra-receipt-events.js` migrou da
+// lista REVERSAL_DATE e `ordem-compra-receipt-render.js` da lista
+// REVERSED_ACTION, cada um pela mesma razao de sempre: alterado por ultimo por
+// esta ordem.
+const BACKLOG7_PHASE1_TOKEN = '20260803-backlog7-phase1-canonical-tokens-r1';
+const BACKLOG7_PHASE1_ASSETS = [
+  'js/screens/ordem-compra-render.js',
+  'js/screens/ordem-compra-events.js',
+  'js/screens/ordem-compra-distribuicao.js',
+  'js/screens/ordem-compra-receipt-render.js',
+  'js/screens/ordem-compra-receipt-events.js',
+];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN];
 
 function tokenEsperado(asset) {
+  if (BACKLOG7_PHASE1_ASSETS.includes(asset)) return BACKLOG7_PHASE1_TOKEN;
   if (YARN_COLOR_LABEL_ASSETS.includes(asset)) return YARN_COLOR_LABEL_TOKEN;
   if (REVERSED_ACTION_ASSETS.includes(asset)) return REVERSED_ACTION_TOKEN;
   if (REVERSAL_DATE_ASSETS.includes(asset)) return REVERSAL_DATE_TOKEN;

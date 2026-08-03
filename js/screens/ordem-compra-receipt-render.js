@@ -15,20 +15,28 @@
 // (§R.28.6/§R.29.2). Excess is shown explicitly and distinctly from
 // allocation quantities.
 //
-// VISUAL — canonical --rv-* tokens (css/tokens.css, linked globally at
-// index.html and defined on :root, so resolvable on this screen;
-// C4-ADMIN-RECEIPT-UI-VISUAL-GATE-R1 corrected the earlier literal values):
-// flat hairline card at --rv-radius-card (6px) with --rv-color-line-200
-// border and no shadow (§3), a section icon chip using --rv-color-chip-bg /
-// --rv-color-chip-glyph + an 11px UPPERCASE --rv-color-section-label label
-// (§6), golden-rule tables (§7) with text-right tabular numerics
-// (--rv-color-value) and decimal comma + unit (§2), one dominant
-// --rv-color-accent "Registrar recebimento" action (§8), and the ratified
-// compact icon-only row-level reversal button (§8.1) via js/ui.js's
-// actionButton() (already token-equivalent). Layout/spacing/type-size use
-// Tailwind utilities (no canonical --rv token exists for those). Tables are
-// hand-built with the sibling ordem-compra-render.js idiom so numeric HEADERS
-// align right with their VALUES (dataTable() header cells are text-left only).
+// VISUAL — BACKLOG-7 PHASE 1. Every visual value on this surface now resolves
+// through a CANONICAL css/tokens.css owner. The file previously spoke the
+// `--rv-color-*` / `--rv-radius-card` / `--rv-radius-control` compatibility
+// namespace that tokens.css itself declares "LEGACY COMPATIBILITY —
+// NONCONFORMING / DEPRECATED … New code must not use them", and took every type
+// size from a Tailwind utility — including `text-sm` (14px), a value that is not
+// in the UI_VISUAL_CONTRACT.md §5 enum at all.
+//
+// Now: flat hairline card at --rv-radius with a --rv-border hairline and no
+// shadow (§2.4); a 20px section icon chip on --rv-chip-bg / --rv-chip-glyph with
+// a SECTION_LABEL heading (§2.4); golden-rule tables (§2.5) whose headers take
+// the TABLE_HEADER role and whose cells take BODY_CONTROL_CELL, right-aligned
+// with tabular numerics and decimal comma + unit (§7); one dominant
+// "Registrar recebimento" action on the §2.1 Primary variant at a declared ladder
+// height; command-type badges built by the js/badges.js canonical owner (§2.6)
+// rather than a screen-local family map; and the ratified compact icon-only
+// row-level reversal button (§2.9) via js/ui.js's actionButton().
+//
+// Tailwind still owns LAYOUT and SPACING only (flex, grid, padding), for which
+// no canonical --rv token exists. Tables are hand-built with the sibling
+// ordem-compra-render.js idiom so numeric HEADERS align right with their VALUES
+// (dataTable() header cells are text-left only).
 // =====================================================================
 
 (function (window) {
@@ -89,54 +97,63 @@
   function sectionCard(children) {
     return el('div', {
       id: 'oc-recebimentos', class: 'overflow-hidden mb-4',
-      style: 'background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-card);',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);',
     }, children);
   }
 
-  // Section header: icon chip (20px, --rv-radius-control) using the neutral
-  // section chip tokens (§6) + 11px UPPERCASE --rv-color-section-label label +
+  // Section header: icon chip (20px, --rv-radius) using the neutral
+  // section chip tokens (§6) + 11px UPPERCASE --rv-text-tertiary label +
   // optional dominant action on the right (§8).
   function sectionHeader(actionNode) {
     var chip = el('span', {
       style: 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;'
-        + 'border-radius:var(--rv-radius-control);background:var(--rv-color-chip-bg);color:var(--rv-color-chip-glyph);flex:none;',
+        + 'border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex:none;',
     }, svgIcon(ICON_INBOX));
     var label = el('span', {
-      style: 'font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-color-section-label);',
+      style: 'font-size:var(--rv-fs-label);font-weight:700;letter-spacing:var(--rv-tracking-label);'
+        + 'text-transform:uppercase;color:var(--rv-text-tertiary);',
     }, 'Recebimentos');
     var left = el('div', { class: 'flex items-center gap-2' }, chip, label);
     return el('div', {
       class: 'px-5 py-3 flex items-center justify-between',
-      style: 'border-bottom:1px solid var(--rv-color-line-200);',
+      style: 'border-bottom:1px solid var(--rv-border);',
     }, left, actionNode || el('span', {}));
   }
 
+  // §2.5 owns the table header role: --rv-fs-thead / 600 / uppercase /
+  // --rv-text-tertiary. The Tailwind `text-xs` this used to carry painted 12px,
+  // which is COMPACT_CONTENT, not TABLE_HEADER — D10 classifies a site by its
+  // role, never by the number nearest the one already written.
   function th(label, right) {
     return el('th', {
-      class: 'px-4 py-2 text-xs font-semibold uppercase ' + (right ? 'text-right' : 'text-left'),
-      style: 'color:var(--rv-color-muted);',
+      class: 'px-4 py-2 ' + (right ? 'text-right' : 'text-left'),
+      style: 'font-size:var(--rv-fs-thead);font-weight:600;text-transform:uppercase;'
+        + 'letter-spacing:var(--rv-tracking-thead);color:var(--rv-text-tertiary);',
     }, label);
   }
+  // `text-sm` painted 14px, a value that is NOT in the §5 enum at all. A table
+  // cell is BODY_CONTROL_CELL and takes --rv-fs-body (13px).
   function tdNum(value) {
     return el('td', {
-      class: 'px-4 py-2 text-sm text-right',
-      style: 'color:var(--rv-color-value);font-variant-numeric:tabular-nums;',
+      class: 'px-4 py-2 text-right',
+      style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-variant-numeric:tabular-nums;',
     }, fmtKg(value));
   }
   function tdText(value, muted) {
     return el('td', {
-      class: 'px-4 py-2 text-sm',
-      style: 'color:' + (muted ? 'var(--rv-color-muted)' : 'var(--rv-color-value)') + ';',
+      class: 'px-4 py-2',
+      style: 'font-size:var(--rv-fs-body);color:'
+        + (muted ? 'var(--rv-text-secondary)' : 'var(--rv-text-primary)') + ';',
     }, value);
   }
   function theadRow(cells) {
-    return el('thead', { style: 'background:var(--rv-color-bg-header);border-bottom:1px solid var(--rv-color-line-200);' },
+    return el('thead', { style: 'background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);' },
       el('tr', {}, cells));
   }
   // Token-based row separator (§4 line-100) — replaces the Tailwind
   // divide-gray-* utility so re-theming flows through the tokens.
   function bodyRow(attrs, cells) {
-    var style = 'border-top:1px solid var(--rv-color-line-100);' + (attrs.style || '');
+    var style = 'border-top:1px solid var(--rv-border-soft);' + (attrs.style || '');
     var merged = Object.assign({}, attrs, { style: style });
     return el('tr', merged, cells);
   }
@@ -177,7 +194,7 @@
     var count = 0;
     itens.forEach(function (it) { count += (it.alocacoes || []).length; });
     if (!count) {
-      return el('div', { class: 'px-5 py-4 text-sm', style: 'color:var(--rv-color-muted);' }, 'Nenhuma alocação neste item.');
+      return el('div', { class: 'px-5 py-4', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' }, 'Nenhuma alocação neste item.');
     }
     var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
     t.appendChild(el('colgroup', {},
@@ -199,16 +216,28 @@
     return el('div', { class: 'overflow-x-auto' }, t);
   }
 
+  // §2.6 names js/badges.js as the SINGLE runtime owner of the state → family
+  // mapping, and forbids a screen from declaring its own. This used to hold a
+  // local two-entry colour map painting `estorno` with a bare
+  // --rv-signal-negative foreground on a plain --rv-surface fill: a mismatched
+  // fill/border chroma (§1) built from a family map that is not this screen's
+  // to own.
+  //
+  // The command type is now resolved through the canonical constructor with the
+  // domain's own key. `recebimento` resolves through the ruled label `Recebido`
+  // to the positive family; `estorno` is NOT in the ruled map and therefore
+  // resolves to NEUTRAL — which is §2.6's explicit contract for an unrecognised
+  // state ("it never receives an invented semantic family"), not an oversight.
+  // Whether a reversal earns a named negative family is an event-typology
+  // decision that belongs to the timeline phase, not to a token migration.
   function tipoBadge(comandoTipo) {
-    var isEstorno = comandoTipo === 'estorno';
-    return el('span', {
-      'data-ui-pill': '1', style: 'display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--rv-radius-pill);white-space:nowrap;'
-        + (isEstorno ? 'background:var(--rv-surface);color:var(--rv-color-danger);' : 'background:var(--rv-signal-positive-bg);color:var(--rv-color-success);'),
-    }, isEstorno ? 'Estorno' : 'Recebimento');
+    return comandoTipo === 'estorno'
+      ? window.rvStatusPill('Estorno', 'estorno')
+      : window.rvStatusPill('Recebimento', 'recebido');
   }
 
   // One reversal control per reversible receipt lançamento. Compact icon-only
-  // row action (§8.1) via actionButton(): 30×30, --rv-radius-control, title +
+  // row action (§8.1) via actionButton(): 30×30, --rv-radius, title +
   // aria-label + sr-only label (all inside actionButton). Reversibility is
   // derived strictly from the server model (acoes.estornar AND
   // kg_reversivel > 0). The confirmDialog gate before execution is wired in
@@ -238,7 +267,7 @@
   }
 
   function metaSpan(label, value, title) {
-    var attrs = { style: 'color:var(--rv-color-muted);' };
+    var attrs = { style: 'color:var(--rv-text-secondary);' };
     if (title) attrs.title = title;
     return el('span', attrs, label + (value == null ? '—' : value));
   }
@@ -251,7 +280,7 @@
   // server, which refuses it with estado_invalido.
   //
   // Compact icon-only row action (§8.1) via actionButton(): 30×30,
-  // --rv-radius-control, title + aria-label + sr-only label. NOT danger:
+  // --rv-radius, title + aria-label + sr-only label. NOT danger:
   // correcting a document reference is an ordinary administrative edit and
   // must not borrow the destructive affordance of the reversal control.
   function editMetadataButton(comando, atorTipo, handlers) {
@@ -270,18 +299,23 @@
   // OP/excess attribution and the row-level reversal control.
   function historico(comandos, acoes, handlers, atorTipo) {
     if (!comandos.length) {
-      return el('div', { id: 'oc-recebimentos-historico', class: 'px-5 py-8 text-center text-sm', style: 'color:var(--rv-color-muted);' },
-        'Nenhum recebimento registrado ainda.');
+      return el('div', {
+        id: 'oc-recebimentos-historico', class: 'px-5 py-8 text-center',
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
+      }, 'Nenhum recebimento registrado ainda.');
     }
     var wrap = el('div', { id: 'oc-recebimentos-historico' });
     comandos.forEach(function (c, i) {
       var block = el('div', {
         class: 'px-5 py-4', 'data-comando-id': String(c.id),
-        style: i > 0 ? 'border-top:1px solid var(--rv-color-line-100);' : '',
+        style: i > 0 ? 'border-top:1px solid var(--rv-border-soft);' : '',
       });
-      var meta = el('div', { class: 'flex flex-wrap items-center gap-x-4 gap-y-1 text-sm' },
+      var meta = el('div', {
+        class: 'flex flex-wrap items-center gap-x-4 gap-y-1',
+        style: 'font-size:var(--rv-fs-body);',
+      },
         tipoBadge(c.comando_tipo),
-        el('span', { style: 'color:var(--rv-color-muted);font-variant-numeric:tabular-nums;' }, fmtDateTime(c.ocorrido_em)),
+        el('span', { style: 'color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;' }, fmtDateTime(c.ocorrido_em)),
         metaSpan('Ator: ', c.ator_tipo || '—'),
         metaSpan('Doc.: ', c.documento_ref || '—', c.documento_ref || undefined),
         metaSpan('Origem: ', (c.origem_tipo || '—') + (c.origem_ref ? (' / ' + c.origem_ref) : ''), c.origem_ref || undefined));
@@ -303,8 +337,11 @@
         el('col', { style: 'width:14%;' }),
         el('col', { style: 'width:14%;' }),
         el('col', { style: 'width:14%;' })));
-      t.appendChild(theadRow([th('Fio'), th('Origem'), th('Kg', true), th('Kg excesso', true), th('Reversível', true),
-        el('th', { class: 'px-4 py-2 text-xs font-semibold uppercase text-right', style: 'color:var(--rv-color-muted);' }, showActions ? 'Ações' : '')]));
+      // The sixth header used to be an inline copy of th() that had drifted from
+      // it (12px vs the header role, secondary vs tertiary). It is the same role
+      // as its five siblings and now goes through the same owner.
+      t.appendChild(theadRow([th('Fio'), th('Origem'), th('Kg', true), th('Kg excesso', true),
+        th('Reversível', true), th(showActions ? 'Ações' : '', true)]));
       var body = el('tbody', {});
       (c.lancamentos || []).forEach(function (l) {
         var actTd = el('td', { class: 'px-4 py-2 text-right' });
@@ -315,9 +352,15 @@
         body.appendChild(bodyRow({ 'data-lancamento-id': String(l.id) }, [
           tdText(fioLabel(l)),
           tdText(opLabel(l.op_id), l.op_id == null),
-          el('td', { class: 'px-4 py-2 text-sm text-right', style: 'color:var(--rv-color-value);font-variant-numeric:tabular-nums;' }, fmtKg(l.kg)),
+          el('td', {
+            class: 'px-4 py-2 text-right',
+            style: 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-variant-numeric:tabular-nums;',
+          }, fmtKg(l.kg)),
           tdNum(l.kg_excesso),
-          el('td', { class: 'px-4 py-2 text-sm text-right', style: 'color:var(--rv-color-muted);font-variant-numeric:tabular-nums;' }, fmtKg(l.kg_reversivel)),
+          el('td', {
+            class: 'px-4 py-2 text-right',
+            style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);font-variant-numeric:tabular-nums;',
+          }, fmtKg(l.kg_reversivel)),
           actTd,
         ]));
       });
@@ -328,10 +371,16 @@
     return wrap;
   }
 
+  // A subsection band inside the card. SECTION_LABEL role (§5): 11px / 700 /
+  // uppercase / --rv-text-tertiary, with the canonical label tracking. The
+  // Tailwind `text-xs`+`tracking-wide` pair painted 12px at .025em, neither of
+  // which is the declared value for this role.
   function subHeader(label) {
     return el('div', {
-      class: 'px-5 py-2 text-xs font-semibold uppercase tracking-wide',
-      style: 'color:var(--rv-color-section-label);background:var(--rv-color-bg-header);border-bottom:1px solid var(--rv-color-line-200);',
+      class: 'px-5 py-2',
+      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);'
+        + 'background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
     }, label);
   }
 
@@ -350,13 +399,13 @@
     if (!hist || hist.loading) {
       return sectionCard([
         sectionHeader(null),
-        el('div', { class: 'px-5 py-8 text-center text-sm', style: 'color:var(--rv-color-muted);' }, 'Carregando recebimentos…'),
+        el('div', { class: 'px-5 py-8 text-center', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' }, 'Carregando recebimentos…'),
       ]);
     }
     if (hist.ok !== true) {
       return sectionCard([
         sectionHeader(null),
-        el('div', { id: 'oc-recebimentos-erro', class: 'px-5 py-8 text-center text-sm', style: 'color:var(--rv-color-muted);' },
+        el('div', { id: 'oc-recebimentos-erro', class: 'px-5 py-8 text-center', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' },
           'Não foi possível carregar os recebimentos.'),
       ]);
     }
@@ -364,10 +413,17 @@
     var acoes = hist.acoes || {};
     var registrarBtn = null;
     if (acoes.receber === true) {
+      // §2.1 Primary: --rv-brand fill, --rv-text-on-brand foreground, no border,
+      // and a declared height from the closed 3-rung ladder. It used to take its
+      // height from `py-2` (~36px, off the ladder), its foreground from Tailwind
+      // `text-white`, and its size from `text-sm` (14px, absent from the enum).
       registrarBtn = el('button', {
         id: 'oc-registrar-recebimento',
-        class: 'text-white text-sm font-semibold px-3 py-2 hover:opacity-90',
-        style: 'background:var(--rv-color-accent);border-radius:var(--rv-radius-control);',
+        class: 'font-semibold px-3 hover:opacity-90',
+        style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;'
+          + 'height:var(--rv-h-primary);padding-top:0;padding-bottom:0;'
+          + 'display:inline-flex;align-items:center;justify-content:center;'
+          + 'font-size:var(--rv-fs-body);border-radius:var(--rv-radius);',
         onclick: function () { handlers.abrirRegistroRecebimento(); },
       }, 'Registrar recebimento');
     }
@@ -388,14 +444,14 @@
       children.push(el('div', {
         id: 'oc-recebimento-inativo',
         class: 'px-5 py-3 text-sm',
-        style: 'color:var(--rv-color-muted);border-bottom:1px solid var(--rv-color-line-100);',
+        style: 'color:var(--rv-text-secondary);border-bottom:1px solid var(--rv-border-soft);',
       }, 'Registro de recebimento indisponível: a virada para o recebimento canônico ainda '
         + 'não foi ativada. O histórico abaixo é somente leitura.'));
     }
 
     var itens = hist.itens || [];
     children.push(subHeader('Saldos por item'));
-    children.push(itens.length ? itensTable(itens) : el('div', { class: 'px-5 py-4 text-sm', style: 'color:var(--rv-color-muted);' }, 'Nenhum item nesta ordem.'));
+    children.push(itens.length ? itensTable(itens) : el('div', { class: 'px-5 py-4', style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' }, 'Nenhum item nesta ordem.'));
     children.push(subHeader('Alocações'));
     children.push(alocacoesTable(itens));
     children.push(subHeader('Histórico'));

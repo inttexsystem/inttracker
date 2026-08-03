@@ -108,7 +108,7 @@
   ns.origemLabel = origemLabel;
 
   function metaLine(label, value) {
-    return el('div', { style: 'font-size:var(--rv-fs-xs);color:var(--rv-color-muted);' },
+    return el('div', { style: 'font-size:var(--rv-fs-xs);color:var(--rv-text-secondary);' },
       label + ': ' + value);
   }
 
@@ -122,7 +122,7 @@
     var needs = needsById(item);
 
     var card = el('div', {
-      style: 'border:1px solid var(--rv-color-line-100);border-radius:var(--rv-radius-card);'
+      style: 'border:1px solid var(--rv-border-soft);border-radius:var(--rv-radius);'
         + 'padding:12px 14px;margin-bottom:10px;',
       'data-prov-item-id': String(item.item_id),
     });
@@ -130,7 +130,7 @@
     card.appendChild(el('div', {
       class: 'flex justify-between items-center gap-3 flex-wrap',
     },
-      el('div', { style: 'font-size:var(--rv-fs-body);font-weight:600;color:var(--rv-color-value);' },
+      el('div', { style: 'font-size:var(--rv-fs-body);font-weight:600;color:var(--rv-text-primary);' },
         fioLabelItem(item)),
       el('div', {
         class: 'tnum',
@@ -145,7 +145,7 @@
     var alocs = item.alocacoes || [];
     if (!alocs.length) {
       card.appendChild(el('div', {
-        style: 'font-size:var(--rv-fs-xs);color:var(--rv-color-muted);margin-top:8px;',
+        style: 'font-size:var(--rv-fs-xs);color:var(--rv-text-secondary);margin-top:8px;',
       }, 'Este item não tem origem registrada.'));
       return card;
     }
@@ -155,11 +155,11 @@
       var need = needs[String(a.necessidade_id)] || null;
       var row = el('div', {
         style: 'display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:baseline;'
-          + 'padding:6px 0;border-top:1px solid var(--rv-color-line-100);',
+          + 'padding:6px 0;border-top:1px solid var(--rv-border-soft);',
         'data-alocacao-id': String(a.alocacao_id),
       });
       var left = el('div', { style: 'min-width:0;' },
-        el('div', { style: 'font-size:var(--rv-fs-sm);color:var(--rv-color-value);' },
+        el('div', { style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-primary);' },
           origemLabel(a.op_id)));
       // A EXIGÊNCIA atendida é nomeada pelo que o operador reconhece — fio e
       // origem —, nunca pela chave primária da necessidade.
@@ -171,7 +171,7 @@
       row.appendChild(el('div', {
         class: 'tnum',
         style: 'font-size:var(--rv-fs-sm);font-variant-numeric:tabular-nums;'
-          + 'color:var(--rv-color-value);white-space:nowrap;'
+          + 'color:var(--rv-text-primary);white-space:nowrap;'
           + (cancelada ? 'text-decoration:line-through;opacity:.65;' : ''),
       }, fmtKg(a.kg_alocado)));
       list.appendChild(row);
@@ -197,19 +197,21 @@
     var card = el('div', {
       id: 'oc-proveniencia',
       class: 'overflow-hidden mb-4',
-      style: 'background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);'
-        + 'border-radius:var(--rv-radius-card);',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);'
+        + 'border-radius:var(--rv-radius);',
     });
     card.appendChild(el('div', {
-      class: 'px-5 py-3 text-xs font-semibold uppercase',
-      style: 'color:var(--rv-color-section-label);border-bottom:1px solid var(--rv-color-line-200);',
+      class: 'px-5 py-3',
+      style: 'font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);'
+        + 'border-bottom:1px solid var(--rv-border);',
     }, 'Proveniência'));
 
     if (!distrib || distrib.ok !== true) {
       card.appendChild(el('div', {
         id: 'oc-proveniencia-indisponivel',
-        class: 'px-5 py-6 text-center text-sm',
-        style: 'color:var(--rv-color-muted);',
+        class: 'px-5 py-6 text-center',
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
       }, (distrib && distrib.erro) ? distrib.erro : 'Proveniência indisponível.'));
       return card;
     }
@@ -225,10 +227,10 @@
       : 'Pedido sem identidade comercial atribuída';
     body.appendChild(el('div', {
       id: 'oc-proveniencia-pedido',
-      style: 'font-size:var(--rv-fs-sm);color:var(--rv-color-value);font-weight:600;margin-bottom:4px;',
+      style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-primary);font-weight:600;margin-bottom:4px;',
     }, pedidoLabel));
     body.appendChild(el('div', {
-      style: 'font-size:var(--rv-fs-xs);color:var(--rv-color-muted);margin-bottom:12px;',
+      style: 'font-size:var(--rv-fs-xs);color:var(--rv-text-secondary);margin-bottom:12px;',
     }, 'Origem de cada quilo deste Pedido de Compra. O planejamento pertence à tela '
       + 'Pedido › Planejamento de compras; esta seção é somente leitura.'));
 
@@ -239,9 +241,9 @@
       body.appendChild(el('div', {
         id: 'oc-proveniencia-cancelada',
         style: 'display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;'
-          + 'border-radius:var(--rv-radius-card);padding:10px 14px;margin-bottom:12px;'
+          + 'border-radius:var(--rv-radius);padding:10px 14px;margin-bottom:12px;'
           + 'font-size:var(--rv-fs-xs);background:var(--rv-surface-subtle);'
-          + 'border:1px solid var(--rv-color-line-200);color:var(--rv-color-muted);',
+          + 'border:1px solid var(--rv-border);color:var(--rv-text-secondary);',
       }, 'Ordem cancelada: as origens abaixo são histórico. As quantidades já foram '
         + 'liberadas e voltaram a ficar disponíveis para novo planejamento.'));
     }
@@ -249,7 +251,7 @@
     var itens = distrib.itens || [];
     if (!itens.length) {
       body.appendChild(el('div', {
-        class: 'text-sm', style: 'color:var(--rv-color-muted);',
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);',
       }, 'Nenhum item neste Pedido de Compra.'));
     } else {
       itens.forEach(function (it) { body.appendChild(renderItem(it, cancelada)); });
