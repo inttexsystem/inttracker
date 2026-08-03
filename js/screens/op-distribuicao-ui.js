@@ -301,6 +301,13 @@
               concorrencia_ocupada: 'Outra operação está em curso nesta OP — tente novamente em instantes',
               PEDIDO_CANCELADO: 'O Pedido foi cancelado — a produção não pode ser iniciada',
               sem_permissao: 'Sem permissão para iniciar a produção desta OP',
+              // db/121: a sequência aceita é Pedido confirmado -> OP de
+              // tecelagem -> produção. O servidor recusa antes de qualquer
+              // escrita, e a recusa diz o que falta em vez de virar o texto
+              // genérico — que foi exatamente o que escondeu o defeito da cerca.
+              PEDIDO_NAO_CONFIRMADO: 'O Pedido ainda não foi confirmado — confirme o Pedido antes de iniciar a produção',
+              OP_TECELAGEM_SEM_PEDIDO: 'Esta OP não está vinculada a um Pedido — a produção não pode ser iniciada',
+              PEDIDO_NAO_ENCONTRADO: 'O Pedido desta OP não foi encontrado — recarregue os dados',
             };
             window.toast(mensagens[res.codigo] || 'Erro ao iniciar produção', 'error');
             console.error(res.error, res.codigo);

@@ -107,10 +107,22 @@ const REVERSED_ACTION_ASSETS = [];
 // alterado por ultimo por esta ordem.
 const YARN_COLOR_LABEL_TOKEN = '20260803-yarn-consumption-human-readable-color-r1';
 const YARN_COLOR_LABEL_ASSETS = [
-  'js/screens/op-distribuicao-ui.js',
   'js/screens/op-nova.js',
   'js/screens/pedido-detail-events.js',
   'js/screens/pedido-producao-panel.js',
+];
+
+// PEDIDO-DERIVED-OP-LIFECYCLE-ENFORCEMENT-R1: db/121 passou a recusar o inicio
+// de producao quando o Pedido ainda nao chegou ao ponto de compromisso da
+// sequencia R2 aceita (Pedido confirmado -> OP de tecelagem). O dono
+// compartilhado ganhou a traducao dos tres codigos novos, para que a recusa
+// diga o que falta em vez de cair no texto generico — que foi exatamente o que
+// escondeu o defeito da cerca do db/75. `op-distribuicao-ui.js` migra da lista
+// YARN_COLOR_LABEL pela mesma razao de sempre: alterado por ultimo por esta
+// ordem.
+const PEDIDO_LIFECYCLE_GATE_TOKEN = '20260803-pedido-lifecycle-gate-r1';
+const PEDIDO_LIFECYCLE_GATE_ASSETS = [
+  'js/screens/op-distribuicao-ui.js',
 ];
 // BACKLOG-7-PHASE-1: a superficie do Pedido de Compra falava DUAS geracoes
 // visuais mortas — o namespace de compatibilidade `--rv-color-*` /
@@ -164,9 +176,10 @@ const STACK_GAP_ASSETS = [
   'js/screens/ordem-compra-receipt-render.js',
   'js/screens/ordem-compra-distribuicao.js',
 ];
-const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN];
+const TOKENS_DA_FASE = [P2_TOKEN, STABILIZATION_TOKEN, P4_TOKEN, REACHABILITY_TOKEN, REVERSAL_DATE_TOKEN, REVERSED_ACTION_TOKEN, YARN_COLOR_LABEL_TOKEN, BACKLOG7_PHASE1_TOKEN, BACKLOG7_PHASE2_TOKEN, OC_HEADER_TOKEN, EDITAR_TEXT_TOKEN, STACK_GAP_TOKEN, PEDIDO_LIFECYCLE_GATE_TOKEN];
 
 function tokenEsperado(asset) {
+  if (PEDIDO_LIFECYCLE_GATE_ASSETS.includes(asset)) return PEDIDO_LIFECYCLE_GATE_TOKEN;
   if (STACK_GAP_ASSETS.includes(asset)) return STACK_GAP_TOKEN;
   if (EDITAR_TEXT_ASSETS.includes(asset)) return EDITAR_TEXT_TOKEN;
   if (OC_HEADER_ASSETS.includes(asset)) return OC_HEADER_TOKEN;
