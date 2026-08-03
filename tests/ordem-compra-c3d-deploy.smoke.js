@@ -283,7 +283,13 @@ const EXPECTED_BRANCH = 'dev';
 // advances 123 -> 124 and the terminal two become db/123/db/124. The
 // fail-closed mechanism, the identity grammar and the suffix register are
 // unchanged; only the terminal expectation advanced.
-const EXPECTED_TERMINAL = 124;
+//
+// TECELAGEM-V1-FINISHING-OUTPUT-SLICE extends this manifest by one further
+// entry (db/125_tecelagem_saida_rolos_acabamento.sql), so the expected
+// terminal advances 124 -> 125 and the terminal two become db/124/db/125.
+// The fail-closed mechanism, the identity grammar and the suffix register
+// are unchanged; only the terminal expectation advanced.
+const EXPECTED_TERMINAL = 125;
 
 // Migration BASE numbers deliberately RESERVED and GENUINELY ABSENT from the
 // repository:
@@ -355,6 +361,7 @@ const DB121_FILENAME = '121_pedido_lifecycle_gate_op_tecelagem.sql';
 const DB122_FILENAME = '122_recebimento_correcoes_visiveis_na_historia.sql';
 const DB123_FILENAME = '123_tecelagem_producao_rolos_individuais.sql';
 const DB124_FILENAME = '124_op_itens_emborrachar_instrucao.sql';
+const DB125_FILENAME = '125_tecelagem_saida_rolos_acabamento.sql';
 const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
@@ -579,8 +586,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB123_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB124_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB124_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB125_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -619,12 +626,12 @@ test('the formerly reserved numbers 104 and 106 are resolved as real migrations,
   assert.deepEqual([...RESERVED_MIGRATION_NUMBERS], [110]);
 });
 
-test('db/123 and db/124 are the terminal two migrations', () => {
+test('db/124 and db/125 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB123_FILENAME);
-  assert.equal(terminal.filename, DB124_FILENAME);
+  assert.equal(penultimate.filename, DB124_FILENAME);
+  assert.equal(terminal.filename, DB125_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {

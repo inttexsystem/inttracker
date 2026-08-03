@@ -5,6 +5,18 @@
 //
 //   MINHAS OPs -> ABRIR OP -> INICIAR PRODUÇÃO -> REGISTRAR PRODUÇÃO
 //                                              -> VER ROLOS
+//                                                 -> SELECIONAR ROLOS
+//                                                    -> DAR SAÍDA PARA ACABAMENTO
+//
+// SAÍDA PARA O ACABAMENTO (db/125) opera sobre ROLOS INDIVIDUAIS, nunca uma
+// quantidade abstrata: o operador seleciona rolos concretos, ainda
+// `na_tecelagem`, e confirma. Só os selecionados mudam para
+// `enviado_acabamento`; nenhum outro rolo é tocado. Um rolo já enviado não
+// pode ser selecionado de novo pelo fluxo normal, e MANTA nunca oferece esta
+// ação — nem o botão nem, defensivamente, o servidor a aceitam para um
+// produto Manta. Como toda escrita desta superfície, a recusa de verdade é
+// do servidor (public.enviar_rolos_acabamento, db/125); esta tela apenas
+// antecipa o estado.
 //
 // INICIAR PRODUÇÃO É LOCAL A ESTA SUPERFÍCIE (regra de produto ratificada)
 // Iniciar a produção aqui grava UM fato operacional desta superfície — «esta
@@ -464,6 +476,15 @@
     return estadoEmborrachar(produto).estado !== 'nao_aplica';
   }
 
+  // MANTA TAMBÉM NÃO OFERECE A SAÍDA PARA O ACABAMENTO (§6 do produto): a
+  // mesma regra de aplicabilidade da etiqueta de acabamento, porque é
+  // literalmente o mesmo fato de produto — Manta não passa pelo acabamento
+  // de látex. Delegar em estadoEmborrachar mantém um ÚNICO dono da distinção
+  // tapete/manta; esta função só nomeia a mesma decisão para a ação de saída.
+  function temSaidaAcabamento(produto) {
+    return estadoEmborrachar(produto).estado !== 'nao_aplica';
+  }
+
   // -- pré-visualização em DOM (dentro do modal) --------------------------
 
   function campoBloco(rotulo, valor) {
@@ -619,6 +640,154 @@
           return '<div class="rv-etiqueta">' + corpoEtiquetaRolo(op, produto, rolo) + '</div>';
         }).join('');
         imprimir('Etiquetas - ' + window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op), corpo);
+      },
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // SAÍDA PARA O ACABAMENTO — VER ROLOS -> SELECIONAR ROLOS -> DAR SAÍDA
+  //
+  // A situação operacional do rolo (§1 do produto). Exatamente dois valores
+  // nesta fase; um valor desconhecido nunca é escondido nem traduzido em
+  // suposição — mesma disciplina de MOTIVO acima.
+  // -------------------------------------------------------------------
+  var SITUACAO_ROLO = {
+    na_tecelagem:       { rotulo: 'Na tecelagem',          estado: 'em_producao' },
+    enviado_acabamento: { rotulo: 'Enviado ao acabamento', estado: 'concluida' },
+  };
+
+  function situacaoRolo(rolo) {
+    var chave = rolo && rolo.situacao;
+    return SITUACAO_ROLO[chave] || { rotulo: chave || 'Situação desconhecida', estado: 'neutral' };
+  }
+
+  // Traduz a recusa do escritor de saída. Um código desconhecido nunca é
+  // escondido: cai numa mensagem honesta e genérica, mesma disciplina de
+  // mensagemDeErro/mensagemDeInicio acima.
+  function mensagemDeSaida(error) {
+    var texto = (error && (error.message || error.details)) || '';
+    if (texto.indexOf('TECELAGEM_FORNECEDOR_NAO_IDENTIFICADO') >= 0) {
+      return 'Seu usuário não está ativo como fornecedor. Fale com o administrador.';
+    }
+    if (texto.indexOf('TECELAGEM_ROLOS_OBRIGATORIOS') >= 0) {
+      return 'Selecione ao menos um rolo.';
+    }
+    if (texto.indexOf('TECELAGEM_ROLO_FORA_DO_ESCOPO_DO_FORNECEDOR') >= 0) {
+      return 'Um ou mais rolos selecionados não pertencem a você.';
+    }
+    if (texto.indexOf('TECELAGEM_ROLO_NAO_ELEGIVEL_PARA_SAIDA') >= 0) {
+      return 'Um ou mais rolos selecionados já não estão na tecelagem. Atualize a lista e tente novamente.';
+    }
+    if (texto.indexOf('TECELAGEM_MANTA_NAO_VAI_PARA_ACABAMENTO') >= 0) {
+      return 'Manta não vai para o acabamento.';
+    }
+    return 'Não foi possível confirmar a saída. Nada foi gravado.';
+  }
+
+  // DAR SAÍDA PARA ACABAMENTO — a seleção opera sobre ROLOS INDIVIDUAIS,
+  // nunca uma quantidade. Só rolos `na_tecelagem` aparecem como
+  // selecionáveis: um rolo já enviado simplesmente não entra nesta lista
+  // (§5 do produto) em vez de aparecer marcável e ser recusado depois.
+  function abrirSaidaAcabamento(op, produto, rolos, aoConcluir) {
+    var elegiveis = rolos.filter(function (r) { return r.situacao === 'na_tecelagem'; });
+    var selecionados = {};
+    var checkboxPorId = {};
+
+    var checkboxTodos = window.checkboxInput({
+      checked: false,
+      ariaLabel: 'Selecionar todos os rolos',
+      onchange: function (e) {
+        var marcado = !!e.target.checked;
+        elegiveis.forEach(function (r) { selecionados[r.id] = marcado; });
+        sincronizarLinhas();
+      },
+    });
+
+    function sincronizarLinhas() {
+      elegiveis.forEach(function (r) {
+        var cb = checkboxPorId[r.id];
+        if (cb) cb.checked = !!selecionados[r.id];
+      });
+      checkboxTodos.checked = elegiveis.length > 0
+        && elegiveis.every(function (r) { return !!selecionados[r.id]; });
+    }
+
+    var linhas = window.el('div', { style: 'display:flex; flex-direction:column;' });
+
+    if (!elegiveis.length) {
+      linhas.appendChild(emptyText('Nenhum rolo disponível para dar saída.'));
+    } else {
+      elegiveis.forEach(function (rolo) {
+        var cb = window.checkboxInput({
+          checked: false,
+          ariaLabel: 'Selecionar rolo ' + fmtRolo(rolo.numero),
+          onchange: function (e) {
+            selecionados[rolo.id] = !!e.target.checked;
+            sincronizarLinhas();
+          },
+        });
+        checkboxPorId[rolo.id] = cb;
+        linhas.appendChild(window.el('div', {
+          style: 'display:flex; align-items:center; gap:10px; padding:9px 0;'
+            + ' border-top:1px solid var(--rv-border-soft);',
+        },
+          cb,
+          window.el('span', {
+            style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
+          }, 'Rolo ' + fmtRolo(rolo.numero)),
+          rolo.comprimento_m != null
+            ? num(window.el('span', {
+                style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-tertiary); margin-left:auto;',
+              }, fmtMetros(rolo.comprimento_m)))
+            : null
+        ));
+      });
+    }
+
+    var corpo = window.el('div', { style: 'display:flex; flex-direction:column; gap:10px;' },
+      elegiveis.length
+        ? window.el('div', { style: 'display:flex; align-items:center; gap:10px;' },
+            checkboxTodos,
+            window.el('span', {
+              style: 'font-size:var(--rv-fs-sm); font-weight:600; color:var(--rv-text-secondary);',
+            }, 'Selecionar todos'))
+        : null,
+      linhas
+    );
+
+    window.modal({
+      title: 'Dar saída para acabamento',
+      saveLabel: 'Confirmar saída',
+      body: corpo,
+      onSave: async function () {
+        var idsSelecionados = elegiveis
+          .filter(function (r) { return !!selecionados[r.id]; })
+          .map(function (r) { return r.id; });
+
+        if (!idsSelecionados.length) {
+          window.toast('Selecione ao menos um rolo.', 'error');
+          return false;
+        }
+
+        var res = await window.supa.rpc('enviar_rolos_acabamento', { p_rolo_ids: idsSelecionados });
+        if (res.error) {
+          console.error(res.error);
+          window.toast(mensagemDeSaida(res.error), 'error');
+          return false;
+        }
+
+        // O toast identifica QUAIS rolos saíram, nunca apenas uma contagem
+        // (§3 do produto): "3 rolos saíram" sozinho não é uma frase válida
+        // nesta tela.
+        var enviados = elegiveis.filter(function (r) { return idsSelecionados.indexOf(r.id) >= 0; });
+        var numeros = enviados.map(function (r) { return fmtRolo(r.numero); }).sort().join(', ');
+        window.toast(
+          enviados.length === 1
+            ? ('Rolo ' + numeros + ' enviado ao acabamento.')
+            : ('Rolos ' + numeros + ' enviados ao acabamento.'),
+          'success'
+        );
+        if (typeof aoConcluir === 'function') aoConcluir();
       },
     });
   }
@@ -1024,12 +1193,22 @@
         }, window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)),
         linhaCliente(op)
       );
-      // AUSENTE para manta (regra de produto): sem a ação, o rodapé do card
-      // não existe — nunca um rodapé vazio.
-      if (temEtiquetaAcabamento(produto)) {
-        produtoCard.appendChild(cardFooter(secondaryButton('Etiqueta de acabamento', function () {
-          abrirEtiquetaAcabamento(op, produto);
-        })));
+      // AUSENTE para manta (regra de produto, §6): sem NENHUMA das duas
+      // ações, o rodapé do card não existe — nunca um rodapé vazio.
+      if (temEtiquetaAcabamento(produto) || temSaidaAcabamento(produto)) {
+        var rodapeAcoes = [];
+        if (temEtiquetaAcabamento(produto)) {
+          rodapeAcoes.push(secondaryButton('Etiqueta de acabamento', function () {
+            abrirEtiquetaAcabamento(op, produto);
+          }));
+        }
+        if (temSaidaAcabamento(produto)) {
+          var haRolosNaTecelagem = rolos.some(function (r) { return r.situacao === 'na_tecelagem'; });
+          rodapeAcoes.push(primaryButton('Dar saída para acabamento', function () {
+            abrirSaidaAcabamento(op, produto, rolos, reload);
+          }, !haRolosNaTecelagem));
+        }
+        produtoCard.appendChild(cardFooter.apply(null, rodapeAcoes));
       }
       corpo.appendChild(produtoCard);
 
@@ -1095,7 +1274,7 @@
             style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
           }, fmtRolo(rolo.numero))),
           celComprimento,
-          window.el('div', {}, window.RV_BADGES.rvStatusPill('Na tecelagem', 'em_producao')),
+          window.el('div', {}, window.RV_BADGES.rvStatusPill(situacaoRolo(rolo).rotulo, situacaoRolo(rolo).estado)),
           window.actionButton({
             title: 'Reimprimir etiqueta do rolo ' + fmtRolo(rolo.numero),
             icon: icon(ICON_PRINT, 15),
@@ -1128,5 +1307,8 @@
     camposBasicosAcabamento: camposBasicosAcabamento,
     estadoEmborrachar: estadoEmborrachar,
     temEtiquetaAcabamento: temEtiquetaAcabamento,
+    temSaidaAcabamento: temSaidaAcabamento,
+    situacaoRolo: situacaoRolo,
+    mensagemDeSaida: mensagemDeSaida,
   };
 })(window);
