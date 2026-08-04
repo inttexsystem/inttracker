@@ -35,7 +35,7 @@ const indexSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // ---------------------------------------------------------------------
 // Duplo do Supabase: responde por tabela e registra o que foi perguntado.
 // ---------------------------------------------------------------------
-function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfazerResult,
+function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfazerResult, excluirResult,
                     ops, modelo, modelos, item, itens } = {}) {
   const calls = { from: [], rpc: [] };
   const listaOps = ops || [OP_EM_PRODUCAO];
@@ -88,6 +88,9 @@ function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfa
         if (name === 'desfazer_lancamento_tecelagem') {
           return desfazerResult || { data: { rolos_removidos: 3 }, error: null };
         }
+        if (name === 'excluir_rolo_tecelagem') {
+          return excluirResult || { data: { rolo_id: params.p_rolo_id, rolos_restantes: 4 }, error: null };
+        }
         return rpcResult || { data: { quantidade_rolos: params.p_quantidade_rolos }, error: null };
       },
     },
@@ -137,10 +140,10 @@ const MODELO_MANTA = Object.assign({}, MODELO, {
   cor_1: { id: 3, nome: 'AZUL' }, cor_2: { id: 4, nome: 'BEGE' },
 });
 
-function boot({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult, ops,
+function boot({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult, excluirResult, ops,
                 fornecedorId = 401, modelo, modelos, item, itens } = {}) {
   const { supa, calls } = makeSupa({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult,
-    ops, modelo, modelos, item, itens });
+    excluirResult, ops, modelo, modelos, item, itens });
   const toasts = [];
   const h = createScreenHarness({
     files: ['js/op-display.js', SCREEN_REL],
@@ -200,14 +203,15 @@ test('3. a superfície de tecelagem não tem nenhum caminho de escrita no Admin'
   assert.ok(!/\.insert\(|\.update\(|\.upsert\(|\.delete\(/.test(screenSrc),
     'a superfície de tecelagem não pode conter DML direto');
   const rpcs = [...screenSrc.matchAll(/\.rpc\(\s*'([^']+)'/g)].map((m) => m[1]).sort();
-  // db/126 acrescenta DOIS nomes e nenhum domínio novo: o dono da escrita do
-  // DESFAZER (desfazer_lancamento_tecelagem) e o read model de recuperação
-  // (tecelagem_lancamentos_recentes). Ambos são da própria tecelagem — o
-  // inventário cresce, a fronteira não.
+  // db/126 acrescentou DOIS nomes (o dono da escrita do DESFAZER e o read model
+  // de recuperação) e db/127 acrescenta UM (o dono da escrita da EXCLUSÃO de um
+  // rolo). Todos são da própria tecelagem — o inventário cresce, a fronteira
+  // não.
   assert.deepEqual(
     rpcs,
-    ['desfazer_lancamento_tecelagem', 'enviar_rolos_acabamento', 'iniciar_producao_tecelagem',
-      'registrar_producao_tecelagem', 'tecelagem_lancamentos_recentes', 'tecelagem_minhas_ops'],
+    ['desfazer_lancamento_tecelagem', 'enviar_rolos_acabamento', 'excluir_rolo_tecelagem',
+      'iniciar_producao_tecelagem', 'registrar_producao_tecelagem',
+      'tecelagem_lancamentos_recentes', 'tecelagem_minhas_ops'],
     `a tela só pode chamar os read models e os donos de escrita da tecelagem, encontrou: ${rpcs.join(', ')}`);
 
   // O início da produção aqui é LOCAL à tecelagem. A transição autoritativa do
@@ -1241,4 +1245,152 @@ test('44. um motivo de bloqueio desconhecido não é escondido nem inventado', a
   assert.match(texto, /não pode ser desfeito por esta ação/,
     'sem tradução conhecida, a tela declara a recusa sem inventar um motivo');
   assert.ok(!/CODIGO_NOVO_QUALQUER/.test(texto), 'o código cru não vaza para o operador');
+});
+
+// =====================================================================
+// EXCLUIR ROLO — a segunda correção, independente do desfazer do lote
+//
+// O cenário exato da ordem: um lançamento de 001..005, todos na tecelagem, e
+// o operador exclui SÓ o 003.
+// =====================================================================
+
+const CINCO_ROLOS = [1, 2, 3, 4, 5].map((n) => ({
+  id: 900 + n, op_item_id: 511, numero: n, comprimento_m: null, situacao: 'na_tecelagem',
+}));
+const LANCAMENTO_DE_CINCO = Object.assign({}, LANCAMENTO_DESFAZIVEL, {
+  quantidade_rolos: 5, rolos_atuais: 5, numero_inicial: 1, numero_final: 5,
+});
+
+const acaoRolo = (h, node, numero, tipo) => h.findOne((n) => n.tagName === 'BUTTON'
+  && new RegExp(tipo === 'excluir' ? `^Excluir o rolo ${numero}` : `^Reimprimir etiqueta do rolo ${numero}`)
+    .test(n.getAttribute('title') || ''), node);
+
+test('45. cada rolo na tecelagem oferece IMPRIMIR e EXCLUIR, lado a lado', async () => {
+  const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  assert.ok(acaoRolo(h, node, '003', 'imprimir'), 'a reimpressão continua existindo, inalterada');
+  assert.ok(acaoRolo(h, node, '003', 'excluir'), 'a exclusão individual tem de existir por rolo');
+  assert.equal(
+    h.findAll((n) => n.tagName === 'BUTTON' && /^Excluir o rolo/.test(n.getAttribute('title') || ''), node).length,
+    5, 'os cinco rolos na tecelagem oferecem a ação');
+});
+
+test('46. excluir o rolo 003 confirma identificando o ROLO, sem id técnico', async () => {
+  const { h, calls, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(acaoRolo(h, node, '003', 'excluir'));
+  await settle();
+
+  const texto = h.textOf(h.body);
+  assert.match(texto, /Excluir Rolo 003\?/, 'a confirmação tem de identificar o rolo pelo número visível');
+  assert.match(texto, /removido do lançamento de produção/);
+  assert.ok(!/903/.test(texto), 'o id técnico do rolo NUNCA pode chegar ao operador');
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
+    'NADA pode ser excluído antes da confirmação');
+});
+
+test('47. confirmada, a exclusão envia exatamente o rolo escolhido', async () => {
+  const { h, calls, toasts, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(acaoRolo(h, node, '003', 'excluir'));
+  await settle();
+  h.click(btn(h, 'Excluir rolo'));
+  await settle();
+
+  const chamada = calls.rpc.find((c) => c.name === 'excluir_rolo_tecelagem');
+  assert.ok(chamada, 'o dono da escrita da exclusão tem de ser chamado');
+  assert.equal(chamada.params.p_rolo_id, 903, 'tem de viajar o rolo 003, e nenhum outro');
+  assert.equal(calls.rpc.filter((c) => c.name === 'desfazer_lancamento_tecelagem').length, 0,
+    'excluir UM rolo nunca pode acionar o desfazer do LOTE');
+  assert.ok(toasts.some((t) => /Rolo 003 excluído/.test(t.msg)));
+});
+
+test('48. um rolo já enviado ao acabamento não pode ser excluído', async () => {
+  const rolos = [
+    { id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'na_tecelagem' },
+    { id: 902, op_item_id: 511, numero: 2, comprimento_m: null, situacao: 'enviado_acabamento' },
+  ];
+  const { h, calls, settle } = boot({ rolos, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const acao = h.findOne((n) => n.tagName === 'BUTTON'
+    && /rolo 002 já saiu para o acabamento/.test(n.getAttribute('title') || ''), node);
+  assert.ok(acao, 'a ação continua visível, com o motivo no nome acessível');
+  assert.equal(acao.getAttribute('disabled'), 'disabled', 'e não pode ser acionável');
+
+  assert.ok(acaoRolo(h, node, '001', 'excluir'), 'o rolo ainda na tecelagem segue excluível');
+
+  h.click(acao);
+  await settle();
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
+    'nenhuma exclusão pode chegar ao servidor para um rolo já enviado');
+});
+
+test('49. uma recusa do servidor vira mensagem operacional, nunca sucesso silencioso', async () => {
+  const { h, toasts, settle } = boot({
+    rolos: CINCO_ROLOS,
+    lancamentos: [LANCAMENTO_DE_CINCO],
+    excluirResult: { data: null, error: { message: 'TECELAGEM_ROLO_JA_ENVIADO' } },
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(acaoRolo(h, node, '003', 'excluir'));
+  await settle();
+  h.click(btn(h, 'Excluir rolo'));
+  await settle();
+
+  assert.ok(toasts.some((t) => t.kind === 'error' && /já saiu para o acabamento/.test(t.msg)),
+    'a recusa do servidor tem de virar uma frase operacional');
+  // O texto da recusa também contém "excluído" ("...não pode ser excluído"), então
+  // o que prova a ausência de sucesso é a AUSÊNCIA de um toast de sucesso.
+  assert.ok(!toasts.some((t) => t.kind === 'success'),
+    'uma recusa NUNCA pode ser relatada como sucesso');
+  assert.ok(!toasts.some((t) => /^Rolo \d+ excluído\.$/.test(t.msg)),
+    'e a frase de confirmação da exclusão não pode aparecer');
+});
+
+test('50. as duas correções coexistem: excluir rolo e desfazer lançamento', async () => {
+  const { h, calls, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  assert.ok(acaoRolo(h, node, '001', 'excluir'), 'a exclusão individual existe');
+  assert.ok(btn(h, 'Desfazer lançamento', node), 'e o desfazer do lote inteiro continua existindo');
+
+  h.click(btn(h, 'Desfazer lançamento', node));
+  await settle();
+  h.click(btn(h, 'Desfazer lançamento'));
+  await settle();
+
+  assert.equal(calls.rpc.filter((c) => c.name === 'desfazer_lancamento_tecelagem').length, 1,
+    'o desfazer do lote segue funcionando depois de db/127');
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
+    'e não passa a excluir rolos um a um por baixo dos panos');
+});
+
+test('51. a exclusão não toca reimpressão nem saída para acabamento', async () => {
+  const { h, calls, opens, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(acaoRolo(h, node, '002', 'imprimir'));
+  await settle();
+  h.click(btn(h, 'Imprimir'));
+  await settle();
+  assert.equal(opens.length, 1, 'a reimpressão continua abrindo a janela de impressão');
+  assert.match(opens[0].html, /Rolo/, 'e continua identificando o rolo');
+
+  assert.ok(btn(h, 'Dar saída para acabamento', node), 'a saída para acabamento continua disponível');
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
+    'imprimir nunca pode excluir um rolo');
+  assert.equal(calls.rpc.filter((c) => c.name === 'enviar_rolos_acabamento').length, 0,
+    'nem acionar a saída para o acabamento');
 });

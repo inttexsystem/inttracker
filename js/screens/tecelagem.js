@@ -7,7 +7,14 @@
 //                                              -> VER ROLOS
 //                                                 -> SELECIONAR ROLOS
 //                                                    -> DAR SAÍDA PARA ACABAMENTO
+//                                                 -> EXCLUIR ROLO
 //                                                 -> DESFAZER LANÇAMENTO
+//
+// DUAS CORREÇÕES DISTINTAS E INDEPENDENTES (nenhuma substitui a outra):
+//   EXCLUIR ROLO         remove UM rolo físico registrado por engano (db/127);
+//   DESFAZER LANÇAMENTO  reverte o LOTE inteiro de produção (db/126).
+// Excluir um rolo NUNCA renumera os demais: o número está impresso numa
+// etiqueta física, a lacuna é permanente e o número liberado nunca é reemitido.
 //
 // A UNIDADE DO REGISTRO É ROLOS, E ISSO TEM DE SER IMPOSSÍVEL DE CONFUNDIR.
 // Um operador real digitou 75 querendo dizer «75 metros» e a superfície criou
@@ -82,6 +89,7 @@
   var ICON_LIST = '<line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>';
   var ICON_PRINT = '<path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect>';
   var ICON_UNDO = '<path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>';
+  var ICON_TRASH = '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line>';
 
   function icon(markup, size) {
     var svg = window.el('span', {});
@@ -1410,6 +1418,71 @@
   }
 
   // -------------------------------------------------------------------
+  // EXCLUIR ROLO — a segunda correção, e deliberadamente independente da
+  // primeira.
+  //
+  //   EXCLUIR ROLO         remove UM rolo físico registrado por engano.
+  //   DESFAZER LANÇAMENTO  reverte o LOTE inteiro (db/126), inalterado.
+  //
+  // NENHUMA das duas é expressa em termos da outra. Desfazer cinco rolos para
+  // corrigir um não seria correção, seria um segundo erro.
+  //
+  // NUMERAÇÃO É IDENTIDADE. Excluir o rolo 003 deixa 001, 002, 004 e 005 com os
+  // próprios números: o número está impresso numa etiqueta já colada num rolo
+  // físico, e renumerar faria o banco discordar do galpão. A lacuna é
+  // permanente e o servidor (db/127) nunca reemite o número liberado.
+  //
+  // A recusa é do SERVIDOR: a ação que a tela desabilita é conveniência, nunca
+  // a defesa.
+  // -------------------------------------------------------------------
+
+  // Deriva do MESMO fato que o dono da elegibilidade no servidor
+  // (_tecelagem_rolo_pode_excluir) lê: a situação do próprio rolo. Escrita como
+  // «é na_tecelagem», e não «não é enviado», para que uma situação futura
+  // desconhecida caia do lado seguro, igual ao servidor.
+  function podeExcluirRolo(rolo) {
+    return !!rolo && rolo.situacao === 'na_tecelagem';
+  }
+
+  function mensagemDeExclusao(error) {
+    var texto = (error && (error.message || error.details)) || '';
+    if (texto.indexOf('TECELAGEM_ROLO_JA_ENVIADO') >= 0) {
+      return 'Este rolo já saiu para o acabamento e não pode ser excluído por esta ação.';
+    }
+    if (texto.indexOf('TECELAGEM_ROLO_FORA_DO_ESCOPO_DO_FORNECEDOR') >= 0) {
+      return 'Este rolo não pertence ao seu usuário.';
+    }
+    if (texto.indexOf('TECELAGEM_ROLO_NAO_ENCONTRADO') >= 0) {
+      return 'Este rolo não está mais disponível.';
+    }
+    if (texto.indexOf('TECELAGEM_FORNECEDOR_NAO_IDENTIFICADO') >= 0) {
+      return 'Seu usuário não está ativo como fornecedor. Fale com o administrador.';
+    }
+    return 'Não foi possível excluir o rolo. Nada foi alterado.';
+  }
+
+  // Excluir um rolo físico é destrutivo, então a confirmação IDENTIFICA o rolo
+  // pelo número que o operador vê na etiqueta — nunca por id técnico.
+  function abrirExcluirRolo(rolo, aoConcluir) {
+    window.confirmDialog({
+      title: 'Excluir Rolo ' + fmtRolo(rolo.numero) + '?',
+      message: 'Este rolo será removido do lançamento de produção. Os demais rolos'
+        + ' do mesmo lançamento continuam como estão, com os mesmos números.',
+      confirmLabel: 'Excluir rolo',
+      onConfirm: async function () {
+        var res = await window.supa.rpc('excluir_rolo_tecelagem', { p_rolo_id: Number(rolo.id) });
+        if (res.error) {
+          console.error(res.error);
+          window.toast(mensagemDeExclusao(res.error), 'error');
+          return;
+        }
+        window.toast('Rolo ' + fmtRolo(rolo.numero) + ' excluído.', 'success');
+        if (typeof aoConcluir === 'function') aoConcluir();
+      },
+    });
+  }
+
+  // -------------------------------------------------------------------
   // TELA 3 — VER ROLOS
   // -------------------------------------------------------------------
   function screenTecelagemRolos(opId, opItemId) {
@@ -1476,7 +1549,7 @@
       if (!rolos.length) {
         tabela.appendChild(emptyText('Nenhum rolo registrado ainda.'));
       } else {
-        tabela.appendChild(tabelaRolos(op, produto, rolos));
+        tabela.appendChild(tabelaRolos(op, produto, rolos, reload));
       }
       corpo.appendChild(tabela);
 
@@ -1499,14 +1572,14 @@
 
   // Tabela §2.5: UM dono de largura, lido pelo cabeçalho E pelas linhas, para
   // que os dois não possam divergir. Coluna numérica alinhada à direita no
-  // cabeçalho e no valor. A quarta coluna (Ações) é onde REIMPRIMIR ETIQUETA
-  // mora (§3 do produto): reimprimir sempre se refere ao MESMO rolo já
-  // existente — não há caminho aqui para criar rolo ou lançamento novo.
-  var GRID_COLS = '90px 1fr 1fr 44px';
+  // cabeçalho e no valor. A quarta coluna (Ações) carrega as DUAS ações que se
+  // referem sempre ao MESMO rolo já existente — REIMPRIMIR ETIQUETA (§3) e
+  // EXCLUIR ROLO (db/127). Nenhuma delas cria rolo ou lançamento novo.
+  var GRID_COLS = '90px 1fr 1fr 80px';
 
-  function tabelaRolos(op, produto, rolos) {
+  function tabelaRolos(op, produto, rolos, aoConcluir) {
     var wrap = window.el('div', { style: 'overflow-x:auto;', 'data-rv-table-scroll': '' });
-    var tabela = window.el('div', { style: 'min-width:400px;' });
+    var tabela = window.el('div', { style: 'min-width:440px;' });
 
     function linha(estilo, celulas) {
       return window.el('div', {
@@ -1540,11 +1613,26 @@
           }, fmtRolo(rolo.numero))),
           celComprimento,
           window.el('div', {}, window.RV_BADGES.rvStatusPill(situacaoRolo(rolo).rotulo, situacaoRolo(rolo).estado)),
-          window.actionButton({
-            title: 'Reimprimir etiqueta do rolo ' + fmtRolo(rolo.numero),
-            icon: icon(ICON_PRINT, 15),
-            onclick: function () { abrirEtiquetaRolo(op, produto, rolo); },
-          }),
+          window.el('div', { style: 'display:flex; gap:6px; justify-content:flex-end;' },
+            window.actionButton({
+              title: 'Reimprimir etiqueta do rolo ' + fmtRolo(rolo.numero),
+              icon: icon(ICON_PRINT, 15),
+              onclick: function () { abrirEtiquetaRolo(op, produto, rolo); },
+            }),
+            // EXCLUIR ROLO só enquanto o rolo é reversível com segurança. Um
+            // rolo já enviado mantém a ação VISÍVEL e desabilitada, com o
+            // motivo no nome acessível: sumir com o controle deixaria a linha
+            // desalinhada e o operador sem saber por que a opção some.
+            window.actionButton({
+              title: podeExcluirRolo(rolo)
+                ? ('Excluir o rolo ' + fmtRolo(rolo.numero))
+                : ('O rolo ' + fmtRolo(rolo.numero) + ' já saiu para o acabamento e não pode ser excluído'),
+              icon: icon(ICON_TRASH, 15),
+              danger: true,
+              disabled: !podeExcluirRolo(rolo),
+              onclick: function () { abrirExcluirRolo(rolo, aoConcluir); },
+            })
+          ),
         ]
       ));
     });
@@ -1583,5 +1671,8 @@
     motivoDesfazer: motivoDesfazer,
     mensagemDeDesfazer: mensagemDeDesfazer,
     fmtMomento: fmtMomento,
+    // Exclusão de rolo individual (db/127).
+    podeExcluirRolo: podeExcluirRolo,
+    mensagemDeExclusao: mensagemDeExclusao,
   };
 })(window);
