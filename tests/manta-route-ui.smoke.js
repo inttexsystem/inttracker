@@ -1578,11 +1578,11 @@ const PASS8_ASSETS = [
 // posterior a qualquer token anterior, entao nenhum asset perdeu invalidacao:
 // apenas mudou QUAL ordem posterior a faz.
 const B1_TOKEN = '20260727-ui-specialized-controls-b1';
-// UI-SWITCH-PRIMITIVE-CONTRACT-AND-PEDIDO-PRIORITY-CLOSEOUT-R1 (D11) corrected
-// the switch knob radius in css/tokens.css, so that ONE asset moved to the
-// strictly later correction token. Same rule as every tier before it: an asset
-// belongs to the order that changed it LAST, and none of the others moved.
-const SWITCH_CONTRACT_TOKEN = '20260728-ui-switch-off-contrast-r5';
+// An asset belongs to the order that changed it LAST. css/tokens.css was last
+// changed by TECELAGEM-V1-DENSITY-AND-SELECTION-UX (D13), which added the
+// --rv-h-inline control-height rung, so that ONE asset carries that token and
+// none of the others moved.
+const SWITCH_CONTRACT_TOKEN = '20260804-tecelagem-density-inline-rung';
 const SWITCH_CONTRACT_ASSETS = ['css/tokens.css'];
 const B1_ASSETS = [
   'js/ui.js',

@@ -399,3 +399,31 @@ alert records, or modal confirmation copy — each keeps its own existing owner.
 Header with date and name. Context in two sentences. One line per decision with
 **choice, reason and accepted loss** — a decision without a declared loss is usually a
 decision not taken. A "Revoked" section naming what died. Never edit above.
+
+---
+
+## 2026-08-04 · D13 — density is a product requirement on operational surfaces
+
+Kleber reviewed the two published weaving screens against the real operation and found
+both too sparse to work with: the OP screen showed very few products because every
+product card carried a full action footer, and Ver rolos showed very few rolls because
+each physical roll occupied a whole table row. He ruled the header of the roll section
+must NOT grow at all to accommodate its new actions, and that the contract should be
+adjusted rather than the header.
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D13.1 | Repeated record card actions | **Top row, right-aligned; no action footer** | A footer costs `border-top` + 11px padding + a button rung PER RECORD. On a list of records that cost is paid N times and is precisely what stops the operator seeing the list. The identity line already occupies that row and is mostly empty on its right. | The card-footer rule now has two cases, so "where do actions go" is no longer answerable without asking whether the card is a repeated record or a single entity. |
+| D13.2 | Inline action rung | **New `--rv-h-inline` = 20px, admissible ONLY on a section-chip header line** | The section chip is 20px. Any control taller than that grows the header, and the requirement was explicitly zero growth. Matching the chip exactly is the only value that satisfies it. | The control-height ladder is no longer three rungs, and a 20px control has a smaller pointer target than the 32px floor everywhere else. Scoping it to one placement is what keeps that from spreading. |
+| D13.3 | Roll presentation | **Selectable unit chip (§2.14), grouped by production date** | The operator recognises a physical roll by number and meterage; everything else in the row was structure, not information. Chips let one line carry many rolls instead of one. | The per-roll situation pill is gone from the default view: a roll's state is now carried by its chip state and by grouping, not by a pill per row. |
+| D13.4 | Chip actions | **None per chip; bulk actions on the current selection** | A print and a delete icon on every chip reproduce, at chip scale, exactly the clutter the chip replaced. | Acting on ONE roll now takes two gestures (select, then act) instead of one. |
+| D13.5 | Selection is shared | **One selection model consumed by delete, print and finishing output** | Two competing selection paradigms on one screen is how an operator learns to distrust both. The finishing-output modal previously rebuilt its own independent checkbox list of the same rolls. | The finishing-output action is no longer self-contained: it now depends on a selection made elsewhere on the screen. |
+
+**Revoked.** The finishing-output modal's own roll checkbox list (db/125 UI, 2026-08-03)
+is withdrawn. Its product rules are unchanged and still enforced by the server; only the
+duplicate selection surface dies.
+
+**Not a precedent.** D13.1 does not authorize moving actions upward on single-entity
+detail cards, and D13.2 does not authorize a 20px control anywhere except a section-chip
+header line. Both are written into `UI_VISUAL_CONTRACT.md` with their scope attached,
+because a rung without a scope is a rung that spreads.

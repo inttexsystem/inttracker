@@ -1072,10 +1072,10 @@ test('10.1b the containment token lands only on the files that order changed', (
 test('10.2 UNCHANGED assets keep their previous tokens', () => {
   // css/responsive.css was not touched, so retokenising it would invalidate a
   // warm cache for no reason. css/tokens.css was NOT touched by pass 8 either,
-  // but SPECIALIZED-CONTROLS-B1 added the specialized-control role geometry to
-  // it, and D11 (UI-SWITCH-PRIMITIVE-CONTRACT-R1) later corrected the switch
-  // knob radius there, so it correctly carries that strictly later token.
-  assert.match(INDEX, /css\/tokens\.css\?v=20260728-ui-switch-off-contrast-r5/);
+  // but later authorized orders did touch it — B1, then D11, and most recently
+  // D13, which added the --rv-h-inline rung — so it correctly carries the
+  // strictly later token of whichever order changed it last.
+  assert.match(INDEX, /css\/tokens\.css\?v=20260804-tecelagem-density-inline-rung/);
   assert.match(INDEX, /css\/responsive\.css\?v=20260725-pedido-operational-batch3/);
   assert.match(INDEX, /js\/select-popover\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
   // pedido-item-row-editor.js was UNCHANGED by pass 8 and held its pass-7 token

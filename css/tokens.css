@@ -116,7 +116,8 @@
   --rv-shadow-sm:      0 1px 3px rgba(0,0,0,.10);   /* alert, banner      */
   --rv-shadow-popover: 0 12px 28px rgba(0,0,0,.10); /* popover, menu, modal (D8) */
 
-  /* ---- CONTROL HEIGHT — closed 3-rung ladder (D5) ---- */
+  /* ---- CONTROL HEIGHT — closed 4-rung ladder (D5, D13) ---- */
+  --rv-h-inline:  20px;  /* section-header inline action ONLY     (D13) */
   --rv-h-compact: 32px;  /* table-row action, attach, field, filter    */
   --rv-h-default: 34px;  /* secondary action in an entity header       */
   --rv-h-primary: 38px;  /* dominant flow action (lives in the rail)   */

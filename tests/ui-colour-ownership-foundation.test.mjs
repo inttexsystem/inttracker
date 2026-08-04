@@ -51,7 +51,11 @@ const PASS1_TOKEN = '20260727-ui-specialized-controls-b1';
 // D11 corrected the switch knob radius in css/tokens.css, so the stylesheet
 // carries the strictly later correction token. The guarantee is unchanged: the
 // stylesheet is referenced EXACTLY once, under the order that touched it last.
-const TOKENS_TOKEN = '20260728-ui-switch-off-contrast-r5';
+// D13 added --rv-h-inline to css/tokens.css, so the stylesheet advances to the
+// order that touched it last. Without this move a browser could pair the new
+// screen with a CACHED sheet that has no --rv-h-inline, and every inline action
+// would render with no height at all.
+const TOKENS_TOKEN = '20260804-tecelagem-density-inline-rung';
 const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${TOKENS_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
@@ -136,6 +140,16 @@ const B1_NEW_TOKENS = [
   // range
   '--rv-range-track-h',
   '--rv-range-thumb',
+];
+
+// D13 — the fourth control-height rung. It exists for ONE placement: an action
+// on a section-chip header line, where the ratified requirement is that the
+// header must not grow at all. 20px is exactly the section chip's height, so
+// the control adds zero height to the line it joins. Scope and prohibitions are
+// in UI_VISUAL_CONTRACT.md §2.1; the reasoning and the accepted loss are in
+// DESIGN_DECISIONS.md D13.2.
+const D13_NEW_TOKENS = [
+  '--rv-h-inline',
 ];
 
 /** Canonical token set at the phase-4 checkpoint 9fbb84c, before D9. */
@@ -290,7 +304,7 @@ test('1b · the composed tokens resolve to the family they claim', () => {
 test('2 · no canonical token exists beyond the phase-4 baseline plus the D9 list', () => {
   const { canonical, deprecated } = parseTokenDeclarations(TOKENS_CSS);
   const allowed = new Set([...BASELINE_CANONICAL, ...AUTHORIZED_NEW_TOKENS, ...PASS6_NEW_TOKENS,
-    ...PASS7_NEW_TOKENS, ...B1_NEW_TOKENS]);
+    ...PASS7_NEW_TOKENS, ...B1_NEW_TOKENS, ...D13_NEW_TOKENS]);
   const unexpected = canonical.filter((t) => !allowed.has(t));
   assert.deepEqual(unexpected, [], `unauthorized canonical token(s): ${unexpected.join(', ')}`);
 
@@ -300,7 +314,7 @@ test('2 · no canonical token exists beyond the phase-4 baseline plus the D9 lis
   assert.equal(
     canonical.length,
     BASELINE_CANONICAL.length + AUTHORIZED_NEW_TOKENS.length + PASS6_NEW_TOKENS.length
-      + PASS7_NEW_TOKENS.length + B1_NEW_TOKENS.length,
+      + PASS7_NEW_TOKENS.length + B1_NEW_TOKENS.length + D13_NEW_TOKENS.length,
   );
   // The deprecated compatibility block is untouched by this pass.
   assert.equal(deprecated.length, 26, 'the LEGACY COMPATIBILITY block changed size');

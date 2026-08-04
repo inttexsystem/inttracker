@@ -99,6 +99,22 @@ Three heights (`--rv-h-compact/default/primary`), radius `--rv-radius`,
 | Destructive | `--rv-surface` | `--rv-signal-negative-border` | `--rv-signal-negative` | 34px |
 | Compact | `--rv-surface` | `--rv-border-strong` | `--rv-text-secondary` | 32px |
 | Attach (dashed) | `--rv-surface` | `1px dashed --rv-border-strong` | `--rv-text-secondary` | 32px, `width:100%` |
+| Inline (section header) | `--rv-surface` | `--rv-border-strong` (or `--rv-signal-negative-border` when destructive) | `--rv-text-secondary` (or `--rv-signal-negative`) | 20px |
+
+**Inline action — narrowly scoped, and scoped is the point (D13).** `--rv-h-inline`
+(20px) exists for ONE placement: an action that sits on the SAME LINE as a §2.4 section
+chip, inside that section's own header. The 20px value is not a new density preference —
+it is exactly the section chip's height, chosen so the control adds **zero** height to
+the header line it joins. Any other value would grow the line and defeat the only reason
+the rung exists.
+
+It is admissible ONLY when all of the following hold: the action operates on the
+section's own content (a selection, a bulk operation on the listed rows); it is
+right-aligned on the chip line; it carries `--rv-fs-2xs` text with `padding: 0 8px` and
+`--rv-radius`; and it is never the dominant action of the screen. It is forbidden in a
+card footer, in an entity header, in the rail, in a modal action bar and as a primary
+action — those keep 32/34/38px. A second row of inline actions is forbidden: if the
+actions do not fit one line, they do not belong here.
 
 The **Caution** variant (D9) also dresses an operational caution banner and a caution KPI
 surface — anywhere caution is the element's own semantic role. It is not for a persisted
@@ -122,6 +138,14 @@ does not have to be.
   the title block**), gap 8px, `flex-wrap` on the parent;
 - inside a card: **block footer, right-aligned**, with
   `border-top: 1px solid var(--rv-border-soft)` and `padding-top: 11px`;
+- **repeated operational record card: header-row actions** (D13). Where a card is one
+  of MANY sibling records the operator scans to pick the next unit of work, its actions
+  sit on the card's **top row, right-aligned**, on the same line as the record's
+  identity, with `align-items: flex-start`. That card takes NO action footer: the
+  footer's `border-top` + `padding-top: 11px` + button rung is pure vertical cost
+  repeated once per record, and it is what keeps the operator from seeing the list. The
+  single-entity detail card keeps its footer — this is not a licence to move actions
+  upward anywhere;
 - card with an empty state: empty text left, action right, same row
   (`justify-content: space-between`);
 - **two exceptions, only two:** in the rail every control is `width:100%`; the dashed
@@ -393,6 +417,39 @@ supplies `ariaLabel` on the checkbox when the row's own text is the label.
 text that names it. A switch alone on its own line, left-aligned inside a card, is a
 defect.
 
+### 2.14 Selectable unit chip
+
+A **physical unit rendered as a compact selectable token**, used where the operator must
+scan and act on MANY concrete units at once and a one-unit-per-row table would hide most
+of them. It is not a status pill (§2.6), not a classification badge (§2.6.1) and not a
+filter control: it stands for one real, individually persisted object.
+
+Introduced by D13 for the weaving roll view, where the operator recognises a physical
+roll by its number and its meterage.
+
+Geometry: `height: 24px`, `padding: 0 9px`, radius `--rv-radius`, `--rv-fs-2xs`,
+`.tnum` on the numeric identity, `gap: 6px` between chips, `flex-wrap` on the group.
+It is a rectangle, never `--rv-radius-pill` — it is an interactive control, and D6.1
+scopes the pill radius to semantic pills and true circles.
+
+| State | Background | Border | Text |
+|---|---|---|---|
+| Selectable, unselected | `--rv-surface` | `--rv-border-strong` | `--rv-text-primary` |
+| Selected | `--rv-active-bg` | `--rv-brand` | `--rv-brand` |
+| Not selectable | `--rv-surface-subtle` | `--rv-border-soft` | `--rv-text-tertiary` |
+
+**Selection is never carried by colour alone.** A selected chip also shows a 12px check
+glyph before its identity, and the control is a real `aria-pressed` toggle button, so the
+state is available to assistive technology and to a keyboard. A chip whose unit is not
+selectable is rendered `disabled` with its reason in the accessible name — it stays
+VISIBLE, because the operator needs to see that the unit exists.
+
+The chip carries **identity and the one datum the operator recognises the unit by**, and
+nothing else. Persistent per-chip action icons are forbidden: with tens of chips on
+screen they reproduce exactly the clutter this primitive exists to remove. Actions on
+chips are **bulk actions on the current selection**, placed on the section header line as
+inline actions (§2.1).
+
 ---
 
 ## 3. Layer 3 — Screen archetypes
@@ -533,7 +590,7 @@ emoji, new text icons or replacing a Lucide icon.
 {
   "literal_hex_in_screen": "forbidden",
   "radius":        ["4px", "999px"],
-  "control_h":     ["32px", "34px", "38px"],
+  "control_h":     ["20px", "24px", "32px", "34px", "38px"],
   "shadow":        ["none", "0 1px 3px rgba(0,0,0,.10)", "0 12px 28px rgba(0,0,0,.10)"],
   "font_size":     ["30px","24px","22px","20px","16px","15px","14px","13.5px","13px","12.5px","12px","11.5px","11px","10.5px","10px"],
   "font_weight":   [400, 500, 600, 700, 800],

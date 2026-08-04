@@ -87,9 +87,9 @@
   var ICON_LAYERS = '<path d="M12 2 2 7l10 5 10-5-10-5Z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path>';
   var ICON_BOX = '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path>';
   var ICON_LIST = '<line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>';
-  var ICON_PRINT = '<path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect>';
   var ICON_UNDO = '<path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>';
   var ICON_TRASH = '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line>';
+  var ICON_CHECK = '<polyline points="20 6 9 17 4 12"></polyline>';
 
   function icon(markup, size) {
     var svg = window.el('span', {});
@@ -127,6 +127,59 @@
           + ' letter-spacing:.02em; color:var(--rv-text-tertiary);',
       }, label)
     );
+  }
+
+  // O MESMO chip de seção, com AÇÕES INLINE à direita da própria linha.
+  //
+  // A altura da linha NÃO pode crescer (requisito de produto, D13.2): as ações
+  // usam var(--rv-h-inline), que é exatamente a altura do chip (20px), então a
+  // linha continua com a altura que tinha sem elas. `align-items:center` e a
+  // ausência de padding vertical são o que garante isso.
+  function sectionChipComAcoes(label, iconMarkup, acoes) {
+    var linha = sectionChip(label, iconMarkup);
+    linha.style.justifyContent = 'space-between';
+    var grupo = window.el('div', { style: 'display:flex; align-items:center; gap:6px; margin-left:auto;' });
+    (acoes || []).filter(Boolean).forEach(function (a) { grupo.appendChild(a); });
+    linha.appendChild(grupo);
+    return linha;
+  }
+
+  // AÇÃO INLINE (contrato §2.1, rung --rv-h-inline). Só é admissível na linha
+  // de um chip de seção; nunca é a ação dominante da tela.
+  function inlineAction(label, onclick, disabled, destrutiva) {
+    var cor = destrutiva ? 'var(--rv-signal-negative)' : 'var(--rv-text-secondary)';
+    var borda = destrutiva ? 'var(--rv-signal-negative-border)' : 'var(--rv-border-strong)';
+    var attrs = {
+      type: 'button',
+      style: 'height:var(--rv-h-inline); padding:0 8px; display:inline-flex; align-items:center;'
+        + ' justify-content:center; border-radius:var(--rv-radius);'
+        + ' font-size:var(--rv-fs-2xs); font-weight:600; font-family:inherit;'
+        + ' background:var(--rv-surface); border:1px solid ' + borda + '; color:' + cor + ';'
+        + (disabled ? ' opacity:.45; cursor:default;' : ' cursor:pointer;'),
+      onclick: disabled ? null : onclick,
+    };
+    if (disabled) attrs.disabled = true;
+    return window.el('button', attrs, label);
+  }
+
+  // Ação de card COMPACTA (32px). Os cards de registro repetido da tela de OP
+  // usam este rung em vez de 34/38px: a hierarquia continua sendo dada pelo
+  // preenchimento da marca, não pela altura (D13.1).
+  function compactAction(label, onclick, disabled, primaria) {
+    var base = 'height:var(--rv-h-compact); padding:0 12px; display:inline-flex; align-items:center;'
+      + ' justify-content:center; border-radius:var(--rv-radius); font-size:var(--rv-fs-body);'
+      + ' font-weight:600; font-family:inherit;';
+    var pele = primaria
+      ? ' background:var(--rv-brand); border:none; color:var(--rv-text-on-brand);'
+      : ' background:var(--rv-surface); border:1px solid var(--rv-border-strong);'
+        + ' color:var(--rv-text-secondary);';
+    var attrs = {
+      type: 'button',
+      style: base + pele + (disabled ? ' opacity:.45; cursor:default;' : ' cursor:pointer;'),
+      onclick: disabled ? null : onclick,
+    };
+    if (disabled) attrs.disabled = true;
+    return window.el('button', attrs, label);
   }
 
   // Rodapé de ações do card (§2.1): SEMPRE à direita, com divisor superior.
@@ -642,17 +695,6 @@
 
   // -- ações que abrem a pré-visualização ----------------------------------
 
-  function abrirEtiquetaRolo(op, produto, rolo) {
-    window.modal({
-      title: 'Etiqueta do rolo ' + fmtRolo(rolo.numero),
-      saveLabel: 'Imprimir',
-      body: nodeEtiquetaGenerica(camposEtiquetaRolo(op, produto, rolo)),
-      onSave: function () {
-        imprimir('Etiqueta - Rolo ' + fmtRolo(rolo.numero), corpoEtiquetaRolo(op, produto, rolo));
-      },
-    });
-  }
-
   function abrirEtiquetaAcabamento(op, produto) {
     window.modal({
       title: 'Etiqueta para o acabamento',
@@ -664,10 +706,14 @@
     });
   }
 
-  // ETIQUETAS DISPONÍVEIS: aberta logo depois de um registro de produção
-  // bem-sucedido, com os rolos que ACABARAM de ser criados. O operador não
-  // precisa voltar a identificá-los para poder imprimir (§2 do produto).
-  function abrirEtiquetasDisponiveis(op, produto, rolosCriados) {
+  // ETIQUETAS DISPONÍVEIS. Dois chamadores, um único dono de impressão:
+  //   - logo depois de um registro bem-sucedido, com os rolos que ACABARAM de
+  //     ser criados (§2 do produto);
+  //   - a partir da SELEÇÃO na vista compacta (D13.4/D13.5), que é o caminho de
+  //     reimpressão agora que o chip não carrega ícone de ação.
+  // O título muda porque as duas frases são diferentes — "criados" seria falso
+  // ao reimprimir —, mas o conteúdo e as regras da etiqueta são os mesmos.
+  function abrirEtiquetasDisponiveis(op, produto, rolosCriados, reimpressao) {
     var lista = window.el('div', { style: 'display:flex; flex-direction:column;' });
     rolosCriados.forEach(function (rolo) {
       lista.appendChild(window.el('div', {
@@ -684,10 +730,14 @@
     });
 
     window.modal({
-      title: rolosCriados.length === 1
-        ? '1 rolo criado — etiqueta disponível'
-        : rolosCriados.length + ' rolos criados — etiquetas disponíveis',
-      saveLabel: 'Imprimir todas',
+      title: reimpressao
+        ? (rolosCriados.length === 1
+            ? ('Etiqueta do rolo ' + fmtRolo(rolosCriados[0].numero))
+            : (rolosCriados.length + ' etiquetas selecionadas'))
+        : (rolosCriados.length === 1
+            ? '1 rolo criado — etiqueta disponível'
+            : rolosCriados.length + ' rolos criados — etiquetas disponíveis'),
+      saveLabel: rolosCriados.length === 1 ? 'Imprimir' : 'Imprimir todas',
       body: lista,
       onSave: function () {
         var corpo = rolosCriados.map(function (rolo) {
@@ -715,6 +765,13 @@
     return SITUACAO_ROLO[chave] || { rotulo: chave || 'Situação desconhecida', estado: 'neutral' };
   }
 
+  // Formas de CONTAGEM das mesmas situações. Separadas do rótulo da pílula
+  // porque contar um conjunto e nomear um rolo são frases diferentes.
+  var CONTAGEM_SITUACAO = {
+    na_tecelagem:       { singular: 'na tecelagem',          plural: 'na tecelagem' },
+    enviado_acabamento: { singular: 'enviado ao acabamento', plural: 'enviados ao acabamento' },
+  };
+
   // Traduz a recusa do escritor de saída. Um código desconhecido nunca é
   // escondido: cai numa mensagem honesta e genérica, mesma disciplina de
   // mensagemDeErro/mensagemDeInicio acima.
@@ -738,105 +795,52 @@
     return 'Não foi possível confirmar a saída. Nada foi gravado.';
   }
 
-  // DAR SAÍDA PARA ACABAMENTO — a seleção opera sobre ROLOS INDIVIDUAIS,
-  // nunca uma quantidade. Só rolos `na_tecelagem` aparecem como
-  // selecionáveis: um rolo já enviado simplesmente não entra nesta lista
-  // (§5 do produto) em vez de aparecer marcável e ser recusado depois.
-  function abrirSaidaAcabamento(op, produto, rolos, aoConcluir) {
-    var elegiveis = rolos.filter(function (r) { return r.situacao === 'na_tecelagem'; });
-    var selecionados = {};
-    var checkboxPorId = {};
-
-    var checkboxTodos = window.checkboxInput({
-      checked: false,
-      ariaLabel: 'Selecionar todos os rolos',
-      onchange: function (e) {
-        var marcado = !!e.target.checked;
-        elegiveis.forEach(function (r) { selecionados[r.id] = marcado; });
-        sincronizarLinhas();
-      },
+  // DAR SAÍDA PARA ACABAMENTO — CONSOME A SELEÇÃO DA TELA (D13.5).
+  //
+  // Antes esta ação abria um modal com a PRÓPRIA lista de checkboxes dos mesmos
+  // rolos que já estavam na tela. Duas seleções concorrentes na mesma tela é
+  // como um operador aprende a desconfiar das duas: a lista independente foi
+  // retirada e esta ação passou a operar sobre `selecao`, exatamente como
+  // Excluir e Imprimir.
+  //
+  // As regras de produto NÃO mudaram e continuam sendo do servidor (db/125):
+  // só rolos `na_tecelagem`, nunca Manta, um rolo já enviado não é reenviado, e
+  // a confirmação explícita continua obrigatória.
+  function abrirSaidaAcabamento(op, produto, rolos, selecionados, aoConcluir) {
+    var elegiveis = rolos.filter(function (r) {
+      return r.situacao === 'na_tecelagem' && selecionados.indexOf(r.id) >= 0;
     });
 
-    function sincronizarLinhas() {
-      elegiveis.forEach(function (r) {
-        var cb = checkboxPorId[r.id];
-        if (cb) cb.checked = !!selecionados[r.id];
-      });
-      checkboxTodos.checked = elegiveis.length > 0
-        && elegiveis.every(function (r) { return !!selecionados[r.id]; });
-    }
-
-    var linhas = window.el('div', { style: 'display:flex; flex-direction:column;' });
-
     if (!elegiveis.length) {
-      linhas.appendChild(emptyText('Nenhum rolo disponível para dar saída.'));
-    } else {
-      elegiveis.forEach(function (rolo) {
-        var cb = window.checkboxInput({
-          checked: false,
-          ariaLabel: 'Selecionar rolo ' + fmtRolo(rolo.numero),
-          onchange: function (e) {
-            selecionados[rolo.id] = !!e.target.checked;
-            sincronizarLinhas();
-          },
-        });
-        checkboxPorId[rolo.id] = cb;
-        linhas.appendChild(window.el('div', {
-          style: 'display:flex; align-items:center; gap:10px; padding:9px 0;'
-            + ' border-top:1px solid var(--rv-border-soft);',
-        },
-          cb,
-          window.el('span', {
-            style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
-          }, 'Rolo ' + fmtRolo(rolo.numero)),
-          rolo.comprimento_m != null
-            ? num(window.el('span', {
-                style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-tertiary); margin-left:auto;',
-              }, fmtMetros(rolo.comprimento_m)))
-            : null
-        ));
-      });
+      window.toast('Selecione ao menos um rolo na tecelagem.', 'error');
+      return;
     }
 
-    var corpo = window.el('div', { style: 'display:flex; flex-direction:column; gap:10px;' },
-      elegiveis.length
-        ? window.el('div', { style: 'display:flex; align-items:center; gap:10px;' },
-            checkboxTodos,
-            window.el('span', {
-              style: 'font-size:var(--rv-fs-sm); font-weight:600; color:var(--rv-text-secondary);',
-            }, 'Selecionar todos'))
-        : null,
-      linhas
-    );
-
-    window.modal({
+    var numerosSel = elegiveis.map(function (r) { return fmtRolo(r.numero); }).sort();
+    window.confirmDialog({
       title: 'Dar saída para acabamento',
-      saveLabel: 'Confirmar saída',
-      body: corpo,
-      onSave: async function () {
-        var idsSelecionados = elegiveis
-          .filter(function (r) { return !!selecionados[r.id]; })
-          .map(function (r) { return r.id; });
-
-        if (!idsSelecionados.length) {
-          window.toast('Selecione ao menos um rolo.', 'error');
-          return false;
-        }
-
-        var res = await window.supa.rpc('enviar_rolos_acabamento', { p_rolo_ids: idsSelecionados });
+      message: (elegiveis.length === 1
+        ? 'O rolo ' + numerosSel[0] + ' sairá da tecelagem para o acabamento.'
+        : 'Os ' + elegiveis.length + ' rolos selecionados (' + numerosSel.join(', ')
+          + ') sairão da tecelagem para o acabamento.')
+        + ' Esta saída não pode ser desfeita por esta tela.',
+      confirmLabel: 'Confirmar saída',
+      danger: false,
+      onConfirm: async function () {
+        var ids = elegiveis.map(function (r) { return r.id; });
+        var res = await window.supa.rpc('enviar_rolos_acabamento', { p_rolo_ids: ids });
         if (res.error) {
           console.error(res.error);
           window.toast(mensagemDeSaida(res.error), 'error');
-          return false;
+          return;
         }
 
         // O toast identifica QUAIS rolos saíram, nunca apenas uma contagem
         // (§3 do produto): "3 rolos saíram" sozinho não é uma frase válida
         // nesta tela.
-        var enviados = elegiveis.filter(function (r) { return idsSelecionados.indexOf(r.id) >= 0; });
-        var numeros = enviados.map(function (r) { return fmtRolo(r.numero); }).sort().join(', ');
+        var numeros = numerosSel.join(', ');
         window.toast(
-          enviados.length === 1
+          elegiveis.length === 1
             ? ('Rolo ' + numeros + ' enviado ao acabamento.')
             : ('Rolos ' + numeros + ' enviados ao acabamento.'),
           'success'
@@ -963,54 +967,77 @@
           emptyText('Esta OP ainda não tem produtos cadastrados.')
         ));
       } else {
+        // CARD DE PRODUTO COMPACTO (D13.1). Este card é um REGISTRO REPETIDO —
+        // o operador percorre muitos para escolher o próximo produto a
+        // trabalhar —, então as ações moram na LINHA DE IDENTIDADE, à direita,
+        // e não num rodapé. Um rodapé custa borda + 11px de padding + um botão
+        // de 38px POR PRODUTO, e era exatamente esse custo, pago N vezes, que
+        // impedia o operador de ver a lista.
         produtos.forEach(function (produto) {
           var rolos = rolosPorItem[produto.id] || [];
           var previsto = produto.metros_ajustados != null ? produto.metros_ajustados : produto.metros_pedidos;
 
+          var acoes = window.el('div', {
+            'data-rv-tecelagem-produto-acoes': '',
+            style: 'display:flex; align-items:flex-start; gap:8px; flex-wrap:wrap; margin-left:auto;',
+          },
+            compactAction('Ver rolos', function () {
+              window.navigate('#/tecelagem/ops/' + op.op_id + '/produtos/' + produto.id + '/rolos');
+            }),
+            // Etiqueta para o acabamento: saída de leitura, sempre disponível —
+            // nunca depende do estado de produção (§7 ISOLAMENTO). AUSENTE para
+            // manta: a ação em si não existe, não só o valor dentro dela
+            // (regra de produto — manta nunca é emborrachada).
+            temEtiquetaAcabamento(produto)
+              ? compactAction('Etiqueta de acabamento', function () { abrirEtiquetaAcabamento(op, produto); })
+              : null,
+            // A ação só fica acionável depois do INÍCIO LOCAL da produção desta
+            // OP. A recusa de verdade é do servidor (db/123); aqui ela é apenas
+            // antecipada para o operador ver o estado.
+            compactAction('Registrar produção', function () {
+              abrirRegistro(op, produto, reload);
+            }, !podeRegistrar, true)
+          );
+
+          // Uma única linha de métricas em vez de dois blocos rotulados
+          // empilhados: o rótulo e o valor cabem lado a lado e o card encolhe
+          // sem perder nenhum dos dois números.
+          function metrica(rotulo, valorNode) {
+            return window.el('span', { style: 'display:inline-flex; align-items:baseline; gap:5px;' },
+              window.el('span', {
+                style: 'font-size:var(--rv-fs-label); font-weight:700; text-transform:uppercase;'
+                  + ' letter-spacing:.02em; color:var(--rv-text-tertiary);',
+              }, rotulo),
+              valorNode
+            );
+          }
+
           corpo.appendChild(card(
-            sectionChip('Produto', ICON_BOX),
             window.el('div', {
-              style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
-            }, rotuloProduto(produto.modelo)),
-            window.el('div', {
-              style: 'display:flex; gap:24px; flex-wrap:wrap; margin-top:11px;',
+              style: 'display:flex; align-items:flex-start; justify-content:space-between;'
+                + ' gap:12px; flex-wrap:wrap;',
             },
-              window.el('div', {},
-                window.el('div', {
-                  style: 'font-size:var(--rv-fs-label); font-weight:700; text-transform:uppercase;'
-                    + ' letter-spacing:.02em; color:var(--rv-text-tertiary);',
-                }, 'Previsto'),
-                num(window.el('div', {
-                  style: 'font-size:var(--rv-fs-body); color:var(--rv-text-primary); margin-top:3px;',
-                }, fmtMetros(previsto)))
+              window.el('div', { style: 'display:flex; align-items:center; gap:8px; min-width:0;' },
+                window.el('span', {
+                  style: 'width:20px; height:20px; display:inline-flex; align-items:center;'
+                    + ' justify-content:center; border-radius:var(--rv-radius);'
+                    + ' background:var(--rv-chip-bg); color:var(--rv-chip-glyph); flex:none;',
+                }, icon(ICON_BOX, 13)),
+                window.el('span', {
+                  style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
+                }, rotuloProduto(produto.modelo))
               ),
-              window.el('div', {},
-                window.el('div', {
-                  style: 'font-size:var(--rv-fs-label); font-weight:700; text-transform:uppercase;'
-                    + ' letter-spacing:.02em; color:var(--rv-text-tertiary);',
-                }, 'Produzido'),
-                num(window.el('div', {
-                  style: 'font-size:var(--rv-fs-body); color:var(--rv-text-primary); margin-top:3px;',
-                }, rolos.length === 1 ? '1 rolo' : rolos.length + ' rolos'))
-              )
+              acoes
             ),
-            cardFooter(
-              secondaryButton('Ver rolos', function () {
-                window.navigate('#/tecelagem/ops/' + op.op_id + '/produtos/' + produto.id + '/rolos');
-              }),
-              // Etiqueta para o acabamento: saída de leitura, sempre
-              // disponível — nunca depende do estado de produção (§7 ISOLAMENTO).
-              // AUSENTE para manta: a ação em si não existe, não só o valor
-              // dentro dela (regra de produto — manta nunca é emborrachada).
-              temEtiquetaAcabamento(produto) && secondaryButton('Etiqueta de acabamento', function () {
-                abrirEtiquetaAcabamento(op, produto);
-              }),
-              // A ação só fica acionável depois do INÍCIO LOCAL da produção
-              // desta OP. A recusa de verdade é do servidor (db/123); aqui ela
-              // é apenas antecipada para o operador ver o estado.
-              primaryButton('Registrar produção', function () {
-                abrirRegistro(op, produto, reload);
-              }, !podeRegistrar)
+            window.el('div', {
+              style: 'display:flex; gap:18px; flex-wrap:wrap; margin-top:8px;',
+            },
+              metrica('Previsto', num(window.el('span', {
+                style: 'font-size:var(--rv-fs-body); color:var(--rv-text-primary);',
+              }, fmtMetros(previsto)))),
+              metrica('Produzido', num(window.el('span', {
+                style: 'font-size:var(--rv-fs-body); color:var(--rv-text-primary);',
+              }, rolos.length === 1 ? '1 rolo' : rolos.length + ' rolos')))
             )
           ));
         });
@@ -1463,20 +1490,38 @@
 
   // Excluir um rolo físico é destrutivo, então a confirmação IDENTIFICA o rolo
   // pelo número que o operador vê na etiqueta — nunca por id técnico.
-  function abrirExcluirRolo(rolo, aoConcluir) {
+  // EXCLUIR A SELEÇÃO — um rolo ou vários, na MESMA ação do operador.
+  //
+  // A confirmação declara a QUANTIDADE selecionada e, quando cabe, os números;
+  // nunca um id técnico. Com um rolo só ela nomeia o rolo, porque "Excluir 1
+  // rolo selecionado?" é pior do que "Excluir Rolo 003?" para quem está olhando
+  // para a etiqueta.
+  function abrirExcluirSelecao(rolosSelecionados, aoConcluir) {
+    if (!rolosSelecionados.length) return;
+
+    var numeros = rolosSelecionados.map(function (r) { return fmtRolo(r.numero); }).sort();
+    var umSo = rolosSelecionados.length === 1;
+
     window.confirmDialog({
-      title: 'Excluir Rolo ' + fmtRolo(rolo.numero) + '?',
-      message: 'Este rolo será removido do lançamento de produção. Os demais rolos'
-        + ' do mesmo lançamento continuam como estão, com os mesmos números.',
-      confirmLabel: 'Excluir rolo',
+      title: umSo
+        ? ('Excluir Rolo ' + numeros[0] + '?')
+        : ('Excluir ' + rolosSelecionados.length + ' rolos selecionados?'),
+      message: (umSo
+        ? 'Este rolo será removido do lançamento de produção.'
+        : 'Os rolos ' + numeros.join(', ') + ' serão removidos dos seus lançamentos de produção.')
+        + ' Os demais rolos continuam como estão, com os mesmos números.',
+      confirmLabel: umSo ? 'Excluir rolo' : 'Excluir rolos',
       onConfirm: async function () {
-        var res = await window.supa.rpc('excluir_rolo_tecelagem', { p_rolo_id: Number(rolo.id) });
+        var ids = rolosSelecionados.map(function (r) { return Number(r.id); });
+        var res = await window.supa.rpc('excluir_rolos_tecelagem', { p_rolo_ids: ids });
         if (res.error) {
           console.error(res.error);
           window.toast(mensagemDeExclusao(res.error), 'error');
           return;
         }
-        window.toast('Rolo ' + fmtRolo(rolo.numero) + ' excluído.', 'success');
+        window.toast(umSo
+          ? ('Rolo ' + numeros[0] + ' excluído.')
+          : (rolosSelecionados.length + ' rolos excluídos.'), 'success');
         if (typeof aoConcluir === 'function') aoConcluir();
       },
     });
@@ -1487,6 +1532,21 @@
   // -------------------------------------------------------------------
   function screenTecelagemRolos(opId, opItemId) {
     var container = window.el('div', {});
+
+    // A SELEÇÃO É DA TELA, não de um controle (D13.5). Excluir, Imprimir e Dar
+    // saída para acabamento consomem TODOS esta mesma lista — é o que impede
+    // dois paradigmas de seleção concorrentes na mesma tela. Vive fora de
+    // reload() para sobreviver a um recarregamento, e é PODADA contra os rolos
+    // que voltaram do servidor, para que um rolo excluído por outro caminho não
+    // continue selecionado num fantasma.
+    var selecao = [];
+
+    function estaSelecionado(rolo) { return selecao.indexOf(rolo.id) >= 0; }
+
+    function alternar(rolo) {
+      var i = selecao.indexOf(rolo.id);
+      if (i >= 0) selecao.splice(i, 1); else selecao.push(rolo.id);
+    }
 
     async function reload() {
       if (guardaFornecedor(container, 'Rolos')) return;
@@ -1514,6 +1574,16 @@
         return;
       }
 
+      // Poda a seleção contra o que realmente voltou do servidor: um rolo
+      // removido por outro caminho não pode continuar "selecionado".
+      var idsVivos = rolos.map(function (r) { return r.id; });
+      selecao = selecao.filter(function (id) { return idsVivos.indexOf(id) >= 0; });
+
+      var rolosSelecionados = rolos.filter(estaSelecionado);
+      // Só rolo AINDA na tecelagem é elegível às ações destrutivas/de saída. A
+      // recusa real continua sendo do servidor (db/125, db/127, db/128).
+      var selecionadosElegiveis = rolosSelecionados.filter(podeExcluirRolo);
+
       var corpo = window.el('div', { style: 'display:flex; flex-direction:column; gap:12px;' });
 
       var produtoCard = card(
@@ -1536,22 +1606,48 @@
           }));
         }
         if (temSaidaAcabamento(produto)) {
-          var haRolosNaTecelagem = rolos.some(function (r) { return r.situacao === 'na_tecelagem'; });
+          // A ação permanece onde já estava na estrutura da página (§F), mas
+          // agora CONSOME A SELEÇÃO desta tela em vez de abrir uma segunda
+          // lista dos mesmos rolos.
           rodapeAcoes.push(primaryButton('Dar saída para acabamento', function () {
-            abrirSaidaAcabamento(op, produto, rolos, reload);
-          }, !haRolosNaTecelagem));
+            abrirSaidaAcabamento(op, produto, rolos, selecao, reload);
+          }, !selecionadosElegiveis.length));
         }
         produtoCard.appendChild(cardFooter.apply(null, rodapeAcoes));
       }
       corpo.appendChild(produtoCard);
 
-      var tabela = card(sectionChip('Rolos registrados', ICON_LIST));
+      // ROLOS REGISTRADOS — as ações de seleção moram NA PRÓPRIA LINHA do chip
+      // e usam o rung inline de 20px, então a linha tem exatamente a altura que
+      // teria sem elas (requisito de produto, D13.2).
+      var nSel = selecionadosElegiveis.length;
+      var blocoRolos = card(sectionChipComAcoes('Rolos registrados', ICON_LIST, [
+        inlineAction('Imprimir', function () {
+          abrirEtiquetasDisponiveis(op, produto, rolosSelecionados, true);
+        }, rolosSelecionados.length === 0),
+        inlineAction('Desselecionar', function () {
+          selecao = [];
+          reload();
+        }, nSel === 0),
+        inlineAction('Excluir', function () {
+          abrirExcluirSelecao(selecionadosElegiveis, reload);
+        }, nSel === 0, true),
+      ]));
+
       if (!rolos.length) {
-        tabela.appendChild(emptyText('Nenhum rolo registrado ainda.'));
+        blocoRolos.appendChild(emptyText('Nenhum rolo registrado ainda.'));
       } else {
-        tabela.appendChild(tabelaRolos(op, produto, rolos, reload));
+        blocoRolos.appendChild(vistaRolos(rolos, estaSelecionado, function (rolo) {
+          alternar(rolo);
+          reload();
+        }));
+        // O chip não carrega mais uma pílula de situação por rolo (D13.3), mas
+        // a situação não pode sumir da tela: uma única linha de resumo declara
+        // quantos rolos estão em cada estado, ao custo de uma linha no total em
+        // vez de uma pílula por rolo.
+        blocoRolos.appendChild(resumoSituacoes(rolos, nSel));
       }
-      corpo.appendChild(tabela);
+      corpo.appendChild(blocoRolos);
 
       // A superfície de recuperação vem DEPOIS dos rolos: o operador primeiro
       // vê o que existe, depois a ação que desfaz o lote que o criou.
@@ -1570,74 +1666,136 @@
     return window.shellLayout(menu(), container);
   }
 
-  // Tabela §2.5: UM dono de largura, lido pelo cabeçalho E pelas linhas, para
-  // que os dois não possam divergir. Coluna numérica alinhada à direita no
-  // cabeçalho e no valor. A quarta coluna (Ações) carrega as DUAS ações que se
-  // referem sempre ao MESMO rolo já existente — REIMPRIMIR ETIQUETA (§3) e
-  // EXCLUIR ROLO (db/127). Nenhuma delas cria rolo ou lançamento novo.
-  var GRID_COLS = '90px 1fr 1fr 80px';
+  // VISTA COMPACTA DE ROLOS — DATA → MUITOS CHIPS (D13.3).
+  //
+  // A tabela de um-rolo-por-linha foi retirada: numa produção real o operador
+  // precisa ver DEZENAS de rolos de uma vez, e a linha gastava altura com
+  // estrutura em vez de informação. O chip carrega exatamente as duas coisas
+  // pelas quais o operador reconhece um rolo físico — o NÚMERO (identidade
+  // estável, impressa na etiqueta) e o COMPRIMENTO, quando existe.
+  //
+  // A data é um MARCADOR DE AGRUPAMENTO compacto, não uma linha própria: ela
+  // ocupa uma coluna estreita à esquerda e os chips daquele dia usam toda a
+  // largura restante antes de quebrar.
+  //
+  // Não há ícone de ação por chip (D13.4): com dezenas de chips na tela isso
+  // reproduziria, em escala de chip, exatamente a poluição que a tabela tinha.
+  // As ações são em LOTE, sobre a seleção corrente, e moram na linha do
+  // cabeçalho da seção.
 
-  function tabelaRolos(op, produto, rolos, aoConcluir) {
-    var wrap = window.el('div', { style: 'overflow-x:auto;', 'data-rv-table-scroll': '' });
-    var tabela = window.el('div', { style: 'min-width:440px;' });
+  // Agrupa por DATA DE REGISTRO real (§H): vários lançamentos do mesmo dia
+  // caem no mesmo grupo, e nenhuma data é inferida ou inventada — um rolo sem
+  // data legível fica num grupo próprio, declarado como tal.
+  function agruparRolosPorData(rolos) {
+    var ordem = [];
+    var porChave = {};
+    rolos.slice().sort(function (a, b) { return Number(a.numero) - Number(b.numero); })
+      .forEach(function (rolo) {
+        var rotulo = fmtData(rolo.criado_em) || 'Sem data de registro';
+        if (!porChave[rotulo]) { porChave[rotulo] = { rotulo: rotulo, rolos: [] }; ordem.push(porChave[rotulo]); }
+        porChave[rotulo].rolos.push(rolo);
+      });
+    return ordem;
+  }
 
-    function linha(estilo, celulas) {
-      return window.el('div', {
-        style: 'display:grid; grid-template-columns:' + GRID_COLS + '; gap:8px; ' + estilo,
-      }, ...celulas);
+  // O texto do chip: identidade + o dado pelo qual o operador reconhece o rolo
+  // fisicamente. Sem comprimento, o travessão é explícito — nunca um vazio que
+  // pareceria um defeito de renderização.
+  function textoChipRolo(rolo) {
+    return fmtRolo(rolo.numero) + ' · ' + (rolo.comprimento_m == null ? '—' : fmtMetros(rolo.comprimento_m));
+  }
+
+  function chipRolo(rolo, selecionado, selecionavel, onToggle) {
+    var estilo = 'height:24px; padding:0 9px; display:inline-flex; align-items:center; gap:6px;'
+      + ' border-radius:var(--rv-radius); font-size:var(--rv-fs-2xs); font-weight:600;'
+      + ' font-family:inherit; white-space:nowrap;';
+
+    if (!selecionavel) {
+      estilo += ' background:var(--rv-surface-subtle); border:1px solid var(--rv-border-soft);'
+        + ' color:var(--rv-text-tertiary); opacity:.45; cursor:default;';
+    } else if (selecionado) {
+      estilo += ' background:var(--rv-active-bg); border:1px solid var(--rv-brand);'
+        + ' color:var(--rv-brand); cursor:pointer;';
+    } else {
+      estilo += ' background:var(--rv-surface); border:1px solid var(--rv-border-strong);'
+        + ' color:var(--rv-text-primary); cursor:pointer;';
     }
 
-    var thStyle = 'font-size:var(--rv-fs-thead); font-weight:600; text-transform:uppercase;'
-      + ' color:var(--rv-text-tertiary);';
+    var nome = 'Rolo ' + fmtRolo(rolo.numero)
+      + (rolo.comprimento_m == null ? ', sem comprimento' : ', ' + fmtMetros(rolo.comprimento_m))
+      + (selecionavel
+        ? (selecionado ? ', selecionado' : ', não selecionado')
+        : ', já enviado ao acabamento, não selecionável');
 
-    tabela.appendChild(linha('padding:0 8px 8px;', [
-      window.el('div', { style: thStyle }, 'Rolo'),
-      window.el('div', { style: thStyle + ' text-align:right;' }, 'Comprimento'),
-      window.el('div', { style: thStyle }, 'Situação'),
-      window.el('div', { style: thStyle }, ''),
-    ]));
+    var attrs = {
+      type: 'button',
+      'data-rv-rolo-chip': String(rolo.numero),
+      // A seleção NUNCA é comunicada só pela cor: além do check visível, o
+      // estado viaja em aria-pressed para teclado e leitor de tela.
+      'aria-pressed': selecionado ? 'true' : 'false',
+      'aria-label': nome,
+      title: nome,
+      style: estilo,
+      onclick: selecionavel ? onToggle : null,
+    };
+    if (!selecionavel) attrs.disabled = true;
 
-    rolos.forEach(function (rolo) {
-      var comprimento = rolo.comprimento_m == null ? '—' : fmtMetros(rolo.comprimento_m);
-      var celComprimento = window.el('div', {
-        style: 'font-size:var(--rv-fs-body); color:var(--rv-text-primary); text-align:right;',
-      }, comprimento);
-      // .tnum só onde há número de verdade; o travessão não é número.
-      if (rolo.comprimento_m != null) celComprimento.className = 'tnum';
+    return window.el('button', attrs,
+      selecionado ? icon(ICON_CHECK, 12) : null,
+      num(window.el('span', {}, textoChipRolo(rolo)))
+    );
+  }
 
-      tabela.appendChild(linha(
-        'padding:9px 8px; border-top:1px solid var(--rv-border-soft); align-items:center;',
-        [
-          num(window.el('div', {
-            style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
-          }, fmtRolo(rolo.numero))),
-          celComprimento,
-          window.el('div', {}, window.RV_BADGES.rvStatusPill(situacaoRolo(rolo).rotulo, situacaoRolo(rolo).estado)),
-          window.el('div', { style: 'display:flex; gap:6px; justify-content:flex-end;' },
-            window.actionButton({
-              title: 'Reimprimir etiqueta do rolo ' + fmtRolo(rolo.numero),
-              icon: icon(ICON_PRINT, 15),
-              onclick: function () { abrirEtiquetaRolo(op, produto, rolo); },
-            }),
-            // EXCLUIR ROLO só enquanto o rolo é reversível com segurança. Um
-            // rolo já enviado mantém a ação VISÍVEL e desabilitada, com o
-            // motivo no nome acessível: sumir com o controle deixaria a linha
-            // desalinhada e o operador sem saber por que a opção some.
-            window.actionButton({
-              title: podeExcluirRolo(rolo)
-                ? ('Excluir o rolo ' + fmtRolo(rolo.numero))
-                : ('O rolo ' + fmtRolo(rolo.numero) + ' já saiu para o acabamento e não pode ser excluído'),
-              icon: icon(ICON_TRASH, 15),
-              danger: true,
-              disabled: !podeExcluirRolo(rolo),
-              onclick: function () { abrirExcluirRolo(rolo, aoConcluir); },
-            })
-          ),
-        ]
+  // Uma linha, no total, com a contagem por situação e a seleção corrente.
+  // Substitui a pílula que existia por rolo sem perder a informação de estado.
+  function resumoSituacoes(rolos, selecionados) {
+    var porSituacao = {};
+    rolos.forEach(function (r) {
+      var chave = r.situacao;
+      porSituacao[chave] = (porSituacao[chave] || 0) + 1;
+    });
+
+    // O rótulo da pílula é singular ("Enviado ao acabamento") e aqui ele conta
+    // um CONJUNTO, então o resumo tem a própria forma plural declarada — nunca
+    // "2 enviado ao acabamento".
+    var partes = Object.keys(porSituacao).map(function (chave) {
+      var n = porSituacao[chave];
+      var forma = CONTAGEM_SITUACAO[chave];
+      if (!forma) return n + ' ' + situacaoRolo({ situacao: chave }).rotulo.toLowerCase();
+      return n + ' ' + (n === 1 ? forma.singular : forma.plural);
+    });
+    if (selecionados > 0) {
+      partes.push(selecionados === 1 ? '1 selecionado' : selecionados + ' selecionados');
+    }
+
+    return window.el('div', {
+      'data-rv-rolos-resumo': '',
+      style: 'font-size:var(--rv-fs-2xs); color:var(--rv-text-tertiary); margin-top:9px;',
+    }, partes.join(' · '));
+  }
+
+  function vistaRolos(rolos, estaSelecionado, onToggle) {
+    var wrap = window.el('div', { style: 'display:flex; flex-direction:column; gap:8px;' });
+
+    agruparRolosPorData(rolos).forEach(function (grupo) {
+      wrap.appendChild(window.el('div', {
+        'data-rv-rolo-grupo': grupo.rotulo,
+        style: 'display:flex; align-items:flex-start; gap:10px;',
+      },
+        // Marcador de data compacto: coluna estreita, nunca uma linha própria.
+        num(window.el('div', {
+          style: 'flex:none; width:84px; padding-top:5px; font-size:var(--rv-fs-2xs);'
+            + ' font-weight:600; color:var(--rv-text-tertiary);',
+        }, grupo.rotulo)),
+        window.el('div', {
+          style: 'display:flex; flex-wrap:wrap; gap:6px; flex:1 1 auto; min-width:0;',
+        }, ...grupo.rolos.map(function (rolo) {
+          var selecionavel = podeExcluirRolo(rolo);
+          return chipRolo(rolo, estaSelecionado(rolo), selecionavel, function () { onToggle(rolo); });
+        }))
       ));
     });
 
-    wrap.appendChild(tabela);
     return wrap;
   }
 

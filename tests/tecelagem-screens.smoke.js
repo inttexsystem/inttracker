@@ -88,8 +88,8 @@ function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfa
         if (name === 'desfazer_lancamento_tecelagem') {
           return desfazerResult || { data: { rolos_removidos: 3 }, error: null };
         }
-        if (name === 'excluir_rolo_tecelagem') {
-          return excluirResult || { data: { rolo_id: params.p_rolo_id, rolos_restantes: 4 }, error: null };
+        if (name === 'excluir_rolos_tecelagem') {
+          return excluirResult || { data: { rolo_ids: params.p_rolo_ids, rolos_removidos: (params.p_rolo_ids || []).length }, error: null };
         }
         return rpcResult || { data: { quantidade_rolos: params.p_quantidade_rolos }, error: null };
       },
@@ -209,7 +209,7 @@ test('3. a superfície de tecelagem não tem nenhum caminho de escrita no Admin'
   // não.
   assert.deepEqual(
     rpcs,
-    ['desfazer_lancamento_tecelagem', 'enviar_rolos_acabamento', 'excluir_rolo_tecelagem',
+    ['desfazer_lancamento_tecelagem', 'enviar_rolos_acabamento', 'excluir_rolos_tecelagem',
       'iniciar_producao_tecelagem', 'registrar_producao_tecelagem',
       'tecelagem_lancamentos_recentes', 'tecelagem_minhas_ops'],
     `a tela só pode chamar os read models e os donos de escrita da tecelagem, encontrou: ${rpcs.join(', ')}`);
@@ -543,21 +543,72 @@ test('11. uma recusa do servidor vira mensagem operacional, nunca sucesso silenc
 // VER ROLOS
 // =====================================================================
 
+// --- vista compacta (D13): helpers de chip e seleção ------------------
+const chipRolo = (h, root, numero) => h.findOne((n) => n.tagName === 'BUTTON'
+  && n.getAttribute('data-rv-rolo-chip') === String(Number(numero)), root);
+
+// Cada clique recarrega a tela, então o chip é RELOCALIZADO a cada passo —
+// guardar o nó entre cliques testaria um nó que já saiu do documento.
+const selecionar = async (h, root, settle, ...numeros) => {
+  for (const numero of numeros) {
+    const c = chipRolo(h, root, numero);
+    assert.ok(c, `o chip do rolo ${numero} deve existir`);
+    h.click(c);
+    await settle();
+  }
+};
+
 test('12. Ver rolos mostra os 10 rolos individuais, numerados e Na tecelagem', async () => {
   const rolos = Array.from({ length: 10 }, (_, i) => ({
     id: 900 + i, op_item_id: 511, numero: 43 + i,
     comprimento_m: null, situacao: 'na_tecelagem',
+    criado_em: '2026-08-04T12:00:00.000Z',
   }));
   const { h, settle } = boot({ rolos });
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  const texto = h.textOf(node);
-  assert.match(texto, /Na tecelagem/);
+  // A identidade individual continua sendo o critério: cada rolo tem o seu
+  // próprio chip, não uma contagem agregada.
   for (let n = 43; n <= 52; n += 1) {
-    assert.match(texto, new RegExp(String(n).padStart(3, '0')),
-      `o rolo ${n} deve estar visível individualmente`);
+    assert.ok(chipRolo(h, node, n), `o rolo ${n} deve estar visível individualmente`);
   }
+  assert.match(h.textOf(node), /10 na tecelagem/,
+    'a situação continua legível, agora numa linha de resumo em vez de uma pílula por rolo');
+});
+
+test('12b. os rolos são agrupados pela data de registro, com vários chips por linha', async () => {
+  const rolos = [
+    { id: 901, op_item_id: 511, numero: 1, comprimento_m: 28.4, situacao: 'na_tecelagem', criado_em: '2026-08-04T12:00:00.000Z' },
+    { id: 902, op_item_id: 511, numero: 2, comprimento_m: null, situacao: 'na_tecelagem', criado_em: '2026-08-04T15:00:00.000Z' },
+    { id: 903, op_item_id: 511, numero: 3, comprimento_m: 30.1, situacao: 'na_tecelagem', criado_em: '2026-08-05T09:00:00.000Z' },
+  ];
+  const { h, settle } = boot({ rolos });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const grupos = h.findAll((n) => n.getAttribute && n.getAttribute('data-rv-rolo-grupo') != null, node);
+  assert.equal(grupos.length, 2, 'duas datas distintas produzem exatamente dois grupos');
+  // §H: dois lançamentos do MESMO dia caem no MESMO grupo.
+  assert.equal(h.findAll((n) => n.getAttribute && n.getAttribute('data-rv-rolo-chip') != null, grupos[0]).length, 2,
+    'os dois registros do dia 04 compartilham o mesmo marcador de data');
+  assert.match(h.textOf(grupos[0]), /04\/08\/2026/);
+  assert.match(h.textOf(grupos[1]), /05\/08\/2026/);
+});
+
+test('12c. cada chip carrega número e comprimento, com travessão explícito quando não há medida', async () => {
+  const rolos = [
+    { id: 901, op_item_id: 511, numero: 1, comprimento_m: 28.4, situacao: 'na_tecelagem', criado_em: '2026-08-04T12:00:00.000Z' },
+    { id: 902, op_item_id: 511, numero: 2, comprimento_m: null, situacao: 'na_tecelagem', criado_em: '2026-08-04T12:00:00.000Z' },
+  ];
+  const { h, settle } = boot({ rolos });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  assert.match(h.textOf(chipRolo(h, node, 1)), /001 · 28,40 m/,
+    'o comprimento é imediatamente visível: é por ele que o operador reconhece o rolo fisicamente');
+  assert.match(h.textOf(chipRolo(h, node, 2)), /002 · —/,
+    'sem medida, o travessão é explícito — nunca um vazio que pareceria defeito');
 });
 
 test('13. um rolo sem comprimento continua visível e válido, com travessão', async () => {
@@ -727,12 +778,11 @@ test('21. reimprimir etiqueta em VER ROLOS não chama o dono da escrita nem cria
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  const reimprimir = h.findOne((n) => n.tagName === 'BUTTON'
-    && n.getAttribute('title') === 'Reimprimir etiqueta do rolo 043', node);
-  assert.ok(reimprimir, 'a ação de reimprimir deve existir na linha do rolo 043');
-
+  // A reimpressão passou a usar a SELEÇÃO (D13.4): sem ícone por chip, mas o
+  // caminho continua existindo e continua sendo leitura pura.
+  await selecionar(h, node, settle, 43);
   const chamadasAntes = calls.rpc.length;
-  h.click(reimprimir);
+  h.click(btn(h, 'Imprimir', node));
   await settle();
 
   assert.match(h.textOf(h.body), /Etiqueta do rolo 043/, 'a pré-visualização deve identificar o rolo exato');
@@ -819,10 +869,8 @@ test('23c. Ver rolos de um produto MANTA não oferece Etiqueta de acabamento, ma
     assert.equal(btn(h, 'Etiqueta de acabamento', node), null,
       'a manta não pode oferecer a etiqueta de acabamento em nenhuma tela');
 
-    const reimprimir = h.findOne((n) => n.tagName === 'BUTTON'
-      && n.getAttribute('title') === 'Reimprimir etiqueta do rolo 001', node);
-    assert.ok(reimprimir, 'a etiqueta do ROLO da manta continua disponível normalmente');
-    h.click(reimprimir);
+    await selecionar(h, node, settle, 1);
+    h.click(btn(h, 'Imprimir', node));
     await settle();
     assert.match(h.textOf(h.body), /Etiqueta do rolo 001/,
       'a etiqueta do rolo abre normalmente para um produto manta');
@@ -869,28 +917,27 @@ test('25. Ver rolos mostra a situação real de cada rolo, não mais um valor fi
   await settle();
 
   const texto = h.textOf(node);
-  assert.match(texto, /Na tecelagem/, 'os rolos ainda na tecelagem devem declarar isso');
-  assert.match(texto, /Enviado ao acabamento/, 'o rolo já enviado deve declarar a nova situação');
+  assert.match(texto, /na tecelagem/i, 'os rolos ainda na tecelagem devem declarar isso');
+  assert.match(texto, /enviado ao acabamento/i, 'o rolo já enviado deve declarar a nova situação');
 });
 
-test('26. Dar saída para acabamento só lista rolos na_tecelagem; o já enviado não aparece selecionável', async () => {
+test('26. só rolos na_tecelagem são selecionáveis; o já enviado continua VISÍVEL, desabilitado', async () => {
   const { h, settle } = boot({ rolos: ROLOS_MISTOS });
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  h.click(btn(h, 'Dar saída para acabamento', node));
-  await settle();
+  [1, 2, 3].forEach((n) => {
+    const c = chipRolo(h, node, n);
+    assert.ok(c, `o rolo 00${n} deve estar visível`);
+    assert.ok(!c.getAttribute('disabled'), `o rolo 00${n} está na tecelagem e deve ser selecionável`);
+  });
 
-  const texto = h.textOf(h.body);
-  assert.match(texto, /Rolo 001/);
-  assert.match(texto, /Rolo 002/);
-  assert.match(texto, /Rolo 003/);
-  assert.ok(!/Rolo 004/.test(texto),
-    'um rolo já enviado não pode aparecer como elegível para uma segunda saída normal');
-
-  const checkboxes = h.findAll((n) => n.tagName === 'INPUT' && n._attrs && n._attrs.type === 'checkbox', h.body);
-  // Selecionar todos + 3 elegíveis = 4 checkboxes.
-  assert.equal(checkboxes.length, 4, 'deve haver um checkbox por rolo elegível, mais o de selecionar todos');
+  const enviado = chipRolo(h, node, 4);
+  assert.ok(enviado, 'um rolo já enviado continua VISÍVEL — o operador precisa saber que ele existe');
+  assert.equal(enviado.getAttribute('disabled'), 'disabled',
+    'mas não pode se tornar elegível a uma segunda saída nem à exclusão');
+  assert.match(enviado.getAttribute('aria-label'), /já enviado ao acabamento/,
+    'e o motivo viaja no nome acessível, não só na cor');
 });
 
 test('27. selecionar 2 de 3 rolos e confirmar move exatamente os selecionados, identificados por número', async () => {
@@ -901,15 +948,11 @@ test('27. selecionar 2 de 3 rolos e confirmar move exatamente os selecionados, i
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
+  // A saída para o acabamento consome a MESMA seleção da tela (D13.5): não há
+  // uma segunda lista de checkboxes dos mesmos rolos.
+  await selecionar(h, node, settle, 1, 2);
   h.click(btn(h, 'Dar saída para acabamento', node));
   await settle();
-
-  const linhaRolo = (numero) => h.findOne(
-    (n) => n.tagName === 'INPUT' && n._attrs && n._attrs.type === 'checkbox'
-      && n.getAttribute('aria-label') === ('Selecionar rolo ' + numero), h.body);
-  marcar(h, linhaRolo('001'), true);
-  marcar(h, linhaRolo('002'), true);
-
   h.click(btn(h, 'Confirmar saída'));
   await settle();
 
@@ -922,7 +965,7 @@ test('27. selecionar 2 de 3 rolos e confirmar move exatamente os selecionados, i
     'a confirmação deve identificar QUAIS rolos saíram, nunca apenas "2 rolos saíram"');
 });
 
-test('28. Selecionar todos marca e desmarca todos os rolos elegíveis de uma vez', async () => {
+test('28. selecionar todos os elegíveis envia exatamente eles, nunca o já enviado', async () => {
   const { h, calls, settle } = boot({
     rolos: ROLOS_MISTOS,
     rpcResult: { data: { rolo_ids: [901, 902, 903], quantidade: 3 }, error: null },
@@ -930,34 +973,31 @@ test('28. Selecionar todos marca e desmarca todos os rolos elegíveis de uma vez
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
+  await selecionar(h, node, settle, 1, 2, 3);
   h.click(btn(h, 'Dar saída para acabamento', node));
   await settle();
-
-  const todos = h.findOne((n) => n.tagName === 'INPUT' && n._attrs && n._attrs.type === 'checkbox'
-    && n.getAttribute('aria-label') === 'Selecionar todos os rolos', h.body);
-  marcar(h, todos, true);
-
   h.click(btn(h, 'Confirmar saída'));
   await settle();
 
   const chamada = calls.rpc.find((c) => c.name === 'enviar_rolos_acabamento');
   assert.deepEqual(chamada.params.p_rolo_ids.slice().sort((a, b) => a - b), [901, 902, 903],
-    'Selecionar todos deve incluir exatamente os 3 rolos elegíveis, nunca o já enviado');
+    'a seleção deve incluir exatamente os 3 rolos elegíveis, nunca o já enviado');
 });
 
-test('29. confirmar sem selecionar nenhum rolo é recusado no cliente, sem chamar o servidor', async () => {
-  const { h, calls, toasts, settle } = boot({ rolos: ROLOS_MISTOS });
+test('29. sem nenhum rolo selecionado a saída não é acionável e nada chega ao servidor', async () => {
+  const { h, calls, settle } = boot({ rolos: ROLOS_MISTOS });
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  h.click(btn(h, 'Dar saída para acabamento', node));
-  await settle();
-  h.click(btn(h, 'Confirmar saída'));
-  await settle();
+  const acao = btn(h, 'Dar saída para acabamento', node);
+  assert.ok(acao, 'a ação continua visível, para o estado ser legível');
+  assert.equal(acao.getAttribute('disabled'), 'disabled',
+    'sem seleção, a ação não pode ser acionável');
 
+  h.click(acao);
+  await settle();
   assert.equal(calls.rpc.filter((c) => c.name === 'enviar_rolos_acabamento').length, 0,
     'nada pode ser enviado sem nenhum rolo selecionado');
-  assert.ok(toasts.some((t) => t.kind === 'error'), 'o operador deve ser avisado');
 });
 
 test('30. uma recusa do servidor (ex.: rolo já não elegível) vira mensagem operacional, nunca sucesso silencioso',
@@ -969,11 +1009,9 @@ test('30. uma recusa do servidor (ex.: rolo já não elegível) vira mensagem op
     const node = h.win.screenTecelagemRolos(501, 511);
     await settle();
 
+    await selecionar(h, node, settle, 1);
     h.click(btn(h, 'Dar saída para acabamento', node));
     await settle();
-    const linha001 = h.findOne((n) => n.tagName === 'INPUT' && n._attrs && n._attrs.type === 'checkbox'
-      && n.getAttribute('aria-label') === 'Selecionar rolo 001', h.body);
-    marcar(h, linha001, true);
     h.click(btn(h, 'Confirmar saída'));
     await settle();
 
@@ -1006,9 +1044,12 @@ test('32. MANTA não oferece Dar saída para acabamento em nenhuma tela', async 
 
   assert.equal(btn(h, 'Dar saída para acabamento', node), null,
     'a manta não pode oferecer a ação de saída para o acabamento em nenhuma circunstância');
-  const reimprimir = h.findOne((n) => n.tagName === 'BUTTON'
-    && n.getAttribute('title') === 'Reimprimir etiqueta do rolo 001', node);
-  assert.ok(reimprimir, 'a manta continua com a etiqueta do ROLO normalmente');
+  assert.ok(chipRolo(h, node, 1), 'mas os rolos da manta continuam visíveis e selecionáveis');
+  await selecionar(h, node, settle, 1);
+  h.click(btn(h, 'Imprimir', node));
+  await settle();
+  assert.match(h.textOf(h.body), /Etiqueta do rolo 001/,
+    'a manta continua com a etiqueta do ROLO normalmente');
 });
 
 test('33. imprimir a etiqueta do rolo ou a de acabamento nunca chama o dono da saída, nem muda a situação',
@@ -1023,15 +1064,16 @@ test('33. imprimir a etiqueta do rolo ou a de acabamento nunca chama o dono da s
     h.click(btn(h, 'Imprimir'));
     await settle();
 
-    const reimprimir = h.findOne((n) => n.tagName === 'BUTTON'
-      && n.getAttribute('title') === 'Reimprimir etiqueta do rolo 001', node);
-    h.click(reimprimir);
+    await selecionar(h, node, settle, 1);
+    h.click(btn(h, 'Imprimir', node));
     await settle();
-    h.click(btn(h, 'Imprimir'));
+    h.click(btn(h, 'Imprimir etiqueta'));
     await settle();
 
     assert.equal(calls.rpc.filter((c) => c.name === 'enviar_rolos_acabamento').length, 0,
       'imprimir qualquer etiqueta não pode, em nenhuma circunstância, chamar o dono da saída para o acabamento');
+    assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolos_tecelagem').length, 0,
+      'nem o dono da exclusão');
   });
 
 // =====================================================================
@@ -1261,57 +1303,123 @@ const LANCAMENTO_DE_CINCO = Object.assign({}, LANCAMENTO_DESFAZIVEL, {
   quantidade_rolos: 5, rolos_atuais: 5, numero_inicial: 1, numero_final: 5,
 });
 
-const acaoRolo = (h, node, numero, tipo) => h.findOne((n) => n.tagName === 'BUTTON'
-  && new RegExp(tipo === 'excluir' ? `^Excluir o rolo ${numero}` : `^Reimprimir etiqueta do rolo ${numero}`)
-    .test(n.getAttribute('title') || ''), node);
+const acaoInline = (h, node, rotulo) => h.findOne((n) => n.tagName === 'BUTTON'
+  && h.textOf(n) === rotulo, node);
 
-test('45. cada rolo na tecelagem oferece IMPRIMIR e EXCLUIR, lado a lado', async () => {
+test('45. as ações de seleção moram na linha ROLOS REGISTRADOS e não a fazem crescer', async () => {
   const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  assert.ok(acaoRolo(h, node, '003', 'imprimir'), 'a reimpressão continua existindo, inalterada');
-  assert.ok(acaoRolo(h, node, '003', 'excluir'), 'a exclusão individual tem de existir por rolo');
-  assert.equal(
-    h.findAll((n) => n.tagName === 'BUTTON' && /^Excluir o rolo/.test(n.getAttribute('title') || ''), node).length,
-    5, 'os cinco rolos na tecelagem oferecem a ação');
+  ['Desselecionar', 'Excluir', 'Imprimir'].forEach((rotulo) => {
+    const a = acaoInline(h, node, rotulo);
+    assert.ok(a, `${rotulo} deve existir no cabeçalho da seção`);
+    // O requisito de produto é ZERO crescimento: o rung inline vale exatamente
+    // a altura do chip de seção (20px), então a linha não muda de altura.
+    assert.match(a.getAttribute('style') || '', /height:var\(--rv-h-inline\)/,
+      `${rotulo} deve usar o rung inline, nunca um controle de 32px ou mais`);
+  });
+
+  // E nenhum ícone de ação persistente por chip (D13.4).
+  assert.equal(h.findAll((n) => n.tagName === 'BUTTON'
+    && /^(Reimprimir|Excluir o rolo)/.test(n.getAttribute('title') || ''), node).length, 0,
+    'o chip não pode carregar ícones de ação permanentes');
 });
 
-test('46. excluir o rolo 003 confirma identificando o ROLO, sem id técnico', async () => {
+test('45b. sem seleção as três ações ficam desabilitadas; com seleção, habilitadas', async () => {
+  const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  ['Desselecionar', 'Excluir'].forEach((rotulo) => {
+    assert.equal(acaoInline(h, node, rotulo).getAttribute('disabled'), 'disabled',
+      `com 0 rolos selecionados, ${rotulo} tem de estar desabilitado`);
+  });
+
+  await selecionar(h, node, settle, 3);
+
+  ['Desselecionar', 'Excluir'].forEach((rotulo) => {
+    assert.ok(!acaoInline(h, node, rotulo).getAttribute('disabled'),
+      `com 1 rolo selecionado, ${rotulo} tem de estar habilitado`);
+  });
+});
+
+test('45c. Desselecionar limpa a seleção corrente', async () => {
+  const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  await selecionar(h, node, settle, 1, 3);
+  assert.equal(chipRolo(h, node, 3).getAttribute('aria-pressed'), 'true');
+
+  h.click(acaoInline(h, node, 'Desselecionar'));
+  await settle();
+
+  assert.equal(chipRolo(h, node, 3).getAttribute('aria-pressed'), 'false',
+    'Desselecionar tem de limpar a seleção');
+  assert.equal(acaoInline(h, node, 'Excluir').getAttribute('disabled'), 'disabled',
+    'e as ações voltam a ficar desabilitadas');
+});
+
+test('46. selecionar UM rolo e excluir confirma identificando o ROLO, sem id técnico', async () => {
   const { h, calls, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  h.click(acaoRolo(h, node, '003', 'excluir'));
+  await selecionar(h, node, settle, 3);
+  h.click(acaoInline(h, node, 'Excluir'));
   await settle();
 
   const texto = h.textOf(h.body);
-  assert.match(texto, /Excluir Rolo 003\?/, 'a confirmação tem de identificar o rolo pelo número visível');
-  assert.match(texto, /removido do lançamento de produção/);
+  assert.match(texto, /Excluir Rolo 003\?/, 'com um rolo só, a confirmação nomeia o rolo');
   assert.ok(!/903/.test(texto), 'o id técnico do rolo NUNCA pode chegar ao operador');
-  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolos_tecelagem').length, 0,
     'NADA pode ser excluído antes da confirmação');
 });
 
-test('47. confirmada, a exclusão envia exatamente o rolo escolhido', async () => {
+test('47. confirmada, a exclusão de um rolo envia exatamente o rolo escolhido', async () => {
   const { h, calls, toasts, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  h.click(acaoRolo(h, node, '003', 'excluir'));
+  await selecionar(h, node, settle, 3);
+  h.click(acaoInline(h, node, 'Excluir'));
   await settle();
   h.click(btn(h, 'Excluir rolo'));
   await settle();
 
-  const chamada = calls.rpc.find((c) => c.name === 'excluir_rolo_tecelagem');
+  const chamada = calls.rpc.find((c) => c.name === 'excluir_rolos_tecelagem');
   assert.ok(chamada, 'o dono da escrita da exclusão tem de ser chamado');
-  assert.equal(chamada.params.p_rolo_id, 903, 'tem de viajar o rolo 003, e nenhum outro');
+  assert.deepEqual(chamada.params.p_rolo_ids, [903], 'tem de viajar o rolo 003, e nenhum outro');
   assert.equal(calls.rpc.filter((c) => c.name === 'desfazer_lancamento_tecelagem').length, 0,
-    'excluir UM rolo nunca pode acionar o desfazer do LOTE');
+    'excluir rolos nunca pode acionar o desfazer do LOTE');
   assert.ok(toasts.some((t) => /Rolo 003 excluído/.test(t.msg)));
 });
 
-test('48. um rolo já enviado ao acabamento não pode ser excluído', async () => {
+test('48. selecionar VÁRIOS rolos e excluir declara a quantidade e envia todos, numa só ação', async () => {
+  const { h, calls, toasts, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  await selecionar(h, node, settle, 3, 5, 6 - 6 + 1); // 003, 005 e 001
+  h.click(acaoInline(h, node, 'Excluir'));
+  await settle();
+
+  assert.match(h.textOf(h.body), /Excluir 3 rolos selecionados\?/,
+    'a confirmação tem de declarar a QUANTIDADE selecionada');
+
+  h.click(btn(h, 'Excluir rolos'));
+  await settle();
+
+  const chamada = calls.rpc.find((c) => c.name === 'excluir_rolos_tecelagem');
+  assert.deepEqual(chamada.params.p_rolo_ids.slice().sort((a, b) => a - b), [901, 903, 905],
+    'os três rolos selecionados viajam na MESMA chamada, nunca três chamadas separadas');
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolos_tecelagem').length, 1,
+    'uma ação do operador é UMA chamada ao servidor');
+  assert.ok(toasts.some((t) => /3 rolos excluídos/.test(t.msg)));
+});
+
+test('49. um rolo já enviado não pode ser selecionado nem excluído', async () => {
   const rolos = [
     { id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'na_tecelagem' },
     { id: 902, op_item_id: 511, numero: 2, comprimento_m: null, situacao: 'enviado_acabamento' },
@@ -1320,20 +1428,18 @@ test('48. um rolo já enviado ao acabamento não pode ser excluído', async () =
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  const acao = h.findOne((n) => n.tagName === 'BUTTON'
-    && /rolo 002 já saiu para o acabamento/.test(n.getAttribute('title') || ''), node);
-  assert.ok(acao, 'a ação continua visível, com o motivo no nome acessível');
-  assert.equal(acao.getAttribute('disabled'), 'disabled', 'e não pode ser acionável');
-
-  assert.ok(acaoRolo(h, node, '001', 'excluir'), 'o rolo ainda na tecelagem segue excluível');
-
-  h.click(acao);
+  const enviado = chipRolo(h, node, 2);
+  assert.equal(enviado.getAttribute('disabled'), 'disabled');
+  h.click(enviado);
   await settle();
-  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
-    'nenhuma exclusão pode chegar ao servidor para um rolo já enviado');
+  assert.equal(chipRolo(h, node, 2).getAttribute('aria-pressed'), 'false',
+    'um rolo já enviado não entra na seleção nem com um clique direto');
+  assert.equal(acaoInline(h, node, 'Excluir').getAttribute('disabled'), 'disabled',
+    'e portanto não habilita a exclusão');
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolos_tecelagem').length, 0);
 });
 
-test('49. uma recusa do servidor vira mensagem operacional, nunca sucesso silencioso', async () => {
+test('50. uma recusa do servidor vira mensagem operacional, nunca sucesso silencioso', async () => {
   const { h, toasts, settle } = boot({
     rolos: CINCO_ROLOS,
     lancamentos: [LANCAMENTO_DE_CINCO],
@@ -1342,27 +1448,24 @@ test('49. uma recusa do servidor vira mensagem operacional, nunca sucesso silenc
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  h.click(acaoRolo(h, node, '003', 'excluir'));
+  await selecionar(h, node, settle, 3);
+  h.click(acaoInline(h, node, 'Excluir'));
   await settle();
   h.click(btn(h, 'Excluir rolo'));
   await settle();
 
   assert.ok(toasts.some((t) => t.kind === 'error' && /já saiu para o acabamento/.test(t.msg)),
     'a recusa do servidor tem de virar uma frase operacional');
-  // O texto da recusa também contém "excluído" ("...não pode ser excluído"), então
-  // o que prova a ausência de sucesso é a AUSÊNCIA de um toast de sucesso.
   assert.ok(!toasts.some((t) => t.kind === 'success'),
     'uma recusa NUNCA pode ser relatada como sucesso');
-  assert.ok(!toasts.some((t) => /^Rolo \d+ excluído\.$/.test(t.msg)),
-    'e a frase de confirmação da exclusão não pode aparecer');
 });
 
-test('50. as duas correções coexistem: excluir rolo e desfazer lançamento', async () => {
+test('51. as duas correções coexistem: excluir rolos e desfazer lançamento', async () => {
   const { h, calls, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
   const node = h.win.screenTecelagemRolos(501, 511);
   await settle();
 
-  assert.ok(acaoRolo(h, node, '001', 'excluir'), 'a exclusão individual existe');
+  assert.ok(acaoInline(h, node, 'Excluir'), 'a exclusão por seleção existe');
   assert.ok(btn(h, 'Desfazer lançamento', node), 'e o desfazer do lote inteiro continua existindo');
 
   h.click(btn(h, 'Desfazer lançamento', node));
@@ -1371,26 +1474,72 @@ test('50. as duas correções coexistem: excluir rolo e desfazer lançamento', a
   await settle();
 
   assert.equal(calls.rpc.filter((c) => c.name === 'desfazer_lancamento_tecelagem').length, 1,
-    'o desfazer do lote segue funcionando depois de db/127');
-  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
-    'e não passa a excluir rolos um a um por baixo dos panos');
+    'o desfazer do lote segue funcionando');
+  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolos_tecelagem').length, 0,
+    'e não passa a excluir rolos por baixo dos panos');
 });
 
-test('51. a exclusão não toca reimpressão nem saída para acabamento', async () => {
-  const { h, calls, opens, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
-  const node = h.win.screenTecelagemRolos(501, 511);
+// =====================================================================
+// DENSIDADE — cards de produto compactos na tela de OP (D13.1)
+// =====================================================================
+
+test('52. o card de produto não tem rodapé de ações: elas ficam na linha de identidade', async () => {
+  const { h, settle } = boot({ rolos: [] });
+  const node = h.win.screenTecelagemOp(501);
   await settle();
 
-  h.click(acaoRolo(h, node, '002', 'imprimir'));
-  await settle();
-  h.click(btn(h, 'Imprimir'));
-  await settle();
-  assert.equal(opens.length, 1, 'a reimpressão continua abrindo a janela de impressão');
-  assert.match(opens[0].html, /Rolo/, 'e continua identificando o rolo');
+  const acoes = h.findOne((n) => n.getAttribute && n.getAttribute('data-rv-tecelagem-produto-acoes') != null, node);
+  assert.ok(acoes, 'as ações do produto têm de existir num grupo próprio, no topo do card');
 
-  assert.ok(btn(h, 'Dar saída para acabamento', node), 'a saída para acabamento continua disponível');
-  assert.equal(calls.rpc.filter((c) => c.name === 'excluir_rolo_tecelagem').length, 0,
-    'imprimir nunca pode excluir um rolo');
-  assert.equal(calls.rpc.filter((c) => c.name === 'enviar_rolos_acabamento').length, 0,
-    'nem acionar a saída para o acabamento');
+  ['Ver rolos', 'Registrar produção'].forEach((rotulo) => {
+    const a = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === rotulo, acoes);
+    assert.ok(a, `${rotulo} tem de estar no grupo de ações do topo`);
+    assert.match(a.getAttribute('style') || '', /height:var\(--rv-h-compact\)/,
+      `${rotulo} tem de usar o rung compacto — visivelmente menor que os 34/38px de antes`);
+  });
 });
+
+test('53. o card compacto preserva todo o conteúdo de produto que o operador precisa', async () => {
+  const rolos = [{ id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'na_tecelagem' }];
+  const { h, settle } = boot({ rolos });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  const texto = h.textOf(node);
+  assert.match(texto, /NOITE · 2,10 m · KRAFT\/CRU/, 'modelo, largura e cores continuam visíveis');
+  assert.match(texto, /Previsto/);
+  assert.match(texto, /4\.000,00 m/, 'a quantidade prevista continua visível, em pt-BR');
+  assert.match(texto, /Produzido/);
+  assert.match(texto, /1 rolo/, 'a quantidade produzida continua visível');
+});
+
+test('54. a hierarquia primária/secundária sobrevive à compactação', async () => {
+  const { h, settle } = boot({ rolos: [] });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  const registrar = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Registrar produção', node);
+  const verRolos = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Ver rolos', node);
+
+  assert.match(registrar.getAttribute('style') || '', /background:var\(--rv-brand\)/,
+    'a ação primária continua sendo a única com preenchimento de marca');
+  assert.match(verRolos.getAttribute('style') || '', /background:var\(--rv-surface\)/,
+    'a secundária continua neutra');
+  // A hierarquia passou a ser dada pela COR, não pela altura: as duas medem o
+  // mesmo rung, e é isso que impede o card de crescer.
+  assert.match(verRolos.getAttribute('style') || '', /height:var\(--rv-h-compact\)/);
+});
+
+test('55. MANTA continua sem Etiqueta de acabamento também no card compacto', async () => {
+  const { h, settle } = boot({
+    rolos: [], modelo: MODELO_MANTA, item: Object.assign({}, ITEM, { id: 512, modelo_id: 222 }),
+  });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  assert.equal(h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Etiqueta de acabamento', node), null,
+    'a regra da manta não pode ter sido perdida na compactação');
+  assert.ok(h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Ver rolos', node),
+    'mas as demais ações continuam');
+});
+
