@@ -90,6 +90,8 @@
   var ICON_UNDO = '<path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>';
   var ICON_TRASH = '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line>';
   var ICON_CHECK = '<polyline points="20 6 9 17 4 12"></polyline>';
+  var ICON_TAG = '<path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.2"></circle>';
+  var ICON_TAG_CHECK = '<path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.2"></circle><polyline points="9.5 13.5 11.5 15.5 15.5 11.5"></polyline>';
 
   function icon(markup, size) {
     var svg = window.el('span', {});
@@ -129,16 +131,37 @@
     );
   }
 
-  // O MESMO chip de seção, com AÇÕES INLINE à direita da própria linha.
+  // O MESMO chip de seção, agora carregando TUDO na própria linha:
+  //
+  //     [chip] RÓTULO   Identidade                    [ ações ]
+  //
+  // A identidade entra à ESQUERDA, colada ao rótulo, porque é o que ela nomeia;
+  // as ações vão à direita. Uma linha, e só uma: não existe caminho aqui para
+  // uma segunda linha nem para um rodapé.
   //
   // A altura da linha NÃO pode crescer (requisito de produto, D13.2): as ações
-  // usam var(--rv-h-inline), que é exatamente a altura do chip (20px), então a
-  // linha continua com a altura que tinha sem elas. `align-items:center` e a
-  // ausência de padding vertical são o que garante isso.
-  function sectionChipComAcoes(label, iconMarkup, acoes) {
+  // usam var(--rv-h-inline), que é exatamente a altura do chip (20px), e a
+  // identidade amarra a própria line-height ao mesmo valor. `align-items:center`
+  // e a ausência de padding vertical são o que fecham a garantia.
+  function sectionChipComAcoes(label, iconMarkup, acoes, identidade) {
     var linha = sectionChip(label, iconMarkup);
     linha.style.justifyContent = 'space-between';
-    var grupo = window.el('div', { style: 'display:flex; align-items:center; gap:6px; margin-left:auto;' });
+
+    if (identidade) {
+      // min-width:0 no grupo da esquerda para que uma identidade longa trunque
+      // em vez de empurrar as ações para fora — truncar é perder um pedaço do
+      // texto; quebrar seria perder a linha única.
+      var esquerda = window.el('div', {
+        style: 'display:flex; align-items:center; gap:8px; min-width:0; flex:1 1 auto;',
+      });
+      while (linha.firstChild) esquerda.appendChild(linha.firstChild);
+      esquerda.appendChild(identidade);
+      linha.appendChild(esquerda);
+    }
+
+    var grupo = window.el('div', {
+      style: 'display:flex; align-items:center; gap:6px; margin-left:auto; flex:none;',
+    });
     (acoes || []).filter(Boolean).forEach(function (a) { grupo.appendChild(a); });
     linha.appendChild(grupo);
     return linha;
@@ -442,7 +465,7 @@
   async function carregarRolos(opItemIds) {
     if (!opItemIds.length) return {};
     var res = await window.supa.from('tecelagem_rolos')
-      .select('id, op_id, op_item_id, numero, comprimento_m, situacao, criado_em')
+      .select('id, op_id, op_item_id, numero, comprimento_m, situacao, criado_em, etiqueta_impressa_em')
       .in('op_item_id', opItemIds)
       .order('numero');
     if (res.error) throw res.error;
@@ -704,7 +727,30 @@
   //     reimpressão agora que o chip não carrega ícone de ação.
   // O título muda porque as duas frases são diferentes — "criados" seria falso
   // ao reimprimir —, mas o conteúdo e as regras da etiqueta são os mesmos.
-  function abrirEtiquetasDisponiveis(op, produto, rolosCriados, reimpressao) {
+  // MARCA A ETIQUETA COMO IMPRESSA (db/129). Chamada SEMPRE que uma etiqueta de
+  // ROLO é efetivamente enviada para impressão, e nunca pela etiqueta de
+  // ACABAMENTO — aquela é do produto da OP e não tem estado por rolo.
+  //
+  // A marcação é deliberadamente NÃO BLOQUEANTE: o papel já saiu na impressora,
+  // então uma falha ao registrar isso não pode desfazer a impressão nem virar
+  // um erro que sugira que ela não aconteceu. Ela é reportada e a tela recarrega
+  // para mostrar o estado REAL do servidor, seja ele qual for.
+  async function marcarEtiquetasImpressas(rolos, aoConcluir) {
+    var ids = (rolos || [])
+      .map(function (r) { return r && r.id; })
+      .filter(function (id) { return id != null; })
+      .map(Number);
+    if (!ids.length) return;
+
+    var res = await window.supa.rpc('marcar_etiquetas_rolo_impressas', { p_rolo_ids: ids });
+    if (res.error) {
+      console.error(res.error);
+      window.toast('A etiqueta foi impressa, mas não foi possível registrar isso agora.', 'error');
+    }
+    if (typeof aoConcluir === 'function') aoConcluir();
+  }
+
+  function abrirEtiquetasDisponiveis(op, produto, rolosCriados, reimpressao, aoConcluir) {
     var lista = window.el('div', { style: 'display:flex; flex-direction:column;' });
     rolosCriados.forEach(function (rolo) {
       lista.appendChild(window.el('div', {
@@ -716,6 +762,7 @@
         }, 'Rolo ' + fmtRolo(rolo.numero)),
         secondaryButton('Imprimir etiqueta', function () {
           imprimir('Etiqueta - Rolo ' + fmtRolo(rolo.numero), corpoEtiquetaRolo(op, produto, rolo));
+          marcarEtiquetasImpressas([rolo], aoConcluir);
         })
       ));
     });
@@ -735,6 +782,7 @@
           return '<div class="rv-etiqueta">' + corpoEtiquetaRolo(op, produto, rolo) + '</div>';
         }).join('');
         imprimir('Etiquetas - ' + window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op), corpo);
+        marcarEtiquetasImpressas(rolosCriados, aoConcluir);
       },
     });
   }
@@ -937,7 +985,7 @@
       // continua medindo exatamente o que media, e uma linha inteira sai.
       var estado = execucao(op);
       var opCard = card(
-        sectionChipComAcoes('Ordem de produção', ICON_LAYERS, [
+        sectionChipComAcoes('Ordem de produção', ICON_LAYERS, [execucaoPill(op)],
           window.el('span', {
             'data-rv-tecelagem-op-identidade': '',
             // line-height AMARRADA ao rung inline: sem isso o corpo de 16px
@@ -945,10 +993,9 @@
             // O requisito é altura inalterada, então a caixa da identidade vale
             // exatamente a altura do chip que ela acompanha.
             style: 'font-size:var(--rv-fs-component-heading); font-weight:700;'
-              + ' line-height:var(--rv-h-inline); color:var(--rv-text-primary);',
-          }, identidade),
-          execucaoPill(op),
-        ]),
+              + ' line-height:var(--rv-h-inline); color:var(--rv-text-primary);'
+              + ' white-space:nowrap;',
+          }, identidade)),
         linhaCliente(op),
         linhaExecucao(op)
       );
@@ -1242,20 +1289,35 @@
 
     // ETIQUETAS DISPONÍVEIS logo após o registro: o operador não precisa
     // voltar a identificar os rolos que acabou de criar (§2 do produto).
-    // Os rolos vêm do PRÓPRIO retorno do dono da escrita
-    // (numero_inicial/numero_final) e do comprimento que este mesmo
-    // formulário já validou — sem nova leitura ao servidor.
+    //
+    // A faixa criada vem do PRÓPRIO retorno do dono da escrita, mas os rolos
+    // são RELIDOS do servidor em vez de sintetizados a partir dela: imprimir
+    // uma etiqueta agora precisa MARCAR aquele rolo (db/129), e para isso é
+    // preciso o id real — um objeto montado só com número não pode ser
+    // marcado, e a impressão sairia sem registrar que saiu.
     var numeroInicial = res.data && res.data.numero_inicial;
     var numeroFinal = res.data && res.data.numero_final;
     if (numeroInicial != null && numeroFinal != null) {
       var rolosCriados = [];
-      for (var n = numeroInicial; n <= numeroFinal; n += 1) {
-        rolosCriados.push({
-          numero: n,
-          comprimento_m: comprimentos ? comprimentos[n - numeroInicial] : null,
-        });
+      try {
+        rolosCriados = ((await carregarRolos([produto.id]))[produto.id] || [])
+          .filter(function (r) {
+            return Number(r.numero) >= numeroInicial && Number(r.numero) <= numeroFinal;
+          });
+      } catch (e) {
+        console.error(e);
       }
-      abrirEtiquetasDisponiveis(op, produto, rolosCriados);
+      // Uma releitura que falhe não pode esconder as etiquetas do operador: o
+      // caminho de impressão continua, apenas sem poder marcar o estado.
+      if (!rolosCriados.length) {
+        for (var n = numeroInicial; n <= numeroFinal; n += 1) {
+          rolosCriados.push({
+            numero: n,
+            comprimento_m: comprimentos ? comprimentos[n - numeroInicial] : null,
+          });
+        }
+      }
+      abrirEtiquetasDisponiveis(op, produto, rolosCriados, false, aoConcluir);
     }
     return true;
   }
@@ -1588,35 +1650,41 @@
 
       var corpo = window.el('div', { style: 'display:flex; flex-direction:column; gap:12px;' });
 
+      // UMA ÚNICA LINHA DE CABEÇALHO: rótulo da seção, identidade do produto e
+      // as duas ações, tudo na linha que o chip já ocupava. O rodapé de ações
+      // não existe mais e nada tomou o lugar dele — a identidade subiu para cá
+      // e o que fica abaixo é só informação de apoio (OP e cliente).
+      //
+      // AUSENTE para manta (regra de produto): sem NENHUMA das duas ações o
+      // grupo fica vazio, e sectionChipComAcoes simplesmente não recebe nada.
+      var acoesProduto = [];
+      if (temEtiquetaAcabamento(produto)) {
+        acoesProduto.push(inlineAction('Etiqueta de acabamento', function () {
+          abrirEtiquetaAcabamento(op, produto);
+        }));
+      }
+      if (temSaidaAcabamento(produto)) {
+        // Continua CONSUMINDO A SELEÇÃO desta tela, e continua sendo a ação
+        // primária — a hierarquia é do tom, não da altura.
+        acoesProduto.push(inlineAction('Dar saída para acabamento', function () {
+          abrirSaidaAcabamento(op, produto, rolos, selecao, reload);
+        }, !selecionadosElegiveis.length, 'primario'));
+      }
+
       var produtoCard = card(
-        sectionChip('Produto', ICON_BOX),
+        sectionChipComAcoes('Produto', ICON_BOX, acoesProduto, window.el('span', {
+          'data-rv-tecelagem-produto-identidade': '',
+          // Mesma disciplina da identidade da OP: a caixa da linha vale
+          // exatamente a altura do chip, senão o corpo de 16px a faria crescer.
+          style: 'font-size:var(--rv-fs-component-heading); font-weight:600;'
+            + ' line-height:var(--rv-h-inline); color:var(--rv-text-primary);'
+            + ' white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;',
+        }, rotuloProduto(produto.modelo))),
         window.el('div', {
-          style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
-        }, rotuloProduto(produto.modelo)),
-        window.el('div', {
-          style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-top:5px;',
+          style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary);',
         }, window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)),
         linhaCliente(op)
       );
-      // AUSENTE para manta (regra de produto, §6): sem NENHUMA das duas
-      // ações, o rodapé do card não existe — nunca um rodapé vazio.
-      if (temEtiquetaAcabamento(produto) || temSaidaAcabamento(produto)) {
-        var rodapeAcoes = [];
-        if (temEtiquetaAcabamento(produto)) {
-          rodapeAcoes.push(secondaryButton('Etiqueta de acabamento', function () {
-            abrirEtiquetaAcabamento(op, produto);
-          }));
-        }
-        if (temSaidaAcabamento(produto)) {
-          // A ação permanece onde já estava na estrutura da página (§F), mas
-          // agora CONSOME A SELEÇÃO desta tela em vez de abrir uma segunda
-          // lista dos mesmos rolos.
-          rodapeAcoes.push(primaryButton('Dar saída para acabamento', function () {
-            abrirSaidaAcabamento(op, produto, rolos, selecao, reload);
-          }, !selecionadosElegiveis.length));
-        }
-        produtoCard.appendChild(cardFooter.apply(null, rodapeAcoes));
-      }
       corpo.appendChild(produtoCard);
 
       // ROLOS REGISTRADOS — as ações de seleção moram NA PRÓPRIA LINHA do chip
@@ -1625,7 +1693,7 @@
       var nSel = selecionadosElegiveis.length;
       var blocoRolos = card(sectionChipComAcoes('Rolos registrados', ICON_LIST, [
         inlineAction('Imprimir', function () {
-          abrirEtiquetasDisponiveis(op, produto, rolosSelecionados, true);
+          abrirEtiquetasDisponiveis(op, produto, rolosSelecionados, true, reload);
         }, rolosSelecionados.length === 0),
         inlineAction('Desselecionar', function () {
           selecao = [];
@@ -1715,6 +1783,31 @@
     return fmtRolo(rolo.numero) + ' · ' + (rolo.comprimento_m == null ? '—' : fmtMetros(rolo.comprimento_m));
   }
 
+  // ESTADO DA ETIQUETA DO ROLO (db/129) — indicador só de relance.
+  //
+  // Deriva do fato PERSISTIDO `etiqueta_impressa_em`, nunca da existência do
+  // rolo: um rolo que nunca foi impresso lê como nunca impresso para sempre.
+  // Nada aqui olha a etiqueta de ACABAMENTO, que é do produto da OP e não tem
+  // estado por rolo.
+  function etiquetaImpressa(rolo) {
+    return !!(rolo && rolo.etiqueta_impressa_em);
+  }
+
+  // O indicador é uma TAG de 11px dentro do próprio chip. Sem texto, sem
+  // segunda linha, sem crescer a altura: o chip mede 24px e o glifo 11px, então
+  // ele cabe na caixa que já existia. Os dois estados se distinguem por
+  // PREENCHIMENTO e opacidade, e a diferença é dita por extenso no nome
+  // acessível — nunca só pela cor.
+  function selo(rolo) {
+    var impressa = etiquetaImpressa(rolo);
+    return window.el('span', {
+      'data-rv-rolo-etiqueta': impressa ? 'impressa' : 'nao-impressa',
+      style: 'display:inline-flex; align-items:center; flex:none;'
+        + ' color:' + (impressa ? 'var(--rv-signal-positive)' : 'var(--rv-text-tertiary)') + ';'
+        + (impressa ? '' : ' opacity:.55;'),
+    }, icon(impressa ? ICON_TAG_CHECK : ICON_TAG, 11));
+  }
+
   function chipRolo(rolo, selecionado, selecionavel, onToggle) {
     var estilo = 'height:24px; padding:0 9px; display:inline-flex; align-items:center; gap:6px;'
       + ' border-radius:var(--rv-radius); font-size:var(--rv-fs-2xs); font-weight:600;'
@@ -1735,7 +1828,9 @@
       + (rolo.comprimento_m == null ? ', sem comprimento' : ', ' + fmtMetros(rolo.comprimento_m))
       + (selecionavel
         ? (selecionado ? ', selecionado' : ', não selecionado')
-        : ', já enviado ao acabamento, não selecionável');
+        : ', já enviado ao acabamento, não selecionável')
+      // O estado da etiqueta NUNCA é comunicado só pelo ícone.
+      + (etiquetaImpressa(rolo) ? ', etiqueta impressa' : ', etiqueta não impressa');
 
     var attrs = {
       type: 'button',
@@ -1752,7 +1847,8 @@
 
     return window.el('button', attrs,
       selecionado ? icon(ICON_CHECK, 12) : null,
-      num(window.el('span', {}, textoChipRolo(rolo)))
+      num(window.el('span', {}, textoChipRolo(rolo))),
+      selo(rolo)
     );
   }
 

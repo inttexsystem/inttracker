@@ -35,7 +35,7 @@ const indexSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // ---------------------------------------------------------------------
 // Duplo do Supabase: responde por tabela e registra o que foi perguntado.
 // ---------------------------------------------------------------------
-function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfazerResult, excluirResult,
+function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfazerResult, excluirResult, marcarResult,
                     ops, modelo, modelos, item, itens } = {}) {
   const calls = { from: [], rpc: [] };
   const listaOps = ops || [OP_EM_PRODUCAO];
@@ -87,6 +87,9 @@ function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfa
         if (name === 'tecelagem_lancamentos_recentes') return { data: lancamentos, error: null };
         if (name === 'desfazer_lancamento_tecelagem') {
           return desfazerResult || { data: { rolos_removidos: 3 }, error: null };
+        }
+        if (name === 'marcar_etiquetas_rolo_impressas') {
+          return marcarResult || { data: { marcados: (params.p_rolo_ids || []).length }, error: null };
         }
         if (name === 'excluir_rolos_tecelagem') {
           return excluirResult || { data: { rolo_ids: params.p_rolo_ids, rolos_removidos: (params.p_rolo_ids || []).length }, error: null };
@@ -140,10 +143,10 @@ const MODELO_MANTA = Object.assign({}, MODELO, {
   cor_1: { id: 3, nome: 'AZUL' }, cor_2: { id: 4, nome: 'BEGE' },
 });
 
-function boot({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult, excluirResult, ops,
+function boot({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult, excluirResult, marcarResult, ops,
                 fornecedorId = 401, modelo, modelos, item, itens } = {}) {
   const { supa, calls } = makeSupa({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult,
-    excluirResult, ops, modelo, modelos, item, itens });
+    excluirResult, marcarResult, ops, modelo, modelos, item, itens });
   const toasts = [];
   const h = createScreenHarness({
     files: ['js/op-display.js', SCREEN_REL],
@@ -210,8 +213,8 @@ test('3. a superfície de tecelagem não tem nenhum caminho de escrita no Admin'
   assert.deepEqual(
     rpcs,
     ['desfazer_lancamento_tecelagem', 'enviar_rolos_acabamento', 'excluir_rolos_tecelagem',
-      'iniciar_producao_tecelagem', 'registrar_producao_tecelagem',
-      'tecelagem_lancamentos_recentes', 'tecelagem_minhas_ops'],
+      'iniciar_producao_tecelagem', 'marcar_etiquetas_rolo_impressas',
+      'registrar_producao_tecelagem', 'tecelagem_lancamentos_recentes', 'tecelagem_minhas_ops'],
     `a tela só pode chamar os read models e os donos de escrita da tecelagem, encontrou: ${rpcs.join(', ')}`);
 
   // O início da produção aqui é LOCAL à tecelagem. A transição autoritativa do
@@ -786,14 +789,33 @@ test('21. reimprimir etiqueta em VER ROLOS não chama o dono da escrita nem cria
   await settle();
 
   assert.match(h.textOf(h.body), /Etiqueta do rolo 043/, 'a pré-visualização deve identificar o rolo exato');
-  assert.equal(calls.rpc.length, chamadasAntes, 'reimprimir não pode chamar RPC nenhuma — é leitura pura');
-  assert.equal(calls.rpc.filter((c) => c.name === 'registrar_producao_tecelagem').length, 0,
-    'reimprimir nunca pode criar um rolo ou um lançamento novo');
+  // ABRIR a pré-visualização continua sendo leitura pura.
+  assert.equal(calls.rpc.length, chamadasAntes, 'abrir a etiqueta não pode chamar RPC nenhuma');
 
   h.click(btn(h, 'Imprimir'));
   await settle();
   assert.equal(opens.length, 1, 'confirmar a impressão deve acionar a janela');
-  assert.equal(calls.rpc.length, chamadasAntes, 'nem a impressão em si chama RPC nenhuma');
+
+  // IMPRIMIR agora registra o estado da etiqueta (db/129) — e SÓ isso. A
+  // asserção que importa nunca foi "nenhuma RPC": é que reimprimir não toca a
+  // PRODUÇÃO.
+  // Depois de marcar, a tela RECARREGA para mostrar o indicador real do
+  // servidor, então os read models aparecem — e devem. O que a asserção pesa é
+  // quais DONOS DE ESCRITA foram chamados.
+  const ESCRITORES = ['registrar_producao_tecelagem', 'iniciar_producao_tecelagem',
+    'enviar_rolos_acabamento', 'excluir_rolos_tecelagem', 'desfazer_lancamento_tecelagem',
+    'marcar_etiquetas_rolo_impressas'];
+  assert.deepEqual(
+    calls.rpc.slice(chamadasAntes).map((c) => c.name).filter((n) => ESCRITORES.includes(n)),
+    ['marcar_etiquetas_rolo_impressas'],
+    'imprimir só pode acionar o dono do estado da etiqueta');
+  assert.deepEqual(calls.rpc.find((c) => c.name === 'marcar_etiquetas_rolo_impressas').params.p_rolo_ids, [901],
+    'e tem de marcar exatamente o rolo impresso');
+  ['registrar_producao_tecelagem', 'excluir_rolos_tecelagem', 'enviar_rolos_acabamento',
+    'desfazer_lancamento_tecelagem'].forEach((dono) => {
+    assert.equal(calls.rpc.filter((c) => c.name === dono).length, 0,
+      `reimprimir nunca pode chamar ${dono}`);
+  });
 });
 
 // -- ETIQUETA PARA O ACABAMENTO ------------------------------------------
@@ -1610,6 +1632,143 @@ test('59. a identidade da OP cabe na altura do chip, sem crescer a linha', async
     'a identidade toma o rung de heading de componente para caber na linha do chip');
   assert.ok(!/--rv-fs-section-heading/.test(identidade.getAttribute('style') || ''),
     'o rung de 20px cresceria a linha e não pode voltar');
+});
+
+// =====================================================================
+// VER ROLOS — CARD DE PRODUTO EM UMA LINHA SÓ
+// =====================================================================
+
+test('60. o card de produto de Ver rolos não tem rodapé: rótulo, identidade e ações numa linha', async () => {
+  const { h, settle } = boot({
+    rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO], item: ITEM_COM_EMBORRACHAR,
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const identidade = h.findOne((n) => n.getAttribute
+    && n.getAttribute('data-rv-tecelagem-produto-identidade') != null, node);
+  assert.ok(identidade, 'a identidade do produto tem de existir');
+  assert.match(h.textOf(identidade), /NOITE · 2,10 m · KRAFT\/CRU/);
+
+  // A linha do chip é o AVÔ: rótulo, identidade e ações partilham UMA linha.
+  const linha = identidade.parentNode.parentNode;
+  assert.match(h.textOf(linha), /PRODUTO/i, 'o rótulo da seção está na mesma linha');
+  ['Etiqueta de acabamento', 'Dar saída para acabamento'].forEach((rotulo) => {
+    const a = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === rotulo, linha);
+    assert.ok(a, `${rotulo} tem de estar na linha do cabeçalho PRODUTO`);
+    assert.match(a.getAttribute('style') || '', /height:var\(--rv-h-inline\)/,
+      `${rotulo} tem de usar o rung inline para não crescer a linha`);
+  });
+
+  // O apoio continua abaixo, e nada mais.
+  assert.match(h.textOf(node), /OP 003\/2026/, 'a OP continua visível como apoio');
+  assert.match(h.textOf(node), /Cliente: Felipe Grandi/, 'o cliente continua visível como apoio');
+});
+
+test('61. a hierarquia do card de produto de Ver rolos sobrevive', async () => {
+  const { h, settle } = boot({
+    rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO], item: ITEM_COM_EMBORRACHAR,
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const saida = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Dar saída para acabamento', node);
+  const etiqueta = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Etiqueta de acabamento', node);
+  assert.match(saida.getAttribute('style') || '', /background:var\(--rv-brand\)/,
+    'dar saída continua sendo a primária');
+  assert.match(etiqueta.getAttribute('style') || '', /background:var\(--rv-surface\)/,
+    'a etiqueta continua secundária');
+  // Sem seleção continua desabilitada — a regra de elegibilidade não mudou.
+  assert.equal(saida.getAttribute('disabled'), 'disabled');
+});
+
+// =====================================================================
+// ETIQUETA DO ROLO — indicador persistido (db/129)
+// =====================================================================
+
+test('62. cada chip carrega o indicador da etiqueta, e os dois estados se distinguem', async () => {
+  const rolos = [
+    { id: 901, op_item_id: 511, numero: 1, comprimento_m: 28.4, situacao: 'na_tecelagem', etiqueta_impressa_em: null },
+    { id: 902, op_item_id: 511, numero: 2, comprimento_m: null, situacao: 'na_tecelagem', etiqueta_impressa_em: '2026-08-04T12:00:00.000Z' },
+  ];
+  const { h, settle } = boot({ rolos, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const selo = (n) => h.findOne((x) => x.getAttribute && x.getAttribute('data-rv-rolo-etiqueta') != null,
+    chipRolo(h, node, n));
+  assert.equal(selo(1).getAttribute('data-rv-rolo-etiqueta'), 'nao-impressa');
+  assert.equal(selo(2).getAttribute('data-rv-rolo-etiqueta'), 'impressa');
+
+  // O estado NUNCA é comunicado só pelo ícone.
+  assert.match(chipRolo(h, node, 1).getAttribute('aria-label'), /etiqueta não impressa/);
+  assert.match(chipRolo(h, node, 2).getAttribute('aria-label'), /etiqueta impressa/);
+  // E não vira texto permanente no chip.
+  assert.ok(!/Impress/i.test(h.textOf(chipRolo(h, node, 2))),
+    'o chip não pode ganhar um rótulo de texto por rolo');
+});
+
+test('63. o indicador aparece também num rolo já enviado ao acabamento', async () => {
+  const rolos = [
+    { id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'enviado_acabamento', etiqueta_impressa_em: '2026-08-04T12:00:00.000Z' },
+  ];
+  const { h, settle } = boot({ rolos, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const chip = chipRolo(h, node, 1);
+  assert.equal(chip.getAttribute('disabled'), 'disabled', 'continua não selecionável');
+  const selo = h.findOne((x) => x.getAttribute && x.getAttribute('data-rv-rolo-etiqueta') != null, chip);
+  assert.equal(selo.getAttribute('data-rv-rolo-etiqueta'), 'impressa',
+    'um rolo enviado ainda mostra que a etiqueta dele foi impressa');
+});
+
+test('64. nada infere impressão: um rolo sem o campo lê como não impresso', async () => {
+  const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  [1, 2, 3, 4, 5].forEach((n) => {
+    const selo = h.findOne((x) => x.getAttribute && x.getAttribute('data-rv-rolo-etiqueta') != null,
+      chipRolo(h, node, n));
+    assert.equal(selo.getAttribute('data-rv-rolo-etiqueta'), 'nao-impressa',
+      `o rolo 00${n} nunca foi impresso e tem de ler assim`);
+  });
+});
+
+test('65. imprimir a etiqueta de ACABAMENTO não marca a etiqueta do rolo', async () => {
+  const { h, calls, settle } = boot({
+    rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO], item: ITEM_COM_EMBORRACHAR,
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Etiqueta de acabamento', node));
+  await settle();
+  h.click(btn(h, 'Imprimir'));
+  await settle();
+
+  assert.equal(calls.rpc.filter((c) => c.name === 'marcar_etiquetas_rolo_impressas').length, 0,
+    'a etiqueta de acabamento é do PRODUTO da OP e não tem estado por rolo');
+});
+
+test('66. imprimir vários rolos selecionados marca exatamente esses rolos', async () => {
+  const { h, calls, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  await selecionar(h, node, settle, 2, 4);
+  h.click(acaoInline(h, node, 'Imprimir'));
+  await settle();
+  h.click(btn(h, 'Imprimir todas'));
+  await settle();
+
+  const chamada = calls.rpc.find((c) => c.name === 'marcar_etiquetas_rolo_impressas');
+  assert.ok(chamada, 'imprimir tem de registrar o estado');
+  assert.deepEqual(chamada.params.p_rolo_ids.slice().sort((a, b) => a - b), [902, 904],
+    'exatamente os rolos impressos, e nenhum outro');
+  assert.equal(calls.rpc.filter((c) => c.name === 'registrar_producao_tecelagem').length, 0,
+    'imprimir nunca cria rolo');
 });
 
 test('55. MANTA continua sem Etiqueta de acabamento também no card compacto', async () => {

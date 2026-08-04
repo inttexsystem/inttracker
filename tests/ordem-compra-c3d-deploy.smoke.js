@@ -307,7 +307,13 @@ const EXPECTED_BRANCH = 'dev';
 // terminal advances 127 -> 128 and the terminal two become db/127/db/128.
 // The fail-closed mechanism, the identity grammar and the suffix register
 // are unchanged; only the terminal expectation advanced.
-const EXPECTED_TERMINAL = 128;
+//
+// TECELAGEM-V1-CONSOLIDATED-UI-FIXES extends this manifest by one further
+// entry (db/129_tecelagem_etiqueta_rolo_impressa.sql), so the expected
+// terminal advances 128 -> 129 and the terminal two become db/128/db/129.
+// The fail-closed mechanism, the identity grammar and the suffix register
+// are unchanged; only the terminal expectation advanced.
+const EXPECTED_TERMINAL = 129;
 
 // Migration BASE numbers deliberately RESERVED and GENUINELY ABSENT from the
 // repository:
@@ -383,6 +389,7 @@ const DB125_FILENAME = '125_tecelagem_saida_rolos_acabamento.sql';
 const DB126_FILENAME = '126_tecelagem_desfazer_lancamento_producao.sql';
 const DB127_FILENAME = '127_tecelagem_excluir_rolo_individual.sql';
 const DB128_FILENAME = '128_tecelagem_excluir_rolos_selecionados.sql';
+const DB129_FILENAME = '129_tecelagem_etiqueta_rolo_impressa.sql';
 const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
@@ -607,8 +614,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB127_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB128_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB128_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB129_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -651,8 +658,8 @@ test('db/124 and db/125 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB127_FILENAME);
-  assert.equal(terminal.filename, DB128_FILENAME);
+  assert.equal(penultimate.filename, DB128_FILENAME);
+  assert.equal(terminal.filename, DB129_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
