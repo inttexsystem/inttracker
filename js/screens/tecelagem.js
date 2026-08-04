@@ -7,6 +7,22 @@
 //                                              -> VER ROLOS
 //                                                 -> SELECIONAR ROLOS
 //                                                    -> DAR SAÍDA PARA ACABAMENTO
+//                                                 -> DESFAZER LANÇAMENTO
+//
+// A UNIDADE DO REGISTRO É ROLOS, E ISSO TEM DE SER IMPOSSÍVEL DE CONFUNDIR.
+// Um operador real digitou 75 querendo dizer «75 metros» e a superfície criou
+// 75 rolos persistentes, sem caminho de volta. As duas metades da correção:
+//
+//   PREVENÇÃO   o campo primário nomeia ROLOS, nega a metragem por escrito,
+//               ecoa «75 ROLOS» enquanto se digita, e uma quantidade alta
+//               exige uma confirmação que REPETE a unidade antes de gravar.
+//   RECUPERAÇÃO um lançamento é um EVENTO EM LOTE e pode ser DESFEITO como
+//               tal — nunca apagando 75 rolos um a um.
+//
+// A regra de segurança do desfazer é do SERVIDOR (db/126): enquanto todos os
+// rolos do lote estiverem `na_tecelagem` ele pode ser desfeito; se algum já
+// saiu para o acabamento, o desfazer normal é RECUSADO e explicado, e nenhuma
+// movimentação de acabamento é revertida automaticamente nesta fase.
 //
 // SAÍDA PARA O ACABAMENTO (db/125) opera sobre ROLOS INDIVIDUAIS, nunca uma
 // quantidade abstrata: o operador seleciona rolos concretos, ainda
@@ -47,8 +63,8 @@
 // operador precisa saber é o que ele pode fazer agora.
 //
 // Dependências resolvidas em tempo de chamada (não no load):
-//   - window.el, window.pageHeader, window.modal, window.toast,
-//     window.textInput, window.formField                     (js/ui.js)
+//   - window.el, window.pageHeader, window.modal, window.confirmDialog,
+//     window.toast, window.textInput, window.formField        (js/ui.js)
 //   - window.RV_BADGES.rvStatusPill                          (js/badges.js)
 //   - window.RAVATEX_OP_DISPLAY.formatOpOperationalCode      (js/op-display.js)
 //   - window.shellLayout                                     (js/screens/common.js)
@@ -65,6 +81,7 @@
   var ICON_BOX = '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path>';
   var ICON_LIST = '<line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>';
   var ICON_PRINT = '<path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect>';
+  var ICON_UNDO = '<path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>';
 
   function icon(markup, size) {
     var svg = window.el('span', {});
@@ -130,15 +147,21 @@
     return window.el('button', attrs, label);
   }
 
-  function secondaryButton(label, onclick) {
-    return window.el('button', {
+  // `disabled` segue exatamente a mesma disciplina de primaryButton (§2.1): a
+  // chave só entra no objeto quando a condição é verdadeira, porque el() trata
+  // `disabled` como atributo booleano e um valor falsy o REMOVE.
+  function secondaryButton(label, onclick, disabled) {
+    var attrs = {
       style: 'border-radius:var(--rv-radius); font-size:var(--rv-fs-body); font-weight:600;'
         + ' height:var(--rv-h-default); padding:0 14px; display:inline-flex;'
-        + ' align-items:center; justify-content:center; cursor:pointer;'
+        + ' align-items:center; justify-content:center;'
         + ' background:var(--rv-surface); border:1px solid var(--rv-border-strong);'
-        + ' color:var(--rv-text-secondary);',
-      onclick: onclick,
-    }, label);
+        + ' color:var(--rv-text-secondary);'
+        + (disabled ? ' opacity:.45; cursor:default;' : ' cursor:pointer;'),
+      onclick: disabled ? null : onclick,
+    };
+    if (disabled) attrs.disabled = true;
+    return window.el('button', attrs, label);
   }
 
   function emptyText(message) {
@@ -195,6 +218,17 @@
     var d = new Date(valor);
     if (isNaN(d.getTime())) return null;
     return d.toLocaleDateString('pt-BR');
+  }
+
+  // O MOMENTO do lançamento, com hora: numa recuperação de erro de digitação
+  // dois lançamentos do mesmo produto podem ser do mesmo dia, e só a data não
+  // distinguiria o que o operador acabou de fazer do que fez antes.
+  function fmtMomento(valor) {
+    if (!valor) return null;
+    var d = new Date(valor);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('pt-BR') + ' às '
+      + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
 
   // Motivos estáveis devolvidos por _tecelagem_op_pode_iniciar (db/123), que
@@ -365,6 +399,18 @@
       (porItem[r.op_item_id] = porItem[r.op_item_id] || []).push(r);
     });
     return porItem;
+  }
+
+  // LANÇAMENTOS DE PRODUÇÃO deste produto — a superfície de recuperação.
+  //
+  // Vem do read model de db/126, e não de uma leitura direta da tabela, porque
+  // a ELEGIBILIDADE do desfazer tem um dono único no servidor
+  // (_tecelagem_lancamento_pode_desfazer). Recalcular aqui o que já está
+  // decidido lá seria criar uma segunda regra livre para divergir da primeira.
+  async function carregarLancamentos(opItemId) {
+    var res = await window.supa.rpc('tecelagem_lancamentos_recentes', { p_op_item_id: Number(opItemId) });
+    if (res.error) throw res.error;
+    return res.data || [];
   }
 
   // -------------------------------------------------------------------
@@ -1005,7 +1051,25 @@
   // REGISTRAR PRODUÇÃO
   // A quantidade de rolos é a entrada primária. O comprimento individual é
   // OPCIONAL: registrar sem informá-lo é um caminho normal, não uma exceção.
+  //
+  // A UNIDADE É A DEFESA PRINCIPAL. Um operador real digitou 75 querendo dizer
+  // «75 metros» e o sistema criou 75 rolos persistentes. O campo não pode ser
+  // um número nu cujo significado seja razoavelmente confundível com metragem:
+  // o rótulo diz ROLOS, o texto de apoio nega explicitamente a metragem, e o
+  // eco abaixo do campo repete a unidade enquanto o operador digita.
   // -------------------------------------------------------------------
+
+  // Acima desta quantidade o registro pede uma confirmação explícita que
+  // REPETE A UNIDADE antes de materializar os rolos. É o ponto único onde essa
+  // decisão de produto mora: mudá-la é mudar este número, não caçar condições
+  // espalhadas. 75 — a quantidade do erro real — fica acima do limiar.
+  var CONFIRMACAO_QUANTIDADE_ALTA = 20;
+
+  function ecoQuantidade(qtd) {
+    if (!isFinite(qtd) || qtd < 1) return '';
+    return qtd === 1 ? '1 ROLO' : qtd + ' ROLOS';
+  }
+
   function abrirRegistro(op, produto, aoConcluir) {
     var inputQtd = window.textInput({ type: 'number', value: '', placeholder: 'Ex.: 10' });
     inputQtd.setAttribute('min', '1');
@@ -1017,7 +1081,32 @@
     inputComprimento.setAttribute('step', '0.01');
     inputComprimento.setAttribute('inputmode', 'decimal');
 
-    window.modal({
+    // O eco vive ao lado do campo e repete a unidade em caixa alta enquanto o
+    // operador digita: 75 aparece como «75 ROLOS» ANTES de qualquer gravação.
+    var eco = window.el('div', {
+      'data-rv-tecelagem-eco-rolos': '',
+      style: 'font-size:var(--rv-fs-sm); font-weight:700; letter-spacing:.02em;'
+        + ' color:var(--rv-text-secondary); margin-top:6px; min-height:1.2em;',
+    }, '');
+
+    function atualizarEco() {
+      eco.textContent = ecoQuantidade(parseInt(String(inputQtd.value).trim(), 10));
+    }
+    inputQtd.addEventListener('input', atualizarEco);
+
+    // O eco acompanha o campo num invólucro próprio, em vez de ser injetado
+    // dentro do nó que formField() devolve: a composição interna daquele nó
+    // pertence ao dono canônico (js/ui.js) e esta tela não a manipula.
+    var campoQtd = window.el('div', {},
+      window.formField({
+        label: 'Quantidade de rolos produzidos',
+        input: inputQtd,
+        hint: 'Informe a quantidade de rolos, não a metragem.',
+      }),
+      eco
+    );
+
+    var ref = window.modal({
       title: 'Registrar produção',
       saveLabel: 'Registrar produção',
       body: window.el('div', { style: 'display:flex; flex-direction:column; gap:12px;' },
@@ -1030,9 +1119,9 @@
             style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary); margin-top:3px;',
           }, rotuloProduto(produto.modelo))
         ),
-        window.formField({ label: 'Quantidade de rolos produzidos', input: inputQtd }),
+        campoQtd,
         window.formField({
-          label: 'Comprimento dos rolos',
+          label: 'Comprimento de cada rolo (metros)',
           input: inputComprimento,
           hint: 'Opcional. Se informado, vale para todos os rolos deste registro.',
         })
@@ -1061,41 +1150,77 @@
           comprimentos = new Array(qtd).fill(c);
         }
 
-        var res = await window.supa.rpc('registrar_producao_tecelagem', {
-          p_op_item_id: produto.id,
-          p_quantidade_rolos: qtd,
-          p_comprimentos: comprimentos,
-        });
-
-        if (res.error) {
-          console.error(res.error);
-          window.toast(mensagemDeErro(res.error), 'error');
+        // CONFIRMAÇÃO DE QUANTIDADE ALTA. O formulário fica aberto atrás do
+        // diálogo (`return false`), com tudo o que o operador digitou, para
+        // que CANCELAR devolva a chance de corrigir em vez de recomeçar.
+        if (qtd >= CONFIRMACAO_QUANTIDADE_ALTA) {
+          window.confirmDialog({
+            title: 'Confirmar quantidade',
+            message: textoConfirmacaoQuantidade(qtd),
+            confirmLabel: 'Sim, registrar ' + qtd + ' rolos',
+            danger: false,
+            onConfirm: async function () {
+              var ok = await gravarRegistro(op, produto, qtd, comprimentos, aoConcluir);
+              if (ok) ref.close();
+            },
+          });
           return false;
         }
 
-        var criados = (res.data && res.data.quantidade_rolos) || qtd;
-        window.toast(criados === 1 ? '1 rolo registrado.' : criados + ' rolos registrados.', 'success');
-        if (typeof aoConcluir === 'function') aoConcluir();
-
-        // ETIQUETAS DISPONÍVEIS logo após o registro: o operador não precisa
-        // voltar a identificar os rolos que acabou de criar (§2 do produto).
-        // Os rolos vêm do PRÓPRIO retorno do dono da escrita
-        // (numero_inicial/numero_final) e do comprimento que este mesmo
-        // formulário já validou — sem nova leitura ao servidor.
-        var numeroInicial = res.data && res.data.numero_inicial;
-        var numeroFinal = res.data && res.data.numero_final;
-        if (numeroInicial != null && numeroFinal != null) {
-          var rolosCriados = [];
-          for (var n = numeroInicial; n <= numeroFinal; n += 1) {
-            rolosCriados.push({
-              numero: n,
-              comprimento_m: comprimentos ? comprimentos[n - numeroInicial] : null,
-            });
-          }
-          abrirEtiquetasDisponiveis(op, produto, rolosCriados);
-        }
+        var ok = await gravarRegistro(op, produto, qtd, comprimentos, aoConcluir);
+        return ok ? undefined : false;
       },
     });
+  }
+
+  // A frase de confirmação REPETE A UNIDADE e nomeia explicitamente o engano
+  // que ela existe para impedir. Não adivinha que um número alto significa
+  // metros: pergunta.
+  function textoConfirmacaoQuantidade(qtd) {
+    return 'VOCÊ ESTÁ REGISTRANDO ' + qtd + ' ROLOS. '
+      + 'Isto vai criar ' + qtd + ' rolos individuais, um a um. '
+      + 'Se você quis informar a METRAGEM produzida, cancele: este campo é a '
+      + 'quantidade de rolos, não os metros.';
+  }
+
+  // O caminho único de gravação do registro, compartilhado pelo fluxo direto e
+  // pelo fluxo confirmado — os dois não podem divergir. Devolve `true` quando
+  // gravou.
+  async function gravarRegistro(op, produto, qtd, comprimentos, aoConcluir) {
+    var res = await window.supa.rpc('registrar_producao_tecelagem', {
+      p_op_item_id: produto.id,
+      p_quantidade_rolos: qtd,
+      p_comprimentos: comprimentos,
+    });
+
+    if (res.error) {
+      console.error(res.error);
+      window.toast(mensagemDeErro(res.error), 'error');
+      return false;
+    }
+
+    var criados = (res.data && res.data.quantidade_rolos) || qtd;
+    window.toast(criados === 1 ? '1 rolo registrado.' : criados + ' rolos registrados.', 'success');
+    if (typeof aoConcluir === 'function') aoConcluir();
+
+    // ETIQUETAS DISPONÍVEIS logo após o registro: o operador não precisa
+    // voltar a identificar os rolos que acabou de criar (§2 do produto).
+    // Os rolos vêm do PRÓPRIO retorno do dono da escrita
+    // (numero_inicial/numero_final) e do comprimento que este mesmo
+    // formulário já validou — sem nova leitura ao servidor.
+    var numeroInicial = res.data && res.data.numero_inicial;
+    var numeroFinal = res.data && res.data.numero_final;
+    if (numeroInicial != null && numeroFinal != null) {
+      var rolosCriados = [];
+      for (var n = numeroInicial; n <= numeroFinal; n += 1) {
+        rolosCriados.push({
+          numero: n,
+          comprimento_m: comprimentos ? comprimentos[n - numeroInicial] : null,
+        });
+      }
+      abrirEtiquetasDisponiveis(op, produto, rolosCriados);
+    }
+    return true;
   }
 
   // Traduz a recusa do dono da escrita para uma frase operacional. Um código
@@ -1151,6 +1276,140 @@
   }
 
   // -------------------------------------------------------------------
+  // DESFAZER LANÇAMENTO
+  //
+  // Um lançamento de produção é um EVENTO EM LOTE: uma ação do operador que
+  // materializa N rolos. A recuperação de um erro de digitação tem de operar
+  // no mesmo nível — o lote — e não obrigar a apagar 75 rolos um a um.
+  //
+  // A REGRA DE SEGURANÇA É DO SERVIDOR (db/126). Esta tela apenas antecipa o
+  // veredito que o read model já traz (`pode_desfazer` / `motivo_bloqueio`):
+  // se algum rolo do lote já saiu para o acabamento, o desfazer normal é
+  // RECUSADO e explicado, nunca aplicado em silêncio, e nenhuma movimentação
+  // de acabamento é revertida automaticamente nesta fase.
+  // -------------------------------------------------------------------
+
+  // Descreve o lote pelo EVENTO DE NEGÓCIO — produto, quantidade, momento e
+  // faixa de rolos —, nunca pelo id técnico.
+  function descricaoLancamento(lancamento) {
+    var qtd = Number(lancamento.quantidade_rolos);
+    var partes = [isFinite(qtd) ? (qtd === 1 ? '1 rolo' : qtd + ' rolos') : 'rolos'];
+    if (lancamento.numero_inicial != null && lancamento.numero_final != null) {
+      partes.push(lancamento.numero_inicial === lancamento.numero_final
+        ? ('Rolo ' + fmtRolo(lancamento.numero_inicial))
+        : ('Rolos ' + fmtRolo(lancamento.numero_inicial) + ' a ' + fmtRolo(lancamento.numero_final)));
+    }
+    var momento = fmtMomento(lancamento.criado_em);
+    if (momento) partes.push(momento);
+    return partes.join(' · ');
+  }
+
+  // Motivos estáveis de _tecelagem_lancamento_pode_desfazer (db/126). Um
+  // código desconhecido nunca é escondido nem traduzido em suposição.
+  var MOTIVO_DESFAZER = {
+    LANCAMENTO_COM_ROLOS_JA_ENVIADOS:
+      'Rolos deste lançamento já saíram para o acabamento. Ele não pode mais ser'
+      + ' revertido por completo nesta ação. Fale com a Ravatex.',
+    LANCAMENTO_FORA_DO_ESCOPO_DO_FORNECEDOR:
+      'Este lançamento não pertence ao seu usuário.',
+    LANCAMENTO_INEXISTENTE:
+      'Este lançamento não está mais disponível.',
+  };
+
+  function motivoDesfazer(lancamento) {
+    return MOTIVO_DESFAZER[lancamento && lancamento.motivo_bloqueio]
+      || 'Este lançamento não pode ser desfeito por esta ação.';
+  }
+
+  function mensagemDeDesfazer(error) {
+    var texto = (error && (error.message || error.details)) || '';
+    if (texto.indexOf('TECELAGEM_LANCAMENTO_JA_PROGREDIU') >= 0) {
+      return MOTIVO_DESFAZER.LANCAMENTO_COM_ROLOS_JA_ENVIADOS;
+    }
+    if (texto.indexOf('TECELAGEM_LANCAMENTO_FORA_DO_ESCOPO_DO_FORNECEDOR') >= 0) {
+      return MOTIVO_DESFAZER.LANCAMENTO_FORA_DO_ESCOPO_DO_FORNECEDOR;
+    }
+    if (texto.indexOf('TECELAGEM_LANCAMENTO_NAO_ENCONTRADO') >= 0) {
+      return MOTIVO_DESFAZER.LANCAMENTO_INEXISTENTE;
+    }
+    if (texto.indexOf('TECELAGEM_FORNECEDOR_NAO_IDENTIFICADO') >= 0) {
+      return 'Seu usuário não está ativo como fornecedor. Fale com o administrador.';
+    }
+    if (texto.indexOf('TECELAGEM_DESFAZER_CARDINALIDADE_INCONSISTENTE') >= 0) {
+      return 'Este lançamento está inconsistente e não foi alterado. Fale com a Ravatex.';
+    }
+    return 'Não foi possível desfazer o lançamento. Nada foi alterado.';
+  }
+
+  function abrirDesfazerLancamento(produto, lancamento, aoConcluir) {
+    var qtd = Number(lancamento.quantidade_rolos);
+    window.confirmDialog({
+      title: 'Desfazer lançamento',
+      message: 'Este lançamento de ' + (qtd === 1 ? '1 rolo' : qtd + ' rolos')
+        + ' em ' + rotuloProduto(produto.modelo) + ' será desfeito, junto com todos os '
+        + 'rolos que ele criou (' + descricaoLancamento(lancamento) + '). '
+        + 'Depois disso você pode registrar a produção correta.',
+      confirmLabel: 'Desfazer lançamento',
+      onConfirm: async function () {
+        var res = await window.supa.rpc('desfazer_lancamento_tecelagem', {
+          p_lancamento_id: Number(lancamento.lancamento_id),
+        });
+        if (res.error) {
+          console.error(res.error);
+          window.toast(mensagemDeDesfazer(res.error), 'error');
+          return;
+        }
+        var removidos = (res.data && res.data.rolos_removidos) != null
+          ? res.data.rolos_removidos : qtd;
+        window.toast('Lançamento desfeito. '
+          + (removidos === 1 ? '1 rolo removido.' : removidos + ' rolos removidos.'), 'success');
+        if (typeof aoConcluir === 'function') aoConcluir();
+      },
+    });
+  }
+
+  // O card de recuperação. Só existe quando há lançamento: um card vazio não
+  // ensina nada ao operador.
+  function cardLancamentos(produto, lancamentos, aoConcluir) {
+    if (!lancamentos.length) return null;
+
+    var bloco = card(sectionChip('Lançamentos de produção', ICON_UNDO));
+    bloco.appendChild(window.el('p', {
+      style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin:0 0 4px;',
+    }, 'Cada lançamento é um registro em lote. Desfazer um lançamento remove'
+      + ' todos os rolos que ele criou.'));
+
+    lancamentos.forEach(function (lancamento) {
+      var linha = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:12px;'
+          + ' flex-wrap:wrap; padding:10px 0; border-top:1px solid var(--rv-border-soft);',
+      });
+
+      var texto = window.el('div', { style: 'min-width:0;' },
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary);',
+        }, descricaoLancamento(lancamento))
+      );
+      // O estado NUNCA é comunicado só pela ausência do botão: quando o lote
+      // já progrediu, a tela DIZ por quê.
+      if (!lancamento.pode_desfazer) {
+        texto.appendChild(window.el('div', {
+          style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-top:4px;',
+        }, motivoDesfazer(lancamento)));
+      }
+      linha.appendChild(texto);
+
+      linha.appendChild(secondaryButton('Desfazer lançamento', function () {
+        abrirDesfazerLancamento(produto, lancamento, aoConcluir);
+      }, !lancamento.pode_desfazer));
+
+      bloco.appendChild(linha);
+    });
+
+    return bloco;
+  }
+
+  // -------------------------------------------------------------------
   // TELA 3 — VER ROLOS
   // -------------------------------------------------------------------
   function screenTecelagemRolos(opId, opItemId) {
@@ -1159,7 +1418,7 @@
     async function reload() {
       if (guardaFornecedor(container, 'Rolos')) return;
 
-      var op, produtos, produto, rolos;
+      var op, produtos, produto, rolos, lancamentos;
       try {
         op = await carregarOp(opId);
         produtos = op ? await carregarProdutos(opId) : [];
@@ -1174,6 +1433,7 @@
           return;
         }
         rolos = (await carregarRolos([produto.id]))[produto.id] || [];
+        lancamentos = await carregarLancamentos(produto.id);
       } catch (e) {
         console.error(e);
         container.replaceChildren(window.pageHeader('Rolos'),
@@ -1219,6 +1479,11 @@
         tabela.appendChild(tabelaRolos(op, produto, rolos));
       }
       corpo.appendChild(tabela);
+
+      // A superfície de recuperação vem DEPOIS dos rolos: o operador primeiro
+      // vê o que existe, depois a ação que desfaz o lote que o criou.
+      var recuperacao = cardLancamentos(produto, lancamentos, reload);
+      if (recuperacao) corpo.appendChild(recuperacao);
 
       corpo.appendChild(window.el('div', { style: 'display:flex; gap:8px; flex-wrap:wrap;' },
         secondaryButton('Voltar para a OP', function () { window.navigate('#/tecelagem/ops/' + op.op_id); }),
@@ -1310,5 +1575,13 @@
     temSaidaAcabamento: temSaidaAcabamento,
     situacaoRolo: situacaoRolo,
     mensagemDeSaida: mensagemDeSaida,
+    // Recuperação de lançamento (db/126) e clareza de unidade.
+    CONFIRMACAO_QUANTIDADE_ALTA: CONFIRMACAO_QUANTIDADE_ALTA,
+    ecoQuantidade: ecoQuantidade,
+    textoConfirmacaoQuantidade: textoConfirmacaoQuantidade,
+    descricaoLancamento: descricaoLancamento,
+    motivoDesfazer: motivoDesfazer,
+    mensagemDeDesfazer: mensagemDeDesfazer,
+    fmtMomento: fmtMomento,
   };
 })(window);

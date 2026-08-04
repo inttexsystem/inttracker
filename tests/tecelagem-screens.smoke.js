@@ -35,7 +35,8 @@ const indexSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // ---------------------------------------------------------------------
 // Duplo do Supabase: responde por tabela e registra o que foi perguntado.
 // ---------------------------------------------------------------------
-function makeSupa({ rolos = [], rpcResult, inicioResult, ops, modelo, modelos, item, itens } = {}) {
+function makeSupa({ rolos = [], lancamentos = [], rpcResult, inicioResult, desfazerResult,
+                    ops, modelo, modelos, item, itens } = {}) {
   const calls = { from: [], rpc: [] };
   const listaOps = ops || [OP_EM_PRODUCAO];
   // `item`/`modelo` aceitam um único objeto (caso comum, um produto); `itens`/
@@ -79,6 +80,13 @@ function makeSupa({ rolos = [], rpcResult, inicioResult, ops, modelo, modelos, i
         if (name === 'tecelagem_minhas_ops') return { data: listaOps, error: null };
         if (name === 'iniciar_producao_tecelagem') {
           return inicioResult || { data: { op_id: params.p_op_id, ja_iniciada: false }, error: null };
+        }
+        // db/126: os dois nomes da recuperação respondem por si. Deixá-los
+        // cair no `rpcResult` genérico faria a tela de rolos herdar o
+        // resultado (às vezes um ERRO) preparado para OUTRA chamada.
+        if (name === 'tecelagem_lancamentos_recentes') return { data: lancamentos, error: null };
+        if (name === 'desfazer_lancamento_tecelagem') {
+          return desfazerResult || { data: { rolos_removidos: 3 }, error: null };
         }
         return rpcResult || { data: { quantidade_rolos: params.p_quantidade_rolos }, error: null };
       },
@@ -129,8 +137,10 @@ const MODELO_MANTA = Object.assign({}, MODELO, {
   cor_1: { id: 3, nome: 'AZUL' }, cor_2: { id: 4, nome: 'BEGE' },
 });
 
-function boot({ rolos, rpcResult, inicioResult, ops, fornecedorId = 401, modelo, modelos, item, itens } = {}) {
-  const { supa, calls } = makeSupa({ rolos, rpcResult, inicioResult, ops, modelo, modelos, item, itens });
+function boot({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult, ops,
+                fornecedorId = 401, modelo, modelos, item, itens } = {}) {
+  const { supa, calls } = makeSupa({ rolos, lancamentos, rpcResult, inicioResult, desfazerResult,
+    ops, modelo, modelos, item, itens });
   const toasts = [];
   const h = createScreenHarness({
     files: ['js/op-display.js', SCREEN_REL],
@@ -190,10 +200,15 @@ test('3. a superfície de tecelagem não tem nenhum caminho de escrita no Admin'
   assert.ok(!/\.insert\(|\.update\(|\.upsert\(|\.delete\(/.test(screenSrc),
     'a superfície de tecelagem não pode conter DML direto');
   const rpcs = [...screenSrc.matchAll(/\.rpc\(\s*'([^']+)'/g)].map((m) => m[1]).sort();
+  // db/126 acrescenta DOIS nomes e nenhum domínio novo: o dono da escrita do
+  // DESFAZER (desfazer_lancamento_tecelagem) e o read model de recuperação
+  // (tecelagem_lancamentos_recentes). Ambos são da própria tecelagem — o
+  // inventário cresce, a fronteira não.
   assert.deepEqual(
     rpcs,
-    ['enviar_rolos_acabamento', 'iniciar_producao_tecelagem', 'registrar_producao_tecelagem', 'tecelagem_minhas_ops'],
-    `a tela só pode chamar o read model e os três donos de escrita da tecelagem, encontrou: ${rpcs.join(', ')}`);
+    ['desfazer_lancamento_tecelagem', 'enviar_rolos_acabamento', 'iniciar_producao_tecelagem',
+      'registrar_producao_tecelagem', 'tecelagem_lancamentos_recentes', 'tecelagem_minhas_ops'],
+    `a tela só pode chamar os read models e os donos de escrita da tecelagem, encontrou: ${rpcs.join(', ')}`);
 
   // O início da produção aqui é LOCAL à tecelagem. A transição autoritativa do
   // Admin não pertence a esta fatia e não pode ser acionada, nem por engano. A
@@ -1014,3 +1029,216 @@ test('33. imprimir a etiqueta do rolo ou a de acabamento nunca chama o dono da s
     assert.equal(calls.rpc.filter((c) => c.name === 'enviar_rolos_acabamento').length, 0,
       'imprimir qualquer etiqueta não pode, em nenhuma circunstância, chamar o dono da saída para o acabamento');
   });
+
+// =====================================================================
+// CLAREZA DE UNIDADE E CONFIRMAÇÃO DE QUANTIDADE ALTA
+//
+// Um operador real digitou 75 querendo dizer «75 metros» e o sistema criou 75
+// rolos persistentes. Estes casos provam que a mesma digitação agora comunica
+// ROLOS antes de qualquer gravação.
+// =====================================================================
+
+const LANCAMENTO_DESFAZIVEL = {
+  lancamento_id: 7001, op_id: 501, op_item_id: 511,
+  quantidade_rolos: 3, criado_em: '2026-08-04T12:34:00.000Z',
+  rolos_atuais: 3, rolos_progredidos: 0,
+  numero_inicial: 1, numero_final: 3,
+  pode_desfazer: true, motivo_bloqueio: null,
+};
+const LANCAMENTO_PROGREDIDO = {
+  lancamento_id: 7002, op_id: 501, op_item_id: 511,
+  quantidade_rolos: 4, criado_em: '2026-08-04T13:00:00.000Z',
+  rolos_atuais: 4, rolos_progredidos: 1,
+  numero_inicial: 4, numero_final: 7,
+  pode_desfazer: false, motivo_bloqueio: 'LANCAMENTO_COM_ROLOS_JA_ENVIADOS',
+};
+
+const abrirModalRegistro = async (h, settle) => {
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+  h.click(btn(h, 'Registrar produção', node));
+  await settle();
+  return node;
+};
+const campoQuantidade = (h) =>
+  h.findOne((n) => n.tagName === 'INPUT' && n.getAttribute('placeholder') === 'Ex.: 10');
+
+test('34. o campo primário nomeia ROLOS e nega explicitamente a metragem', async () => {
+  const { h, settle } = boot({ rolos: [] });
+  await abrirModalRegistro(h, settle);
+
+  const texto = h.textOf(h.body);
+  assert.match(texto, /Quantidade de rolos produzidos/,
+    'o rótulo do campo primário tem de dizer ROLOS');
+  assert.match(texto, /Informe a quantidade de rolos, não a metragem/,
+    'o campo não pode ser um número nu: a tela precisa negar a metragem por escrito');
+  assert.match(texto, /Comprimento de cada rolo \(metros\)/,
+    'o campo de comprimento tem de declarar a sua própria unidade, para que os dois não se confundam');
+});
+
+test('35. digitar 75 ecoa "75 ROLOS" ANTES de qualquer gravação', async () => {
+  const { h, calls, settle } = boot({ rolos: [] });
+  await abrirModalRegistro(h, settle);
+
+  h.type(campoQuantidade(h), '75');
+  await settle();
+
+  assert.match(h.textOf(h.body), /75 ROLOS/,
+    'a unidade tem de ser repetida em caixa alta enquanto o operador digita');
+  assert.equal(calls.rpc.filter((c) => c.name === 'registrar_producao_tecelagem').length, 0,
+    'o eco é anterior a qualquer persistência');
+});
+
+test('36. 75 exige confirmação explícita que repete a unidade, e nada é gravado antes dela', async () => {
+  const { h, calls, settle } = boot({ rolos: [] });
+  await abrirModalRegistro(h, settle);
+
+  h.type(campoQuantidade(h), '75');
+  h.click(btn(h, 'Registrar produção'));
+  await settle();
+
+  const texto = h.textOf(h.body);
+  assert.match(texto, /VOCÊ ESTÁ REGISTRANDO 75 ROLOS/,
+    'a confirmação tem de repetir a unidade exatamente como o produto exige');
+  assert.match(texto, /metragem/i,
+    'a confirmação tem de nomear o engano metros-versus-rolos que ela existe para impedir');
+  assert.equal(calls.rpc.filter((c) => c.name === 'registrar_producao_tecelagem').length, 0,
+    'NADA pode ser gravado enquanto a confirmação não for aceita');
+});
+
+test('37. confirmada, a quantidade alta é gravada exatamente como digitada', async () => {
+  const { h, calls, toasts, settle } = boot({ rolos: [] });
+  await abrirModalRegistro(h, settle);
+
+  h.type(campoQuantidade(h), '75');
+  h.click(btn(h, 'Registrar produção'));
+  await settle();
+  h.click(btn(h, 'Sim, registrar 75 rolos'));
+  await settle();
+
+  const chamada = calls.rpc.find((c) => c.name === 'registrar_producao_tecelagem');
+  assert.ok(chamada, 'a confirmação aceita tem de gravar');
+  assert.equal(chamada.params.p_quantidade_rolos, 75,
+    'a confirmação não pode reinterpretar o número: 75 rolos continuam 75 rolos');
+  assert.ok(toasts.some((t) => /75 rolos registrados/.test(t.msg)));
+});
+
+test('38. uma quantidade normal continua sem confirmação extra (a fricção é proporcional)', async () => {
+  const { h, calls, settle } = boot({ rolos: [] });
+  await abrirModalRegistro(h, settle);
+
+  h.type(campoQuantidade(h), '3');
+  h.click(btn(h, 'Registrar produção'));
+  await settle();
+
+  assert.ok(!/VOCÊ ESTÁ REGISTRANDO/.test(h.textOf(h.body)),
+    'um lote normal não pode exigir um passo a mais');
+  const chamada = calls.rpc.find((c) => c.name === 'registrar_producao_tecelagem');
+  assert.equal(chamada.params.p_quantidade_rolos, 3);
+});
+
+// =====================================================================
+// DESFAZER LANÇAMENTO — recuperação normal de um erro de digitação em lote
+// =====================================================================
+
+test('39. Ver rolos apresenta o lançamento por fatos de negócio, sem id técnico', async () => {
+  const { h, settle } = boot({
+    rolos: [{ id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'na_tecelagem' }],
+    lancamentos: [LANCAMENTO_DESFAZIVEL],
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const texto = h.textOf(node);
+  assert.match(texto, /Lançamentos de produção/);
+  assert.match(texto, /3 rolos/, 'a quantidade do lote tem de estar visível');
+  assert.match(texto, /Rolos 001 a 003/, 'a faixa de rolos resultante tem de estar visível');
+  assert.match(texto, /04\/08\/2026 às/, 'o momento do registro tem de estar visível');
+  assert.ok(!/7001/.test(texto), 'o id técnico do lançamento NUNCA pode chegar ao operador');
+});
+
+test('40. desfazer um lançamento chama o dono da escrita com o lançamento certo', async () => {
+  const { h, calls, toasts, settle } = boot({
+    rolos: [{ id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'na_tecelagem' }],
+    lancamentos: [LANCAMENTO_DESFAZIVEL],
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(btn(h, 'Desfazer lançamento', node));
+  await settle();
+  // O segundo botão de mesmo nome é o de confirmação do diálogo.
+  h.click(btn(h, 'Desfazer lançamento'));
+  await settle();
+
+  const chamada = calls.rpc.find((c) => c.name === 'desfazer_lancamento_tecelagem');
+  assert.ok(chamada, 'o dono da escrita do desfazer tem de ser chamado');
+  assert.equal(chamada.params.p_lancamento_id, 7001);
+  assert.ok(toasts.some((t) => /Lançamento desfeito/.test(t.msg) && /3 rolos removidos/.test(t.msg)),
+    'o operador tem de saber quantos rolos saíram');
+});
+
+test('41. um lote que já foi para o acabamento RECUSA o desfazer e explica o motivo', async () => {
+  const { h, calls, settle } = boot({
+    rolos: [{ id: 901, op_item_id: 511, numero: 4, comprimento_m: null, situacao: 'enviado_acabamento' }],
+    lancamentos: [LANCAMENTO_PROGREDIDO],
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  assert.match(h.textOf(node), /já saíram para o acabamento/,
+    'a recusa tem de ser explicada, nunca apenas um botão ausente');
+
+  const acao = btn(h, 'Desfazer lançamento', node);
+  assert.ok(acao, 'a ação continua visível — é a explicação que a acompanha');
+  // el() materializa um atributo booleano como disabled="disabled".
+  assert.equal(acao.getAttribute('disabled'), 'disabled',
+    'a ação não pode ser acionável para um lote que progrediu');
+
+  h.click(acao);
+  await settle();
+  assert.equal(calls.rpc.filter((c) => c.name === 'desfazer_lancamento_tecelagem').length, 0,
+    'nenhum desfazer pode chegar ao servidor para um lote que já progrediu');
+});
+
+test('42. uma recusa do servidor vira mensagem operacional, nunca sucesso silencioso', async () => {
+  const { h, toasts, settle } = boot({
+    rolos: [{ id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'na_tecelagem' }],
+    lancamentos: [LANCAMENTO_DESFAZIVEL],
+    desfazerResult: { data: null, error: { message: 'TECELAGEM_LANCAMENTO_JA_PROGREDIU' } },
+  });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  h.click(btn(h, 'Desfazer lançamento', node));
+  await settle();
+  h.click(btn(h, 'Desfazer lançamento'));
+  await settle();
+
+  assert.ok(toasts.some((t) => t.kind === 'error' && /já saíram para o acabamento/.test(t.msg)),
+    'a recusa do servidor tem de virar uma frase operacional');
+  assert.ok(!toasts.some((t) => /Lançamento desfeito/.test(t.msg)),
+    'uma recusa NUNCA pode ser relatada como sucesso');
+});
+
+test('43. um produto sem lançamento nenhum não mostra um card de recuperação vazio', async () => {
+  const { h, settle } = boot({ rolos: [], lancamentos: [] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  assert.ok(!/Lançamentos de produção/.test(h.textOf(node)),
+    'um card vazio não ensina nada ao operador');
+});
+
+test('44. um motivo de bloqueio desconhecido não é escondido nem inventado', async () => {
+  const desconhecido = Object.assign({}, LANCAMENTO_PROGREDIDO,
+    { motivo_bloqueio: 'CODIGO_NOVO_QUALQUER' });
+  const { h, settle } = boot({ rolos: [], lancamentos: [desconhecido] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const texto = h.textOf(node);
+  assert.match(texto, /não pode ser desfeito por esta ação/,
+    'sem tradução conhecida, a tela declara a recusa sem inventar um motivo');
+  assert.ok(!/CODIGO_NOVO_QUALQUER/.test(texto), 'o código cru não vaza para o operador');
+});
