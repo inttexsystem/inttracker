@@ -50,6 +50,14 @@
 //      sem SyntaxError de duplicate identifier;
 //  24. screenPainel (inline) ainda renderiza via shellLayout com
 //      9 itens do ADMIN_MENU (regressão common).
+//
+// TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1 (62-70): o novo helper
+// definirEmborracharOpItem (db/124 admin write surface) — expõe função,
+// chama supa.from('op_itens').update({ emborrachar }).eq('id', opItemId),
+// propaga erro/sucesso sem sobrescrever, grava { emborrachar: null } em
+// vez de omitir a coluna quando o valor é limpo, e prova que dois op_itens
+// do MESMO modelo recebem valores independentes (por op_item.id, nunca por
+// modelo_id).
 
 'use strict';
 
@@ -805,12 +813,12 @@ test('27. a namespace RAVATEX_SCREENS.opWrites não expõe mais o helper aposent
     'a namespace não pode reexpor o helper aposentado');
 });
 
-test('28. op-writes.js expõe EXATAMENTE um helper: o recebimento', () => {
+test('28. op-writes.js expõe EXATAMENTE os helpers autorizados: recebimento e emborrachar', () => {
   const { sandbox } = makeAtribuirFornSandbox();
   const chaves = vm.runInContext(
     'Object.keys(window.RAVATEX_SCREENS.opWrites).sort().join(",")', sandbox);
-  assert.equal(chaves, 'registrarRecebimentoOrdemFio',
-    'op-writes.js tem de expor só o recebimento depois da aposentadoria');
+  assert.equal(chaves, 'definirEmborracharOpItem,registrarRecebimentoOrdemFio',
+    'op-writes.js tem de expor só o recebimento e o emborrachar (TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1) depois da aposentadoria');
 });
 
 test('29. a função aposentada não é redeclarada em lugar nenhum do módulo', () => {
@@ -1129,4 +1137,101 @@ test('61. without a caller-supplied attempt, an internal one is still created (b
     sandbox);
   const rpcCall = sandbox.supa._calls.find((c) => c.op === 'rpc' && c.name === 'registrar_recebimento_ordem_compra_fio_compat');
   assert.ok(rpcCall.params.p_idempotency_key, 'expected an internally-generated idempotency key when no attempt is supplied');
+});
+
+// -----------------------------------------------------------------------------
+// TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1 — definirEmborracharOpItem
+//
+// db/124 added op_itens.emborrachar (Ravatex-defined finishing instruction,
+// per op_item, never per model) but shipped no admin editing surface on
+// purpose. This is that surface's write helper: a direct, admin-only
+// update() on ONE op_itens row (no RPC — op_itens_admin already grants
+// unrestricted UPDATE to is_admin(), the same mechanism the pre-existing
+// metros_pedidos edit in op-latex-admin.js relies on).
+// -----------------------------------------------------------------------------
+
+test('62. window.RAVATEX_SCREENS.opWrites.definirEmborracharOpItem é função', () => {
+  const { sandbox } = makeOpWSandbox();
+  const fn = vm.runInContext('window.RAVATEX_SCREENS.opWrites.definirEmborracharOpItem', sandbox);
+  assert.equal(typeof fn, 'function', 'definirEmborracharOpItem não é função');
+});
+
+test('63. window.definirEmborracharOpItem (global) é função', () => {
+  const { sandbox } = makeOpWSandbox();
+  assert.equal(typeof vm.runInContext('window.definirEmborracharOpItem', sandbox), 'function',
+    'window.definirEmborracharOpItem não é função');
+});
+
+test('64. runtime: definirEmborracharOpItem chama supa.from("op_itens")', async () => {
+  const { sandbox, fakeSupa } = makeOpWSandbox();
+  await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 501, valor: "PRETO" })', sandbox);
+  const fromCalls = fakeSupa._calls.filter(c => c.op === 'from').map(c => c.table);
+  assert.ok(fromCalls.includes('op_itens'),
+    `helper não chamou from('op_itens') (tabelas: ${fromCalls.join(',')})`);
+});
+
+test('65. runtime: definirEmborracharOpItem chama .update({ emborrachar: valor }) com o valor informado', async () => {
+  const { sandbox, fakeSupa } = makeOpWSandbox();
+  await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 501, valor: "PRETO" })', sandbox);
+  const updateCalls = fakeSupa._calls.filter(c => c.op === 'update' && c.table === 'op_itens');
+  assert.equal(updateCalls.length, 1, 'esperado 1 update em op_itens');
+  assert.deepEqual(JSON.parse(JSON.stringify(updateCalls[0].args[0])), { emborrachar: 'PRETO' }, 'payload do update não bate');
+});
+
+test('66. runtime: definirEmborracharOpItem chama .eq("id", opItemId)', async () => {
+  const { sandbox, fakeSupa } = makeOpWSandbox();
+  await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 501, valor: "PRETO" })', sandbox);
+  const idEq = fakeSupa._calls.find(c => c.op === 'eq' && c.col === 'id');
+  assert.ok(idEq, 'esperado eq("id", ...)');
+  assert.equal(idEq.val, 501, 'eq("id", ...) deve usar opItemId do argumento');
+});
+
+test('67. runtime: valor null grava { emborrachar: null } — reset explícito para "não definido"', async () => {
+  const { sandbox, fakeSupa } = makeOpWSandbox();
+  await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 501, valor: null })', sandbox);
+  const updateCalls = fakeSupa._calls.filter(c => c.op === 'update' && c.table === 'op_itens');
+  assert.deepEqual(JSON.parse(JSON.stringify(updateCalls[0].args[0])), { emborrachar: null }, 'reset para null deve gravar { emborrachar: null }, nunca omitir a coluna');
+});
+
+test('68. runtime: em caso de erro, retorna { error } sem engolir o erro', async () => {
+  const { sandbox } = makeOpWSandbox({
+    updateResult: { data: null, error: { message: 'fake error' } },
+  });
+  const result = await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 501, valor: "PRETO" })', sandbox);
+  assert.ok(result.error, 'helper não devolveu error');
+  assert.equal(result.error.message, 'fake error', 'error.message propagado incorretamente');
+});
+
+test('69. runtime: em caso de sucesso, retorna o resultado do update sem sobrescrever', async () => {
+  const { sandbox } = makeOpWSandbox({
+    updateResult: { data: { id: 501, emborrachar: 'PRETO' }, error: null },
+  });
+  const result = await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 501, valor: "PRETO" })', sandbox);
+  assert.equal(result.data.id, 501);
+  assert.equal(result.data.emborrachar, 'PRETO');
+  assert.equal(result.error, null);
+});
+
+test('70. runtime: dois op_itens do MESMO modelo recebem valores independentes (nunca por modelo)', async () => {
+  // Prova a cardinalidade do db/124: dois op_itens (601, 602) que
+  // referenciam o mesmo modelo_id podem carregar valores de emborrachar
+  // diferentes, porque o escritor grava por op_item.id, nunca por modelo_id.
+  const { sandbox, fakeSupa } = makeOpWSandbox();
+  await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 601, valor: "PRETO" })', sandbox);
+  await vm.runInContext(
+    'window.definirEmborracharOpItem({ opItemId: 602, valor: "CRU" })', sandbox);
+  const updateCalls = fakeSupa._calls.filter(c => c.op === 'update' && c.table === 'op_itens');
+  const eqCalls = fakeSupa._calls.filter(c => c.op === 'eq' && c.col === 'id');
+  assert.equal(updateCalls.length, 2, 'esperado 1 update por op_item');
+  assert.deepEqual(JSON.parse(JSON.stringify(updateCalls[0].args[0])), { emborrachar: 'PRETO' });
+  assert.deepEqual(JSON.parse(JSON.stringify(updateCalls[1].args[0])), { emborrachar: 'CRU' });
+  assert.equal(eqCalls[0].val, 601);
+  assert.equal(eqCalls[1].val, 602);
 });

@@ -4,9 +4,10 @@
 // de dentro de screenNovaOP. Concentra:
 //
 //   - registrarRecebimentoOrdemFio(...)
+//   - definirEmborracharOpItem(...) (TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1)
 //
 // P2-A aposentou atribuirFornecedorFioOp e sua exportação em window (ver o
-// bloco APOSENTADO abaixo). Este arquivo expõe UM único helper.
+// bloco APOSENTADO abaixo).
 //
 // Carregar via <script src="js/screens/op-writes.js"></script> no
 // <head>, DEPOIS de js/screens/op-form-helpers.js e ANTES de jspdf +
@@ -101,6 +102,20 @@
     return Object.assign({}, flat, { ambiguous: false });
   }
 
+  // db/124 + TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1: escreve a
+  // especificação de emborrachar (definida pela Ravatex) para UM op_item.
+  // `valor` é a string escolhida (deve corresponder a cor_1/cor_2 do modelo
+  // do item, resolvida pelo chamador) ou `null` para voltar ao estado "não
+  // definido". Escrita direta (sem RPC): op_itens_admin (db/03) já concede
+  // UPDATE irrestrito de coluna para is_admin(), o mesmo mecanismo que já
+  // sustenta o update de metros_pedidos em op-latex-admin.js.
+  async function definirEmborracharOpItem({ opItemId, valor }) {
+    return await window.supa
+      .from('op_itens')
+      .update({ emborrachar: valor })
+      .eq('id', opItemId);
+  }
+
   // -------------------------------------------------------------------
   // APOSENTADO — atribuirFornecedorFioOp
   //
@@ -124,7 +139,9 @@
   window.RAVATEX_SCREENS.opWrites = {
     ...window.RAVATEX_SCREENS.opWrites,
     registrarRecebimentoOrdemFio,
+    definirEmborracharOpItem,
   };
 
   window.registrarRecebimentoOrdemFio = registrarRecebimentoOrdemFio;
+  window.definirEmborracharOpItem = definirEmborracharOpItem;
 })(window);

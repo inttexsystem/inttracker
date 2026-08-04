@@ -639,7 +639,7 @@
 
   if (opId) {
     const { data, error } = await supa.from('ops')
-      .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, ajuste_revisao, tipo, observacao, origem_op_id, lote_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa)')
+      .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, ajuste_revisao, tipo, observacao, origem_op_id, lote_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id, emborrachar), op_fornecedores(fornecedor_id, etapa)')
       .eq('id', opId).single();
     if (error || !data) {
       toast('OP não encontrada', 'error'); console.error(error);
@@ -1168,7 +1168,7 @@
   }
 
   function buildCardItensAbertaTecelagem() {
-    var cols = 'minmax(220px,1fr) 130px 150px';
+    var cols = 'minmax(220px,1fr) 130px 150px 190px';
     var card = el('div', { style: RV_CARD + 'overflow:hidden;' },
       el('div', { style: 'display:flex;align-items:center;gap:8px;padding:15px 17px 12px;' },
         rvSectionPill('Itens da OP', IC_ITENS),
@@ -1180,8 +1180,8 @@
     }
 
     var table = el('div', { style: 'overflow-x:auto;' });
-    var inner = el('div', { style: 'min-width:520px;' });
-    inner.appendChild(rvThRow(cols, ['MODELO / CORES', 'PEDIDO', 'ITEM DO PEDIDO']));
+    var inner = el('div', { style: 'min-width:660px;' });
+    inner.appendChild(rvThRow(cols, ['MODELO / CORES', 'PEDIDO', 'ITEM DO PEDIDO', 'EMBORRACHAR']));
     // Os itens saem na ordem de prioridade do Pedido pai, nunca na ordem em
     // que o banco os devolveu.
     opItensPorPrioridade(opItensRaw).forEach(function (item) {
@@ -1190,11 +1190,52 @@
         el('div', { style: 'font-size:13px;font-weight:600;color:var(--rv-color-value);' }, window.rotuloModelo(modelosById[item.modelo_id])),
         el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);font-variant-numeric:tabular-nums;' }, window.fmtMetros(item.metros_pedidos)),
         el('div', { style: 'font-size:12.5px;text-align:right;color:var(--rv-color-accent);font-weight:600;' }, itemPedidoLabel),
+        buildCelulaEmborrachar(item),
       ]));
     });
     table.appendChild(inner);
     card.appendChild(table);
     return card;
+  }
+
+  // TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1: a especifica\u00e7\u00e3o de
+  // emborrachar \u00e9 da Ravatex, por op_item (nunca por modelo \u2014 db/124), e o
+  // \u00fanico valor bounded aceito \u00e9 uma das cores reais do modelo (cor_1/cor_2),
+  // nunca texto livre. A distin\u00e7\u00e3o tapete/manta \u00e9 lida do \u00fanico dono
+  // existente, modelos.tipo_produto (db/78) \u2014 esta fun\u00e7\u00e3o n\u00e3o infere o
+  // lado/cor por nenhuma regra impl\u00edcita e n\u00e3o inventa uma segunda
+  // classifica\u00e7\u00e3o. Manta nunca recebe controle de edi\u00e7\u00e3o (regra de produto,
+  // \u00a72 da especifica\u00e7\u00e3o): renderiza apenas "N\u00e3o se aplica", em paridade com
+  // js/screens/tecelagem.js:estadoEmborrachar.
+  function buildCelulaEmborrachar(item) {
+    var modelo = modelosById[item.modelo_id];
+    var isManta = !!(modelo && String(modelo.tipo_produto).trim().toLowerCase() === 'manta');
+    if (isManta) {
+      return el('div', { style: 'font-size:12.5px;text-align:right;color:var(--rv-text-tertiary);' }, 'N\u00e3o se aplica');
+    }
+
+    var cor1 = modelo && modelo.cor_1 && modelo.cor_1.nome ? modelo.cor_1.nome : null;
+    var cor2 = modelo && modelo.cor_2 && modelo.cor_2.nome ? modelo.cor_2.nome : null;
+    var opts = [{ value: '', label: 'N\u00e3o definido' }];
+    if (cor1) opts.push({ value: cor1, label: cor1 });
+    if (cor2 && cor2 !== cor1) opts.push({ value: cor2, label: cor2 });
+
+    var sel = selectInput({ options: opts, value: item.emborrachar || '', placeholder: 'N\u00e3o definido' });
+    styleSelect(sel, 'padding:6px 26px 6px 9px;font-size:12.5px;');
+    sel.addEventListener('change', async function () {
+      var novoValor = sel.value ? sel.value : null;
+      if (novoValor === (item.emborrachar || null)) return;
+      var r = await window.definirEmborracharOpItem({ opItemId: item.id, valor: novoValor });
+      if (r.error) {
+        toast('Erro ao salvar emborrachar', 'error');
+        console.error(r.error);
+        return;
+      }
+      item.emborrachar = novoValor;
+      toast('Emborrachar atualizado', 'success');
+      render();
+    });
+    return wrapSelect(sel, true);
   }
 
   // ------------------------------------------------------------------
@@ -1528,7 +1569,7 @@
   async function recarregarAjusteOP() {
     if (!op) return false;
     const opRes = await supa.from('ops')
-      .select('id, status, ajuste_revisao, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id)')
+      .select('id, status, ajuste_revisao, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id, emborrachar)')
       .eq('id', op.id).single();
     if (opRes.error || !opRes.data) {
       toast('Erro ao recarregar a OP', 'error');

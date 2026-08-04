@@ -132,11 +132,11 @@ test('9. o recebimento legado continua funcionando após a aposentadoria', async
   assert.equal(upd.payload.kg_recebido, 10);
 });
 
-test('10. o módulo expõe EXATAMENTE um helper', () => {
+test('10. o módulo expõe EXATAMENTE os helpers autorizados', () => {
   const { sandbox } = makeSandbox();
   const chaves = Object.keys(sandbox.RAVATEX_SCREENS.opWrites).sort();
-  assert.deepEqual(Array.from(chaves), ['registrarRecebimentoOrdemFio'],
-    'op-writes.js tem de expor só o recebimento');
+  assert.deepEqual(Array.from(chaves), ['definirEmborracharOpItem', 'registrarRecebimentoOrdemFio'],
+    'op-writes.js tem de expor só o recebimento e o emborrachar (TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1)');
 });
 
 test('11. nenhum outro módulo da aplicação chama o símbolo aposentado', () => {

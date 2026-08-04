@@ -928,8 +928,8 @@ async function renderNovaOpForTest({ opId = null, pedidoId = null, db, rpcImpl, 
 test('31. op-nova.js lê lote.pedido_id e op_itens.pedido_item_id para rastreabilidade', () => {
   assert.match(opnSrc, /lote:lote_id\(id,\s*numero,\s*pedido_id,/,
     'select de lotes deve incluir pedido_id');
-  assert.match(opnSrc, /op_itens\(id,\s*modelo_id,\s*metros_pedidos,\s*metros_ajustados,\s*pedido_item_id\)/,
-    'select de op_itens deve incluir pedido_item_id');
+  assert.match(opnSrc, /op_itens\(id,\s*modelo_id,\s*metros_pedidos,\s*metros_ajustados,\s*pedido_item_id,\s*emborrachar\)/,
+    'select de op_itens deve incluir pedido_item_id e emborrachar (TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1)');
 });
 
 test('32. Nova OP com pedido_id mostra "Pedido vinculado"', async () => {
@@ -2289,4 +2289,101 @@ test('94. C1: sem proveniência canônica, a contagem plana permanece exatamente
   const rendered = await renderNovaOpForTest({ opId: 94, db: buildOpReaderFixture(false) });
   assert.match(rendered.text, /Ordens de fio\s*4\b/,
     'sem alocação canônica a métrica continua sendo a contagem plana existente');
+});
+
+// -----------------------------------------------------------------------------
+// TECELAGEM-V1-EMBORRACHAR-ADMIN-SURFACE-R1 (99-102)
+//
+// db/124 added op_itens.emborrachar (Ravatex-defined finishing instruction,
+// per OP item, never per modelo) but shipped no admin editing surface. This
+// closes that gap on the OP Aberta de Tecelagem card ("2. Itens da OP"):
+// each tapete op_item gets a bounded select (its own modelo's cor_1/cor_2 —
+// never free text), and a manta op_item gets NO editable control at all
+// (product rule, modelos.tipo_produto is the sole owner — db/78).
+//
+// Collects every rendered select-popover trigger (role="combobox") so tests
+// can assert per-row applicability and per-row value without depending on
+// select-popover's internal click/open machinery (FakeNode has no
+// dispatchEvent, so this suite verifies the RENDERED state, exactly like
+// every other selectInput() consumer already covered in this file).
+// -----------------------------------------------------------------------------
+
+function collectComboboxes(node, out = []) {
+  if (!node) return out;
+  if (typeof node.getAttribute === 'function' && node.getAttribute('role') === 'combobox') {
+    out.push({ value: node.getAttribute('data-rv-select-value'), text: collectNodeText(node).trim() });
+  }
+  for (const child of (node.children || [])) collectComboboxes(child, out);
+  return out;
+}
+
+function buildEmborracharFixtureDb() {
+  return buildOpNovaFixture({
+    modelos: [
+      { id: 1, nome: 'Arabesco', largura: 2.10, cor_1: { id: 11, nome: 'PRETO' }, cor_2: { id: 12, nome: 'CRU' }, tipo_produto: 'tapete' },
+      { id: 3, nome: 'Cobertor Base', largura: 1.40, cor_1: { id: 15, nome: 'BEGE' }, cor_2: { id: 16, nome: 'BEGE' }, tipo_produto: 'manta' },
+    ],
+    ops: [
+      {
+        id: 95,
+        identidade_operacional: 'OP-T95-1-26',
+        numero: 9,
+        ano: 2026,
+        status: 'aberta',
+        tipo: 'tecelagem',
+        observacao: '',
+        origem_op_id: null,
+        lote_id: 305,
+        lote: { id: 305, numero: 20, pedido_id: null, cliente: null },
+        // 601/602 compartilham modelo_id:1 (Arabesco) com valores DIFERENTES;
+        // 603 e o mesmo modelo SEM valor ainda; 604 e uma Manta.
+        op_itens: [
+          { id: 601, modelo_id: 1, metros_pedidos: 60, metros_ajustados: null, pedido_item_id: null, emborrachar: 'PRETO' },
+          { id: 602, modelo_id: 1, metros_pedidos: 40, metros_ajustados: null, pedido_item_id: null, emborrachar: 'CRU' },
+          { id: 603, modelo_id: 1, metros_pedidos: 25, metros_ajustados: null, pedido_item_id: null, emborrachar: null },
+          { id: 604, modelo_id: 3, metros_pedidos: 30, metros_ajustados: null, pedido_item_id: null, emborrachar: null },
+        ],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+    ],
+    ordens_compra_fio: [],
+  });
+}
+
+test('99. Manta não recebe controle de edição de EMBORRACHAR e mostra "Não se aplica"', async () => {
+  const rendered = await renderNovaOpForTest({ opId: 95, db: buildEmborracharFixtureDb() });
+  assert.match(rendered.text, /Não se aplica/, 'a linha da Manta deve mostrar Não se aplica');
+  // Só 3 dos 4 op_itens são Tapete (aplicáveis) — nenhum combobox extra
+  // aparece na tela para a Manta (id 604).
+  const combos = collectComboboxes(rendered.view);
+  assert.equal(combos.length, 3, `esperado exatamente 3 selects de EMBORRACHAR (Tapete), obtido ${combos.length}`);
+});
+
+test('100. Tapete aplicável sem valor mostra "Não definido" — nunca infere de cor_1/cor_2', async () => {
+  const rendered = await renderNovaOpForTest({ opId: 95, db: buildEmborracharFixtureDb() });
+  const combos = collectComboboxes(rendered.view);
+  const semValor = combos.find((c) => c.value === '' || c.value == null);
+  assert.ok(semValor, 'esperado ao menos um select sem valor selecionado (op_item 603)');
+  assert.match(semValor.text, /Não definido/, 'placeholder do select vazio deve ser "Não definido"');
+});
+
+test('101. Dois op_itens do MESMO modelo (Arabesco) renderizam valores de EMBORRACHAR independentes', async () => {
+  const rendered = await renderNovaOpForTest({ opId: 95, db: buildEmborracharFixtureDb() });
+  const combos = collectComboboxes(rendered.view);
+  const valores = combos.map((c) => c.value).sort();
+  // 601=PRETO, 602=CRU, 603='' — mesmo modelo_id:1, três valores distintos:
+  // a especificação é por op_item, nunca por modelo (db/124).
+  assert.deepEqual(valores, ['', 'CRU', 'PRETO'],
+    `esperado um valor independente por op_item do mesmo modelo, obtido ${JSON.stringify(valores)}`);
+});
+
+test('102. as opções do select de EMBORRACHAR são bounded às cores reais do modelo (nunca texto livre)', () => {
+  // Prova estrutural sobre o código-fonte: a lista de opções vem de
+  // modelo.cor_1/cor_2 resolvidos por op_item, mais o próprio reset "Não
+  // definido" — nenhum input de texto livre é oferecido.
+  const corpo = (opnSrc.match(/function buildCelulaEmborrachar[\s\S]*?\r?\n  \}\r?\n/) || [''])[0];
+  assert.match(corpo, /modelo\.cor_1/, 'as opções devem vir de modelo.cor_1');
+  assert.match(corpo, /modelo\.cor_2/, 'as opções devem vir de modelo.cor_2');
+  assert.doesNotMatch(corpo, /textInput\(/, 'EMBORRACHAR não pode ser um campo de texto livre');
+  assert.match(corpo, /window\.definirEmborracharOpItem/, 'a seleção deve persistir via definirEmborracharOpItem (op-writes.js)');
 });
