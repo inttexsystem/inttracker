@@ -237,7 +237,9 @@ test('4. Minhas OPs lista a OP com CLIENTE e estado, vinda do read model', async
 
   const texto = h.textOf(node);
   assert.match(texto, /OP 003\/2026/, 'a identidade da OP deve aparecer');
-  assert.match(texto, /Cliente: Felipe Grandi/, 'o cliente da OP deve estar visível');
+  assert.match(texto, /Felipe Grandi/, 'o cliente da OP deve estar visível');
+  assert.ok(!/Cliente:/.test(texto),
+    'e sem o rótulo redundante: ao lado de um código de OP o nome já se explica');
   assert.match(texto, /Produção iniciada/, 'o estado operacional da OP deve aparecer');
   assert.ok(btn(h, 'Abrir OP', node), 'deve haver a ação Abrir OP');
 
@@ -257,9 +259,12 @@ test('4b. Minhas OPs inclui OP pronta para iniciar e OP bloqueada, e diz qual é
   assert.match(texto, /OP 004\/2026/, 'a OP pronta para iniciar deve aparecer na lista');
   assert.match(texto, /OP 005\/2026/, 'a OP bloqueada deve aparecer na lista');
 
-  assert.match(texto, /Pronta para iniciar produção/, 'o estado "pode iniciar" deve ser comunicado');
-  assert.match(texto, /Produção iniciada em 03\/08\/2026/,
-    'o estado "produção iniciada" deve ser comunicado, com o momento do início');
+  assert.match(texto, /Pronta para iniciar/, 'o estado "pode iniciar" deve ser comunicado');
+  assert.match(texto, /Produção iniciada/, 'o estado "produção iniciada" deve ser comunicado');
+  // A frase por extenso que só repetia a pílula saiu; o MOTIVO de um bloqueio,
+  // que a pílula não carrega, continua.
+  assert.ok(!/O registro de rolos está liberado/.test(texto),
+    'a frase que apenas repetia a pílula não pode voltar');
   assert.match(texto, /Ainda não liberada: o pedido ainda não foi confirmado/,
     'o motivo do bloqueio deve ser comunicado ao operador');
 });
@@ -306,7 +311,8 @@ test('6. Abrir OP mostra CLIENTE, produto, previsto e produzido, sem campo edit�
   await settle();
 
   const texto = h.textOf(node);
-  assert.match(texto, /Cliente: Felipe Grandi/, 'o cliente deve estar visível ao abrir a OP');
+  assert.match(texto, /Felipe Grandi/, 'o cliente deve estar visível ao abrir a OP');
+  assert.ok(!/Cliente:/.test(texto), 'sem linha dedicada de Cliente');
   assert.match(texto, /NOITE · 2,10 m · KRAFT\/CRU/, 'o rótulo do produto deve seguir o formato do produto');
   assert.match(texto, /Previsto/);
   assert.match(texto, /4\.000,00 m/, 'o previsto deve vir em pt-BR com unidade');
@@ -328,7 +334,7 @@ test('6b. antes do início local o registro fica indisponível e explicado', asy
   const node = h.win.screenTecelagemOp(502);
   await settle();
 
-  assert.match(h.textOf(node), /Inicie a produção para registrar rolos/,
+  assert.match(h.textOf(node), /Pronta para iniciar/,
     'o operador precisa saber por que não pode registrar');
 
   const acao = btn(h, 'Registrar produção', node);
@@ -361,7 +367,7 @@ test('6d. numa OP pronta a OP oferece INICIAR PRODUÇÃO e o registro fica trava
   await settle();
 
   const texto = h.textOf(node);
-  assert.match(texto, /Pronta para iniciar produção/, 'o estado deve estar legível');
+  assert.match(texto, /Pronta para iniciar/, 'o estado deve estar legível');
 
   const iniciar = btn(h, 'Iniciar produção', node);
   assert.ok(iniciar, 'a OP pronta deve oferecer INICIAR PRODUÇÃO');
@@ -1594,181 +1600,68 @@ test('57. os destinos de navegação de Ver rolos não mudaram', async () => {
     'compactar o cabeçalho não pode mudar para onde os controles levam');
 });
 
-test('58. a identidade e o estado da OP moram na linha ORDEM DE PRODUÇÃO', async () => {
+test('58. o cabeçalho da página identifica a OP, o cliente e o estado numa linha', async () => {
   const { h, settle } = boot({ rolos: [] });
   const node = h.win.screenTecelagemOp(501);
   await settle();
 
-  const identidade = h.findOne((n) => n.getAttribute
-    && n.getAttribute('data-rv-tecelagem-op-identidade') != null, node);
-  assert.ok(identidade, 'a identidade da OP tem de existir');
-  assert.match(h.textOf(identidade), /OP 003\/2026/);
+  const cab = h.findOne((n) => n.getAttribute
+    && n.getAttribute('data-rv-tecelagem-op-cabecalho') != null, node);
+  assert.ok(cab, 'o cabeçalho tem de carregar a identidade da OP');
 
-  // sectionChipComAcoes agrupa o que entra à direita, então a linha do chip é o
-  // AVÔ da identidade. Que essa linha contenha o rótulo da seção É a prova de
-  // que a identidade subiu, em vez de continuar numa linha própria.
-  const linha = identidade.parentNode.parentNode;
-  assert.match(h.textOf(linha), /ORDEM DE PRODUÇÃO/i,
-    'a identidade tem de estar na MESMA linha do chip de seção');
-  assert.match(h.textOf(linha), /Produção iniciada/,
-    'e a pílula de estado também');
+  const texto = h.textOf(cab);
+  assert.match(texto, /OP 003\/2026/, 'a OP identifica a página');
+  assert.match(texto, /Felipe Grandi/, 'o cliente vem ao lado');
+  assert.match(texto, /Produção iniciada/, 'e o estado fecha a mesma linha');
 
-  // O estado continua legível por extenso, com o momento — essa linha não é a
-  // redundante e não pode ter sido removida junto.
-  assert.match(h.textOf(node), /Produção iniciada em 03\/08\/2026/);
-  assert.match(h.textOf(node), /Cliente: Felipe Grandi/);
+  // O título genérico "OP" não pode sobreviver como identidade da página.
+  const h1 = h.findOne((n) => n.tagName === 'H1', node);
+  assert.ok(h1 && h1.contains(cab), 'a identidade tem de estar DENTRO do título da página');
 });
 
-test('59. a identidade da OP cabe na altura do chip, sem crescer a linha', async () => {
+test('58b. o card de identidade da OP não existe mais, e nada tomou o lugar dele', async () => {
   const { h, settle } = boot({ rolos: [] });
   const node = h.win.screenTecelagemOp(501);
   await settle();
 
-  const identidade = h.findOne((n) => n.getAttribute
-    && n.getAttribute('data-rv-tecelagem-op-identidade') != null, node);
-  // 16px (COMPONENT_HEADING) cabe nos 20px do chip; os 20px de SECTION_HEADING
-  // que ela usava antes não caberiam.
-  assert.match(identidade.getAttribute('style') || '', /font-size:var\(--rv-fs-component-heading\)/,
-    'a identidade toma o rung de heading de componente para caber na linha do chip');
-  assert.ok(!/--rv-fs-section-heading/.test(identidade.getAttribute('style') || ''),
-    'o rung de 20px cresceria a linha e não pode voltar');
+  const texto = h.textOf(node);
+  assert.ok(!/ORDEM DE PRODUÇÃO/i.test(texto), 'o bloco de identidade dedicado tem de sumir');
+  assert.ok(!/Cliente:/.test(texto), 'não pode restar uma linha dedicada de Cliente');
+  assert.ok(!/O registro de rolos está liberado/.test(texto),
+    'nem a frase que apenas repetia o estado visível');
+
+  // O cliente aparece UMA vez, no cabeçalho — não duplicado.
+  assert.equal((texto.match(/Felipe Grandi/g) || []).length, 1,
+    'a identidade do cliente não pode aparecer duas vezes');
 });
 
-// =====================================================================
-// VER ROLOS — CARD DE PRODUTO EM UMA LINHA SÓ
-// =====================================================================
-
-test('60. o card de produto de Ver rolos não tem rodapé: rótulo, identidade e ações numa linha', async () => {
-  const { h, settle } = boot({
-    rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO], item: ITEM_COM_EMBORRACHAR,
-  });
-  const node = h.win.screenTecelagemRolos(501, 511);
+test('59. numa OP bloqueada o MOTIVO sobrevive — é o que a pílula não diz', async () => {
+  const { h, settle } = boot({ rolos: [], ops: [OP_BLOQUEADA] });
+  const node = h.win.screenTecelagemOp(503);
   await settle();
 
-  const identidade = h.findOne((n) => n.getAttribute
-    && n.getAttribute('data-rv-tecelagem-produto-identidade') != null, node);
-  assert.ok(identidade, 'a identidade do produto tem de existir');
-  assert.match(h.textOf(identidade), /NOITE · 2,10 m · KRAFT\/CRU/);
-
-  // A linha do chip é o AVÔ: rótulo, identidade e ações partilham UMA linha.
-  const linha = identidade.parentNode.parentNode;
-  assert.match(h.textOf(linha), /PRODUTO/i, 'o rótulo da seção está na mesma linha');
-  ['Etiqueta de acabamento', 'Dar saída para acabamento'].forEach((rotulo) => {
-    const a = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === rotulo, linha);
-    assert.ok(a, `${rotulo} tem de estar na linha do cabeçalho PRODUTO`);
-    assert.match(a.getAttribute('style') || '', /height:var\(--rv-h-inline\)/,
-      `${rotulo} tem de usar o rung inline para não crescer a linha`);
-  });
-
-  // O apoio continua abaixo, e nada mais.
-  assert.match(h.textOf(node), /OP 003\/2026/, 'a OP continua visível como apoio');
-  assert.match(h.textOf(node), /Cliente: Felipe Grandi/, 'o cliente continua visível como apoio');
+  assert.match(h.textOf(node), /Ainda não liberada: o pedido ainda não foi confirmado/,
+    'suprimir o motivo esconderia o único dado que o operador precisa');
+  assert.ok(!/ORDEM DE PRODUÇÃO/i.test(h.textOf(node)),
+    'e ele não pode trazer o card de volta');
 });
 
-test('61. a hierarquia do card de produto de Ver rolos sobrevive', async () => {
-  const { h, settle } = boot({
-    rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO], item: ITEM_COM_EMBORRACHAR,
-  });
-  const node = h.win.screenTecelagemRolos(501, 511);
+test('59b. Iniciar produção vive no cabeçalho e mantém a trava de duplo clique', async () => {
+  const { h, calls, settle } = boot({ rolos: [], ops: [OP_PRONTA] });
+  const node = h.win.screenTecelagemOp(502);
   await settle();
 
-  const saida = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Dar saída para acabamento', node);
-  const etiqueta = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Etiqueta de acabamento', node);
-  assert.match(saida.getAttribute('style') || '', /background:var\(--rv-brand\)/,
-    'dar saída continua sendo a primária');
-  assert.match(etiqueta.getAttribute('style') || '', /background:var\(--rv-surface\)/,
-    'a etiqueta continua secundária');
-  // Sem seleção continua desabilitada — a regra de elegibilidade não mudou.
-  assert.equal(saida.getAttribute('disabled'), 'disabled');
-});
+  const grupo = h.findOne((n) => n.getAttribute && n.getAttribute('data-rv-page-actions') != null, node);
+  const iniciar = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Iniciar produção', grupo);
+  assert.ok(iniciar, 'a ação dominante mora no grupo canônico do cabeçalho');
+  // Ação que MUTA estado mantém o rung dominante — o inline é só navegação.
+  assert.match(iniciar.getAttribute('style') || '', /height:var\(--rv-h-primary\)/);
 
-// =====================================================================
-// ETIQUETA DO ROLO — indicador persistido (db/129)
-// =====================================================================
-
-test('62. cada chip carrega o indicador da etiqueta, e os dois estados se distinguem', async () => {
-  const rolos = [
-    { id: 901, op_item_id: 511, numero: 1, comprimento_m: 28.4, situacao: 'na_tecelagem', etiqueta_impressa_em: null },
-    { id: 902, op_item_id: 511, numero: 2, comprimento_m: null, situacao: 'na_tecelagem', etiqueta_impressa_em: '2026-08-04T12:00:00.000Z' },
-  ];
-  const { h, settle } = boot({ rolos, lancamentos: [LANCAMENTO_DE_CINCO] });
-  const node = h.win.screenTecelagemRolos(501, 511);
+  h.click(iniciar);
+  h.click(iniciar);
   await settle();
-
-  const selo = (n) => h.findOne((x) => x.getAttribute && x.getAttribute('data-rv-rolo-etiqueta') != null,
-    chipRolo(h, node, n));
-  assert.equal(selo(1).getAttribute('data-rv-rolo-etiqueta'), 'nao-impressa');
-  assert.equal(selo(2).getAttribute('data-rv-rolo-etiqueta'), 'impressa');
-
-  // O estado NUNCA é comunicado só pelo ícone.
-  assert.match(chipRolo(h, node, 1).getAttribute('aria-label'), /etiqueta não impressa/);
-  assert.match(chipRolo(h, node, 2).getAttribute('aria-label'), /etiqueta impressa/);
-  // E não vira texto permanente no chip.
-  assert.ok(!/Impress/i.test(h.textOf(chipRolo(h, node, 2))),
-    'o chip não pode ganhar um rótulo de texto por rolo');
-});
-
-test('63. o indicador aparece também num rolo já enviado ao acabamento', async () => {
-  const rolos = [
-    { id: 901, op_item_id: 511, numero: 1, comprimento_m: null, situacao: 'enviado_acabamento', etiqueta_impressa_em: '2026-08-04T12:00:00.000Z' },
-  ];
-  const { h, settle } = boot({ rolos, lancamentos: [LANCAMENTO_DE_CINCO] });
-  const node = h.win.screenTecelagemRolos(501, 511);
-  await settle();
-
-  const chip = chipRolo(h, node, 1);
-  assert.equal(chip.getAttribute('disabled'), 'disabled', 'continua não selecionável');
-  const selo = h.findOne((x) => x.getAttribute && x.getAttribute('data-rv-rolo-etiqueta') != null, chip);
-  assert.equal(selo.getAttribute('data-rv-rolo-etiqueta'), 'impressa',
-    'um rolo enviado ainda mostra que a etiqueta dele foi impressa');
-});
-
-test('64. nada infere impressão: um rolo sem o campo lê como não impresso', async () => {
-  const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
-  const node = h.win.screenTecelagemRolos(501, 511);
-  await settle();
-
-  [1, 2, 3, 4, 5].forEach((n) => {
-    const selo = h.findOne((x) => x.getAttribute && x.getAttribute('data-rv-rolo-etiqueta') != null,
-      chipRolo(h, node, n));
-    assert.equal(selo.getAttribute('data-rv-rolo-etiqueta'), 'nao-impressa',
-      `o rolo 00${n} nunca foi impresso e tem de ler assim`);
-  });
-});
-
-test('65. imprimir a etiqueta de ACABAMENTO não marca a etiqueta do rolo', async () => {
-  const { h, calls, settle } = boot({
-    rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO], item: ITEM_COM_EMBORRACHAR,
-  });
-  const node = h.win.screenTecelagemRolos(501, 511);
-  await settle();
-
-  h.click(h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Etiqueta de acabamento', node));
-  await settle();
-  h.click(btn(h, 'Imprimir'));
-  await settle();
-
-  assert.equal(calls.rpc.filter((c) => c.name === 'marcar_etiquetas_rolo_impressas').length, 0,
-    'a etiqueta de acabamento é do PRODUTO da OP e não tem estado por rolo');
-});
-
-test('66. imprimir vários rolos selecionados marca exatamente esses rolos', async () => {
-  const { h, calls, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
-  const node = h.win.screenTecelagemRolos(501, 511);
-  await settle();
-
-  await selecionar(h, node, settle, 2, 4);
-  h.click(acaoInline(h, node, 'Imprimir'));
-  await settle();
-  h.click(btn(h, 'Imprimir todas'));
-  await settle();
-
-  const chamada = calls.rpc.find((c) => c.name === 'marcar_etiquetas_rolo_impressas');
-  assert.ok(chamada, 'imprimir tem de registrar o estado');
-  assert.deepEqual(chamada.params.p_rolo_ids.slice().sort((a, b) => a - b), [902, 904],
-    'exatamente os rolos impressos, e nenhum outro');
-  assert.equal(calls.rpc.filter((c) => c.name === 'registrar_producao_tecelagem').length, 0,
-    'imprimir nunca cria rolo');
+  assert.equal(calls.rpc.filter((c) => c.name === 'iniciar_producao_tecelagem').length, 1,
+    'um segundo clique enquanto o primeiro está em voo não pode virar uma segunda chamada');
 });
 
 test('55. MANTA continua sem Etiqueta de acabamento também no card compacto', async () => {

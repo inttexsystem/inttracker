@@ -197,32 +197,7 @@
   }
 
   // Rodapé de ações do card (§2.1): SEMPRE à direita, com divisor superior.
-  function cardFooter() {
-    var children = Array.prototype.slice.call(arguments);
-    return window.el('div', {
-      style: 'display:flex; justify-content:flex-end; gap:8px; margin-top:13px;'
-        + ' border-top:1px solid var(--rv-border-soft); padding-top:11px;',
-    }, ...children);
-  }
-
-  function primaryButton(label, onclick, disabled) {
-    var attrs = {
-      style: 'border-radius:var(--rv-radius); font-size:var(--rv-fs-body); font-weight:600;'
-        + ' height:var(--rv-h-primary); padding:0 16px; display:inline-flex;'
-        + ' align-items:center; justify-content:center; border:none;'
-        + ' background:var(--rv-brand); color:var(--rv-text-on-brand);'
-        + (disabled ? ' opacity:.45; cursor:default;' : ' cursor:pointer;'),
-      onclick: disabled ? null : onclick,
-    };
-    // §2.1: a chave `disabled` entra no objeto SOMENTE quando a condição é
-    // verdadeira, e com valor TRUTHY — el() trata `disabled` como atributo
-    // booleano e um valor falsy (por exemplo '') o REMOVE, deixando o botão
-    // acionável.
-    if (disabled) attrs.disabled = true;
-    return window.el('button', attrs, label);
-  }
-
-  // `disabled` segue exatamente a mesma disciplina de primaryButton (§2.1): a
+  // `disabled` segue a disciplina do §2.1 do contrato: a
   // chave só entra no objeto quando a condição é verdadeira, porque el() trata
   // `disabled` como atributo booleano e um valor falsy o REMOVE.
   function secondaryButton(label, onclick, disabled) {
@@ -375,19 +350,50 @@
     };
   }
 
-  // A pílula carrega o estado OPERACIONAL da tecelagem — o mesmo que a linha
-  // de texto declara por extenso logo abaixo.
+  // O QUE A PÍLULA NÃO DIZ — e só isso.
+  //
+  // A frase por extenso existia em toda linha de execução e, em três dos quatro
+  // estados, repetia exatamente o que a pílula já mostra ("Produção iniciada",
+  // "Encerrada"). Repetição custa uma linha por OP e não informa nada.
+  //
+  // Sobra UM caso em que o texto carrega informação que a pílula não tem: uma
+  // OP bloqueada, onde o MOTIVO do bloqueio não está em lugar nenhum. Esse é
+  // mantido — suprimi-lo seria esconder o único dado que o operador precisa.
+  // A IDENTIDADE DA OP COMO TÍTULO DE PÁGINA: código, cliente e estado numa
+  // linha só. O código domina (rung de título), o cliente vem menor e mais
+  // claro logo ao lado, e a pílula fecha. É a mesma composição da lista, num
+  // rung acima — o operador reconhece a mesma coisa nas duas telas.
+  function cabecalhoOp(op, identidade) {
+    var cliente = op && op.cliente_nome ? String(op.cliente_nome).trim() : '';
+    return window.el('span', {
+      'data-rv-tecelagem-op-cabecalho': '',
+      style: 'display:inline-flex; align-items:baseline; gap:10px; flex-wrap:wrap;',
+    },
+      window.el('span', {
+        'data-rv-tecelagem-op-identidade': '',
+        style: 'font-size:var(--rv-fs-title); font-weight:700; color:var(--rv-text-title);',
+      }, identidade),
+      cliente
+        ? window.el('span', {
+            'data-rv-tecelagem-op-cliente': '',
+            style: 'font-size:var(--rv-fs-sm); font-weight:500; color:var(--rv-text-secondary);',
+          }, cliente)
+        : null,
+      window.el('span', { style: 'display:inline-flex; align-items:center;' }, execucaoPill(op))
+    );
+  }
+
+  function detalheExecucao(op) {
+    var s = op && op.situacao_execucao;
+    if (s === 'em_producao' || s === 'pode_iniciar' || s === 'encerrada') return null;
+    return execucao(op).rotulo;
+  }
+
+  // A pílula carrega o estado OPERACIONAL da tecelagem.
   function execucaoPill(op) {
     var e = execucao(op);
     return window.RV_BADGES.rvStatusPill(
       e.pill, ESTADO_CANONICO[op && op.situacao_execucao] || 'bloqueada');
-  }
-
-  // Linha de execução: o estado NUNCA é comunicado só pela cor da pílula.
-  function linhaExecucao(op) {
-    return window.el('div', {
-      style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-top:6px;',
-    }, execucao(op).rotulo);
   }
 
   // Cliente — informação definida pela Ravatex, somente leitura.
@@ -913,21 +919,53 @@
       if (!ops.length) {
         corpo.appendChild(card(emptyText('Nenhuma OP em produção atribuída a você no momento.')));
       } else {
+        // UMA LINHA POR OP: identidade, cliente, estado e a ação de abrir.
+        //
+        // Antes cada OP gastava quatro linhas empilhadas mais um rodapé só para
+        // o Abrir OP, e o rodapé é pago UMA VEZ POR OP — era ele que fazia caber
+        // tão poucas OPs na tela. A identidade domina, o cliente vem menor e
+        // mais claro ao lado dela, a pílula fecha o grupo e a ação fica à
+        // direita, na mesma linha. Sem rodapé, sem área vazia.
         ops.forEach(function (op) {
           var identidade = window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op);
-          corpo.appendChild(card(
-            window.el('div', {},
-              window.el('div', {
-                style: 'font-size:var(--rv-fs-section-heading); font-weight:700; color:var(--rv-text-primary);',
+          var cliente = op && op.cliente_nome ? String(op.cliente_nome).trim() : '';
+          var detalhe = detalheExecucao(op);
+
+          var linha = window.el('div', {
+            'data-rv-tecelagem-op-linha': '',
+            style: 'display:flex; align-items:center; justify-content:space-between;'
+              + ' gap:12px; flex-wrap:wrap;',
+          },
+            window.el('div', {
+              style: 'display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; min-width:0;',
+            },
+              window.el('span', {
+                'data-rv-tecelagem-op-identidade': '',
+                style: 'font-size:var(--rv-fs-component-heading); font-weight:700;'
+                  + ' line-height:var(--rv-h-inline); color:var(--rv-text-primary);',
               }, identidade),
-              linhaCliente(op),
-              window.el('div', { style: 'margin-top:6px;' }, execucaoPill(op)),
-              linhaExecucao(op)
+              // Cliente: secundário por tamanho E por cor, sem o rótulo
+              // "Cliente:" — ao lado de um código de OP o nome já se explica.
+              cliente
+                ? window.el('span', {
+                    'data-rv-tecelagem-op-cliente': '',
+                    style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary);'
+                      + ' line-height:var(--rv-h-inline);',
+                  }, cliente)
+                : null,
+              window.el('span', { style: 'display:inline-flex; align-items:center;' }, execucaoPill(op))
             ),
-            cardFooter(primaryButton('Abrir OP', function () {
+            inlineAction('Abrir OP', function () {
               window.navigate('#/tecelagem/ops/' + op.op_id);
-            }))
-          ));
+            }, false, 'primario')
+          );
+
+          // Só sobrevive o texto que a pílula NÃO diz: o motivo de um bloqueio.
+          corpo.appendChild(detalhe
+            ? card(linha, window.el('div', {
+                style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-top:6px;',
+              }, detalhe))
+            : card(linha));
         });
       }
 
@@ -983,29 +1021,22 @@
       // Na linha do chip a identidade toma o rung de heading de componente
       // (16px), que cabe nos 20px do chip, e a pílula tem 18px: a linha
       // continua medindo exatamente o que media, e uma linha inteira sai.
+      // O CARD DE IDENTIDADE DA OP NÃO EXISTE MAIS.
+      //
+      // Ele repetia, num bloco próprio, o que o cabeçalho da página já é: a
+      // identidade da OP. Um cabeçalho genérico ("OP") mais um card dizendo
+      // qual OP é gasta uma altura inteira para não informar nada. A identidade
+      // passou para o próprio cabeçalho e nada tomou o lugar do card.
       var estado = execucao(op);
-      var opCard = card(
-        sectionChipComAcoes('Ordem de produção', ICON_LAYERS, [execucaoPill(op)],
-          window.el('span', {
-            'data-rv-tecelagem-op-identidade': '',
-            // line-height AMARRADA ao rung inline: sem isso o corpo de 16px
-            // rende uma caixa de ~24px e a linha do chip cresce 4px — medido.
-            // O requisito é altura inalterada, então a caixa da identidade vale
-            // exatamente a altura do chip que ela acompanha.
-            style: 'font-size:var(--rv-fs-component-heading); font-weight:700;'
-              + ' line-height:var(--rv-h-inline); color:var(--rv-text-primary);'
-              + ' white-space:nowrap;',
-          }, identidade)),
-        linhaCliente(op),
-        linhaExecucao(op)
-      );
-      if (estado.podeIniciar) {
-        var botaoIniciar = primaryButton('Iniciar produção', function () {
-          iniciarProducao(op, botaoIniciar, reload);
-        });
-        opCard.appendChild(cardFooter(botaoIniciar));
+      var detalhe = detalheExecucao(op);
+      // Só sobrevive o que a pílula NÃO diz — o motivo de um bloqueio. Fica
+      // como linha de metadados sob o cabeçalho, não como um card novo.
+      if (detalhe) {
+        corpo.appendChild(window.el('div', {
+          'data-rv-tecelagem-op-detalhe': '',
+          style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-secondary);',
+        }, detalhe));
       }
-      corpo.appendChild(opCard);
 
       var podeRegistrar = estado.podeRegistrar;
 
@@ -1095,7 +1126,24 @@
       corpo.appendChild(window.el('div', {},
         secondaryButton('Voltar para Minhas OPs', function () { window.navigate('#/tecelagem/ops'); })));
 
-      container.replaceChildren(window.pageHeader('OP'), corpo);
+      // O cabeçalho carrega a identidade útil: OP, cliente e estado, na mesma
+      // linha. INICIAR PRODUÇÃO é ação que MUTA estado, então mantém o rung
+      // dominante de 38px do dono do cabeçalho (contrato §2.1 / D13.9) — o rung
+      // inline é só para navegação.
+      var acoesCabecalho = [];
+      if (estado.podeIniciar) {
+        acoesCabecalho.push({
+          label: 'Iniciar produção',
+          // O botão vem do dono do cabeçalho, então a proteção contra o segundo
+          // clique tem de vir do EVENTO — perdê-la ao mover a ação para cá
+          // seria trocar uma correção de layout por uma dupla chamada.
+          onclick: function (e) { iniciarProducao(op, e && e.currentTarget, reload); },
+        });
+      }
+      container.replaceChildren(
+        window.pageHeader(cabecalhoOp(op, identidade), acoesCabecalho),
+        corpo
+      );
     }
 
     reload();
