@@ -108,13 +108,28 @@ it is exactly the section chip's height, chosen so the control adds **zero** hei
 the header line it joins. Any other value would grow the line and defeat the only reason
 the rung exists.
 
-It is admissible ONLY when all of the following hold: the action operates on the
-section's own content (a selection, a bulk operation on the listed rows); it is
-right-aligned on the chip line; it carries `--rv-fs-2xs` text with `padding: 0 8px` and
-`--rv-radius`; and it is never the dominant action of the screen. It is forbidden in a
-card footer, in an entity header, in the rail, in a modal action bar and as a primary
-action — those keep 32/34/38px. A second row of inline actions is forbidden: if the
-actions do not fit one line, they do not belong here.
+It is admissible in exactly three placements, and nowhere else (D13.2, extended):
+
+1. **on a §2.4 section-chip line**, for an action operating on that section's own
+   content — a selection, a bulk operation on the listed rows;
+2. **on the identity row of a repeated record card** (§2.1 alignment, case 3). That row
+   is the same construction — a 20px chip plus the record's name — so the rung behaves
+   identically: the actions cost the card ZERO height. Here the rung MAY carry the
+   card's dominant action, because on a repeated record card the dominant action is a
+   per-record action, not the screen's;
+3. **in the `pageHeader()` action group, for NAVIGATION ONLY**, through that owner's
+   `variant: 'inline'`. A page header whose actions merely move the operator elsewhere
+   does not need the 38px dominant rung, and the rung is what forces the header band
+   taller than its own title. A page action that MUTATES state is not navigation and
+   keeps 38px.
+
+In every placement it carries `--rv-fs-2xs` text with `padding: 0 8px` and `--rv-radius`,
+and is right-aligned on its line. It is forbidden in a card footer, in an entity header,
+in the rail and in a modal action bar — those keep 32/34/38px. A second row of inline
+actions is forbidden: if the actions do not fit one line, they do not belong here.
+
+**The rung never buys height back.** Its whole purpose is that the line it joins already
+measures 20px, so if a placement would still grow, the placement is wrong — not the value.
 
 The **Caution** variant (D9) also dresses an operational caution banner and a caution KPI
 surface — anywhere caution is the element's own semantic role. It is not for a persisted

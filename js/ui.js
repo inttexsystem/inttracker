@@ -705,6 +705,29 @@ function pageHeader(title, actions = []) {
   // nothing, so there is no wrap to accommodate.
   const actWrap = el('div', { 'data-rv-page-actions': '', class: 'flex gap-2' });
   for (const a of actions) {
+    // D13.2 — INLINE PAGE ACTION. A page header whose actions are pure
+    // NAVIGATION does not need, and must not take, the 38px dominant rung: the
+    // rung is what forces the header band taller than its own title. This
+    // variant renders the ratified --rv-h-inline control so the action sits
+    // inside the existing title line and adds NO height to the header.
+    //
+    // The geometry stays owned HERE, in the page-header owner, rather than
+    // being passed in as a pre-built node — a caller that could inject its own
+    // markup into this group would end the single-owner property the group
+    // exists for.
+    if (a.variant === 'inline') {
+      actWrap.appendChild(el('button', {
+        type: 'button',
+        style: 'border-radius:var(--rv-radius); font-size:var(--rv-fs-2xs);'
+          + ' height:var(--rv-h-inline); padding:0 8px; display:inline-flex;'
+          + ' align-items:center; justify-content:center; font-weight:600;'
+          + ' font-family:inherit; background:var(--rv-surface);'
+          + ' border:1px solid var(--rv-border-strong); color:var(--rv-text-secondary);'
+          + ' cursor:pointer;',
+        onclick: a.onclick,
+      }, a.label));
+      continue;
+    }
     // Pass-6 A1: the PRIMARY PAGE ACTION owns its own typography and height.
     // It used to declare neither, so it inherited the 16px document default and
     // took its height from `py-2` — 40px, off the canonical ladder. The vertical

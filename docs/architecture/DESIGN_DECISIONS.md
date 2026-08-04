@@ -427,3 +427,25 @@ duplicate selection surface dies.
 detail cards, and D13.2 does not authorize a 20px control anywhere except a section-chip
 header line. Both are written into `UI_VISUAL_CONTRACT.md` with their scope attached,
 because a rung without a scope is a rung that spreads.
+
+---
+
+## 2026-08-04 · D13.6–D13.9 — the header compaction pass
+
+Kleber reviewed the published density pass and found three places still spending a whole
+band on something an existing line could carry: a navigation footer on Ver rolos, a
+standalone OP-code/status line under the ORDEM DE PRODUÇÃO chip, and product actions
+still tall enough to set the card's height. He ruled again that no header may grow, and
+that the contract should be adjusted where it stands in the way.
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D13.6 | Ver rolos navigation | **In `pageHeader()`, inline rung, no footer** | A navigation footer costs a full band at the end of a screen whose entire purpose is fitting more rolls, and navigation is the first thing the operator looks for, not the last. The title line already existed and was empty on its right. | Navigation is no longer where a long scroll ends, so on a very long roll list the operator scrolls back up to leave. |
+| D13.7 | OP identity placement | **On the ORDEM DE PRODUÇÃO chip line, at `COMPONENT_HEADING`** | A separate line repeating what the section header already frames is a band spent on nothing. 16px fits the chip's 20px; the 20px `SECTION_HEADING` it used to carry would not. | The OP code is visibly smaller than it was. It is still the largest thing on its line, and the page title above it already says OP. |
+| D13.8 | Product actions | **Inline rung, tone-carried hierarchy** | The card's identity row is a 20px chip line, so actions placed there cost the card nothing at all. Height had been carrying hierarchy; the brand fill carries it now. | The dominant per-record action is a 20px control — small for a primary. Accepted deliberately: it is a per-record action on a scanned list, not the screen's dominant action. |
+| D13.9 | Inline-rung scope | **Widened from one placement to three, each named** | The rung's justification — "the line already measures 20px" — is equally true of a record identity row and of a navigation-only page header. Leaving it scoped to one placement would have forced either a second near-identical rung or a silent violation. | The scope is now a list rather than a single sentence, and a list is easier to extend by one more "obviously similar" case. The contract therefore states the test that governs it: if the placement would still grow, the placement is wrong, not the value. |
+
+**Not a precedent.** D13.9 does not admit the rung for a state-mutating page action, for a
+card footer, for the rail or for a modal action bar. `pageHeader()` keeps 38px for
+anything that is not navigation, and the geometry stays owned by that function rather
+than by its callers.

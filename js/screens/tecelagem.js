@@ -144,38 +144,29 @@
     return linha;
   }
 
-  // AÇÃO INLINE (contrato §2.1, rung --rv-h-inline). Só é admissível na linha
-  // de um chip de seção; nunca é a ação dominante da tela.
-  function inlineAction(label, onclick, disabled, destrutiva) {
-    var cor = destrutiva ? 'var(--rv-signal-negative)' : 'var(--rv-text-secondary)';
-    var borda = destrutiva ? 'var(--rv-signal-negative-border)' : 'var(--rv-border-strong)';
+  // AÇÃO INLINE (contrato §2.1, rung --rv-h-inline). Admissível na linha de um
+  // chip de seção — inclusive a linha de identidade de um card de registro
+  // repetido, que é a mesma construção. 20px é EXATAMENTE a altura do chip, e é
+  // por isso que a ação não acrescenta altura nenhuma à linha em que entra.
+  //
+  // Três tons, e só três. `primario` mantém o preenchimento da marca, que é o
+  // que carrega a hierarquia agora que a altura não a carrega mais.
+  var TOM_INLINE = {
+    neutro:     { cor: 'var(--rv-text-secondary)', borda: '1px solid var(--rv-border-strong)', fundo: 'var(--rv-surface)' },
+    destrutivo: { cor: 'var(--rv-signal-negative)', borda: '1px solid var(--rv-signal-negative-border)', fundo: 'var(--rv-surface)' },
+    primario:   { cor: 'var(--rv-text-on-brand)',  borda: 'none',                              fundo: 'var(--rv-brand)' },
+  };
+
+  function inlineAction(label, onclick, disabled, tom) {
+    var t = TOM_INLINE[tom || 'neutro'];
+    if (!t) throw new Error('inlineAction: unknown tone "' + tom + '"');
     var attrs = {
       type: 'button',
       style: 'height:var(--rv-h-inline); padding:0 8px; display:inline-flex; align-items:center;'
         + ' justify-content:center; border-radius:var(--rv-radius);'
         + ' font-size:var(--rv-fs-2xs); font-weight:600; font-family:inherit;'
-        + ' background:var(--rv-surface); border:1px solid ' + borda + '; color:' + cor + ';'
+        + ' background:' + t.fundo + '; border:' + t.borda + '; color:' + t.cor + ';'
         + (disabled ? ' opacity:.45; cursor:default;' : ' cursor:pointer;'),
-      onclick: disabled ? null : onclick,
-    };
-    if (disabled) attrs.disabled = true;
-    return window.el('button', attrs, label);
-  }
-
-  // Ação de card COMPACTA (32px). Os cards de registro repetido da tela de OP
-  // usam este rung em vez de 34/38px: a hierarquia continua sendo dada pelo
-  // preenchimento da marca, não pela altura (D13.1).
-  function compactAction(label, onclick, disabled, primaria) {
-    var base = 'height:var(--rv-h-compact); padding:0 12px; display:inline-flex; align-items:center;'
-      + ' justify-content:center; border-radius:var(--rv-radius); font-size:var(--rv-fs-body);'
-      + ' font-weight:600; font-family:inherit;';
-    var pele = primaria
-      ? ' background:var(--rv-brand); border:none; color:var(--rv-text-on-brand);'
-      : ' background:var(--rv-surface); border:1px solid var(--rv-border-strong);'
-        + ' color:var(--rv-text-secondary);';
-    var attrs = {
-      type: 'button',
-      style: base + pele + (disabled ? ' opacity:.45; cursor:default;' : ' cursor:pointer;'),
       onclick: disabled ? null : onclick,
     };
     if (disabled) attrs.disabled = true;
@@ -938,15 +929,26 @@
       // INICIAR PRODUÇÃO pertence à OP, não ao produto: o fato local que ela
       // grava é da OP inteira, e é o que libera o registro em todos os
       // produtos dela.
+      // A IDENTIDADE E O ESTADO MORAM NA PRÓPRIA LINHA DO CHIP.
+      // Antes existia uma segunda linha só para eles, com o código em 20px —
+      // uma linha inteira para repetir o que o cabeçalho da seção já enquadra.
+      // Na linha do chip a identidade toma o rung de heading de componente
+      // (16px), que cabe nos 20px do chip, e a pílula tem 18px: a linha
+      // continua medindo exatamente o que media, e uma linha inteira sai.
       var estado = execucao(op);
       var opCard = card(
-        sectionChip('Ordem de produção', ICON_LAYERS),
-        window.el('div', { style: 'display:flex; align-items:center; gap:10px; flex-wrap:wrap;' },
+        sectionChipComAcoes('Ordem de produção', ICON_LAYERS, [
           window.el('span', {
-            style: 'font-size:var(--rv-fs-section-heading); font-weight:700; color:var(--rv-text-primary);',
+            'data-rv-tecelagem-op-identidade': '',
+            // line-height AMARRADA ao rung inline: sem isso o corpo de 16px
+            // rende uma caixa de ~24px e a linha do chip cresce 4px — medido.
+            // O requisito é altura inalterada, então a caixa da identidade vale
+            // exatamente a altura do chip que ela acompanha.
+            style: 'font-size:var(--rv-fs-component-heading); font-weight:700;'
+              + ' line-height:var(--rv-h-inline); color:var(--rv-text-primary);',
           }, identidade),
-          execucaoPill(op)
-        ),
+          execucaoPill(op),
+        ]),
         linhaCliente(op),
         linhaExecucao(op)
       );
@@ -981,7 +983,7 @@
             'data-rv-tecelagem-produto-acoes': '',
             style: 'display:flex; align-items:flex-start; gap:8px; flex-wrap:wrap; margin-left:auto;',
           },
-            compactAction('Ver rolos', function () {
+            inlineAction('Ver rolos', function () {
               window.navigate('#/tecelagem/ops/' + op.op_id + '/produtos/' + produto.id + '/rolos');
             }),
             // Etiqueta para o acabamento: saída de leitura, sempre disponível —
@@ -989,14 +991,14 @@
             // manta: a ação em si não existe, não só o valor dentro dela
             // (regra de produto — manta nunca é emborrachada).
             temEtiquetaAcabamento(produto)
-              ? compactAction('Etiqueta de acabamento', function () { abrirEtiquetaAcabamento(op, produto); })
+              ? inlineAction('Etiqueta de acabamento', function () { abrirEtiquetaAcabamento(op, produto); })
               : null,
             // A ação só fica acionável depois do INÍCIO LOCAL da produção desta
             // OP. A recusa de verdade é do servidor (db/123); aqui ela é apenas
             // antecipada para o operador ver o estado.
-            compactAction('Registrar produção', function () {
+            inlineAction('Registrar produção', function () {
               abrirRegistro(op, produto, reload);
-            }, !podeRegistrar, true)
+            }, !podeRegistrar, 'primario')
           );
 
           // Uma única linha de métricas em vez de dois blocos rotulados
@@ -1631,7 +1633,7 @@
         }, nSel === 0),
         inlineAction('Excluir', function () {
           abrirExcluirSelecao(selecionadosElegiveis, reload);
-        }, nSel === 0, true),
+        }, nSel === 0, 'destrutivo'),
       ]));
 
       if (!rolos.length) {
@@ -1654,12 +1656,20 @@
       var recuperacao = cardLancamentos(produto, lancamentos, reload);
       if (recuperacao) corpo.appendChild(recuperacao);
 
-      corpo.appendChild(window.el('div', { style: 'display:flex; gap:8px; flex-wrap:wrap;' },
-        secondaryButton('Voltar para a OP', function () { window.navigate('#/tecelagem/ops/' + op.op_id); }),
-        secondaryButton('Minhas OPs', function () { window.navigate('#/tecelagem/ops'); })
-      ));
-
-      container.replaceChildren(window.pageHeader('Ver rolos'), corpo);
+      // A NAVEGAÇÃO MORA NO CABEÇALHO, não num rodapé.
+      // Um rodapé de navegação custa uma faixa inteira no fim de uma tela cuja
+      // razão de existir é caber muitos rolos; e a navegação é a primeira coisa
+      // que o operador procura, não a última. Os destinos são exatamente os
+      // mesmos, no rung inline, dentro da linha do título que já existe.
+      container.replaceChildren(
+        window.pageHeader('Ver rolos', [
+          { label: 'Voltar para a OP', variant: 'inline',
+            onclick: function () { window.navigate('#/tecelagem/ops/' + op.op_id); } },
+          { label: 'Minhas OPs', variant: 'inline',
+            onclick: function () { window.navigate('#/tecelagem/ops'); } },
+        ]),
+        corpo
+      );
     }
 
     reload();

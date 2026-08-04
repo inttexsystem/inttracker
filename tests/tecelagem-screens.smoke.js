@@ -1494,8 +1494,9 @@ test('52. o card de produto não tem rodapé de ações: elas ficam na linha de 
   ['Ver rolos', 'Registrar produção'].forEach((rotulo) => {
     const a = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === rotulo, acoes);
     assert.ok(a, `${rotulo} tem de estar no grupo de ações do topo`);
-    assert.match(a.getAttribute('style') || '', /height:var\(--rv-h-compact\)/,
-      `${rotulo} tem de usar o rung compacto — visivelmente menor que os 34/38px de antes`);
+    assert.match(a.getAttribute('style') || '', /height:var\(--rv-h-inline\)/,
+      `${rotulo} tem de usar o rung inline: 20px é a altura do próprio chip da linha,`
+      + ' então a ação não determina nem aumenta a altura do card');
   });
 });
 
@@ -1527,7 +1528,88 @@ test('54. a hierarquia primária/secundária sobrevive à compactação', async 
     'a secundária continua neutra');
   // A hierarquia passou a ser dada pela COR, não pela altura: as duas medem o
   // mesmo rung, e é isso que impede o card de crescer.
-  assert.match(verRolos.getAttribute('style') || '', /height:var\(--rv-h-compact\)/);
+  assert.match(verRolos.getAttribute('style') || '', /height:var\(--rv-h-inline\)/);
+});
+
+// =====================================================================
+// COMPACTAÇÃO DE CABEÇALHO — navegação e identidade sobem para as linhas
+// que já existiam (D13.2)
+// =====================================================================
+
+test('56. Ver rolos não tem rodapé de navegação: os destinos sobem para o cabeçalho', async () => {
+  const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const grupo = h.findOne((n) => n.getAttribute && n.getAttribute('data-rv-page-actions') != null, node);
+  assert.ok(grupo, 'a navegação tem de viver no grupo canônico do cabeçalho de página');
+
+  ['Voltar para a OP', 'Minhas OPs'].forEach((rotulo) => {
+    const a = h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === rotulo, grupo);
+    assert.ok(a, `${rotulo} tem de estar no cabeçalho`);
+    assert.match(a.getAttribute('style') || '', /height:var\(--rv-h-inline\)/,
+      `${rotulo} tem de usar o rung inline para não aumentar a altura do cabeçalho`);
+  });
+
+  // E não pode ter sobrado uma segunda cópia no fim da tela.
+  const todos = h.findAll((n) => n.tagName === 'BUTTON'
+    && ['Voltar para a OP', 'Minhas OPs'].indexOf(h.textOf(n)) >= 0, node);
+  assert.equal(todos.length, 2, 'cada destino existe UMA vez, e só no cabeçalho');
+});
+
+test('57. os destinos de navegação de Ver rolos não mudaram', async () => {
+  const { h, settle } = boot({ rolos: CINCO_ROLOS, lancamentos: [LANCAMENTO_DE_CINCO] });
+  const node = h.win.screenTecelagemRolos(501, 511);
+  await settle();
+
+  const destinos = [];
+  h.win.navigate = (rota) => destinos.push(rota);
+
+  h.click(h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Voltar para a OP', node));
+  h.click(h.findOne((n) => n.tagName === 'BUTTON' && h.textOf(n) === 'Minhas OPs', node));
+
+  assert.deepEqual(destinos, ['#/tecelagem/ops/501', '#/tecelagem/ops'],
+    'compactar o cabeçalho não pode mudar para onde os controles levam');
+});
+
+test('58. a identidade e o estado da OP moram na linha ORDEM DE PRODUÇÃO', async () => {
+  const { h, settle } = boot({ rolos: [] });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  const identidade = h.findOne((n) => n.getAttribute
+    && n.getAttribute('data-rv-tecelagem-op-identidade') != null, node);
+  assert.ok(identidade, 'a identidade da OP tem de existir');
+  assert.match(h.textOf(identidade), /OP 003\/2026/);
+
+  // sectionChipComAcoes agrupa o que entra à direita, então a linha do chip é o
+  // AVÔ da identidade. Que essa linha contenha o rótulo da seção É a prova de
+  // que a identidade subiu, em vez de continuar numa linha própria.
+  const linha = identidade.parentNode.parentNode;
+  assert.match(h.textOf(linha), /ORDEM DE PRODUÇÃO/i,
+    'a identidade tem de estar na MESMA linha do chip de seção');
+  assert.match(h.textOf(linha), /Produção iniciada/,
+    'e a pílula de estado também');
+
+  // O estado continua legível por extenso, com o momento — essa linha não é a
+  // redundante e não pode ter sido removida junto.
+  assert.match(h.textOf(node), /Produção iniciada em 03\/08\/2026/);
+  assert.match(h.textOf(node), /Cliente: Felipe Grandi/);
+});
+
+test('59. a identidade da OP cabe na altura do chip, sem crescer a linha', async () => {
+  const { h, settle } = boot({ rolos: [] });
+  const node = h.win.screenTecelagemOp(501);
+  await settle();
+
+  const identidade = h.findOne((n) => n.getAttribute
+    && n.getAttribute('data-rv-tecelagem-op-identidade') != null, node);
+  // 16px (COMPONENT_HEADING) cabe nos 20px do chip; os 20px de SECTION_HEADING
+  // que ela usava antes não caberiam.
+  assert.match(identidade.getAttribute('style') || '', /font-size:var\(--rv-fs-component-heading\)/,
+    'a identidade toma o rung de heading de componente para caber na linha do chip');
+  assert.ok(!/--rv-fs-section-heading/.test(identidade.getAttribute('style') || ''),
+    'o rung de 20px cresceria a linha e não pode voltar');
 });
 
 test('55. MANTA continua sem Etiqueta de acabamento também no card compacto', async () => {
