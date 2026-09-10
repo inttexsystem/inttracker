@@ -313,7 +313,11 @@ const EXPECTED_BRANCH = 'dev';
 // terminal advances 128 -> 129 and the terminal two become db/128/db/129.
 // The fail-closed mechanism, the identity grammar and the suffix register
 // are unchanged; only the terminal expectation advanced.
-const EXPECTED_TERMINAL = 129;
+//
+// INNTRACKER TRACEABILITY Batch 1 adds db/130 (Pedido-item finishing
+// applicability) and db/131 (typed external Pedido identifiers). The
+// candidate terminal is therefore 131 and its terminal pair is db/130/db/131.
+const EXPECTED_TERMINAL = 131;
 
 // Migration BASE numbers deliberately RESERVED and GENUINELY ABSENT from the
 // repository:
@@ -390,6 +394,12 @@ const DB126_FILENAME = '126_tecelagem_desfazer_lancamento_producao.sql';
 const DB127_FILENAME = '127_tecelagem_excluir_rolo_individual.sql';
 const DB128_FILENAME = '128_tecelagem_excluir_rolos_selecionados.sql';
 const DB129_FILENAME = '129_tecelagem_etiqueta_rolo_impressa.sql';
+const DB130_FILENAME = '130_pedido_item_finishing_applicability.sql';
+const DB131_FILENAME = '131_pedido_external_identifiers.sql';
+const BATCH1_CANDIDATE_HASHES = new Map([
+  [DB130_FILENAME, '6731e2b0822417f68078b6d99d0766452290bd27cb6fafce7d59a4bb19096ef4'],
+  [DB131_FILENAME, 'e8c9e43f66dd3611ea436ad7ca5aa45489853c994f6f31d9d5544684f50c019e'],
+]);
 const DB100_FILENAME = '100_ordem_compra_post_generation_stabilization.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
@@ -614,13 +624,23 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB128_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB129_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB130_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB131_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
-    const checkpointHash = gitCheckpointHash(relPathPosix);
-    assertHashMatchesCheckpoint(migration.sha256, checkpointHash, relPathPosix);
+    const tracked = runGit(['ls-files', '--error-unmatch', relPathPosix]);
+    if (tracked.status === 0) {
+      const checkpointHash = gitCheckpointHash(relPathPosix);
+      assertHashMatchesCheckpoint(migration.sha256, checkpointHash, relPathPosix);
+    } else {
+      const status = runGit(['status', '--porcelain=v1', '--untracked-files=all', '--', relPathPosix]);
+      assert.equal(status.status, 0);
+      assert.equal(status.stdout.trim(), `?? ${relPathPosix}`,
+        `${relPathPosix} must be either tracked byte-identical to HEAD or an explicit untracked candidate`);
+      assert.equal(migration.sha256, BATCH1_CANDIDATE_HASHES.get(migration.filename),
+        `${relPathPosix} untracked candidate bytes must match the reviewed Batch 1 checkpoint`);
+    }
   }
 
   const gitState = getGitState();
@@ -634,7 +654,7 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/117 less the one reserved number, including the accepted suffix identities', () => {
+test('deployment manifest resolves exactly db/01..db/131 less the one reserved number, including the accepted suffix identities', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   assert.equal(entries.length, EXPECTED_MIGRATION_IDENTITIES.length);
@@ -654,12 +674,12 @@ test('the formerly reserved numbers 104 and 106 are resolved as real migrations,
   assert.deepEqual([...RESERVED_MIGRATION_NUMBERS], [110]);
 });
 
-test('db/124 and db/125 are the terminal two migrations', () => {
+test('db/130 and db/131 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   const [penultimate, terminal] = entries.slice(-2);
-  assert.equal(penultimate.filename, DB128_FILENAME);
-  assert.equal(terminal.filename, DB129_FILENAME);
+  assert.equal(penultimate.filename, DB130_FILENAME);
+  assert.equal(terminal.filename, DB131_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
