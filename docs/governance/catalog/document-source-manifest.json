@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "1d100f35b479ca8849518b3a75611a5ed0516aea",
-      "sha256": "ceecaee8c323975f4a159c4e2226ac69860a5f8e31d16c0e284bf45b4a0c5414",
+      "git_object_id": "3916858410b13e9988170f1382cb0dae20d9185e",
+      "sha256": "df1675f338e3a08b4c616a2702c07defeb264385c3a0d2575d603a70a8a0fe48",
       "line_count": 45,
-      "byte_count": 12168,
+      "byte_count": 12364,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -4976,6 +4976,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 11247,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 11259,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -79551,10 +79558,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "7fee77d8ac101faf600b32cb68f426a2bb8b6e74",
-      "sha256": "11d7637518e3dd72e7b20acf87c80fcc6292efbe8142e6632666a0faa0bc18b7",
-      "line_count": 11248,
-      "byte_count": 1701069,
+      "git_object_id": "096853840808ea3dbbfcd94d0f7313cebecddc68",
+      "sha256": "3feeb32ca82f481e22bf6acd281e7a33ecbfe024770465b72d1e587e8ee4942d",
+      "line_count": 11260,
+      "byte_count": 1703708,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86916,6 +86923,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 11247
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 11259
         }
       ],
       "inbound_references": [
@@ -90799,6 +90814,12 @@
           "text": "2026-08-03 — BACKLOG-7-RECEIPT-UX-REFOUNDATION-INTERIM-R1 — FECHAMENTO DOCUMENTAL DE ACEITACAO INTERINA",
           "anchor": "2026-08-03-backlog-7-receipt-ux-refoundation-interim-r1-fechamento-documental-de-aceitacao-interina",
           "line": 11237
+        },
+        {
+          "level": 2,
+          "text": "2026-09-11 — INNTRACKER-TRACEABILITY-BATCH-1-GOVERNANCE-RECONCILIATION-R1 — DOCUMENTARY RECONCILIATION",
+          "anchor": "2026-09-11-inntracker-traceability-batch-1-governance-reconciliation-r1-documentary-reconciliation",
+          "line": 11250
         }
       ]
     },
